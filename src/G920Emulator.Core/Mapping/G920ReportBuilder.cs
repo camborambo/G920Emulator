@@ -28,8 +28,8 @@ public static class G920ReportBuilder
         // Face/paddles: DI buttons 1–10. Paddles share LB/RB; left/right are swapped
         // vs naive bit order (left paddle = button 6 / RB bit) to match the real wheel.
         //
-        // Gears (Unbound native G920): Reverse=12, 1st=13 … 6th=18.
-        // (Not LGS shifter Reverse=19; Unbound ignores that.)
+        // Gears 1–6: LGS / G920 Driving Force Shifter buttons 13–18.
+        // Reverse: profile-selected DI button (default 19 = LGS; Unbound uses 12).
         uint buttons = 0;
         if (state.ButtonA) buttons |= 1u << 0;
         if (state.ButtonB) buttons |= 1u << 1;
@@ -43,14 +43,18 @@ public static class G920ReportBuilder
         if (state.ButtonMenu) buttons |= 1u << 7;
         if (state.ButtonLs) buttons |= 1u << 8;
         if (state.ButtonRs) buttons |= 1u << 9;
-        // bit 10 (button 11) unused
-        if (state.GearR) buttons |= 1u << 11; // Button 12 — reverse
         if (state.Gear1) buttons |= 1u << 12; // Button 13
         if (state.Gear2) buttons |= 1u << 13; // Button 14
         if (state.Gear3) buttons |= 1u << 14; // Button 15
         if (state.Gear4) buttons |= 1u << 15; // Button 16
         if (state.Gear5) buttons |= 1u << 16; // Button 17
         if (state.Gear6) buttons |= 1u << 17; // Button 18
+        if (state.GearR)
+        {
+            var reverseBtn = state.GearReverseOutputButton <= 0 ? 19 : state.GearReverseOutputButton;
+            reverseBtn = Math.Clamp(reverseBtn, 1, 19);
+            buttons |= 1u << (reverseBtn - 1);
+        }
 
         uint packed = hatNibble | (buttons << 4);
         report[1] = (byte)(packed & 0xFF);

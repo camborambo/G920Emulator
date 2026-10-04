@@ -172,11 +172,11 @@
         <TextBlock Grid.Column="3" Text="Saved" Opacity="0.7" VerticalAlignment="Center" Margin="0,0,8,0"/>
         <ComboBox x:Name="SavedProfilesCombo" Grid.Column="4" VerticalAlignment="Center" SelectionChanged="SavedProfilesCombo_SelectionChanged"/>
         <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right">
-          <Button Content="Save" Click="SaveButton_Click" ToolTip="Save to the named profile in your AppData profiles folder"/>
-          <Button Content="Save As…" Click="SaveAsButton_Click"/>
-          <Button Content="Delete" Click="DeleteProfileButton_Click"/>
-          <Button Content="Export…" Click="ExportButton_Click"/>
-          <Button Content="Import…" Click="ImportButton_Click" Margin="0"/>
+          <Button Style="{StaticResource AppButton}" Content="Save" Click="SaveButton_Click" ToolTip="Save to the named profile in your AppData profiles folder"/>
+          <Button Style="{StaticResource AppButton}" Content="Save As…" Click="SaveAsButton_Click"/>
+          <Button Style="{StaticResource AppButton}" Content="Delete" Click="DeleteProfileButton_Click"/>
+          <Button Style="{StaticResource AppButton}" Content="Export…" Click="ExportButton_Click"/>
+          <Button Style="{StaticResource AppButton}" Content="Import…" Click="ImportButton_Click" Margin="0"/>
         </StackPanel>
       </Grid>
     </Border>
@@ -185,7 +185,7 @@
     <Border x:Name="DependenciesBanner" DockPanel.Dock="Top" Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4" Margin="0,0,0,12">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Content="Recheck" Click="RecheckDependencies_Click"/>
+          <Button Style="{StaticResource AppButton}" Content="Recheck" Click="RecheckDependencies_Click"/>
           <Button x:Name="DependenciesActionButton" Content="Manage dependencies…" Click="DependenciesButton_Click"
                   Style="{StaticResource AccentButton}" Margin="0"/>
         </StackPanel>
@@ -223,9 +223,9 @@
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
           <TextBlock Text="Detected devices" FontWeight="SemiBold" VerticalAlignment="Center"/>
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Refresh" Click="RefreshButton_Click"
+            <Button Style="{StaticResource AppButton}" Content="Refresh" Click="RefreshButton_Click"
                     ToolTip="Re-scan DirectInput devices and restore any you hid with Remove"/>
-            <Button Content="Remove" Click="RemoveDevice_Click" Margin="0"
+            <Button Style="{StaticResource AppButton}" Content="Remove" Click="RemoveDevice_Click" Margin="0"
                     ToolTip="Hide the selected device from this list. Refresh to show it again."/>
           </StackPanel>
         </DockPanel>
@@ -238,7 +238,7 @@
       <DockPanel Grid.Column="2">
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
           <TextBlock Text="G920 bindings" FontWeight="SemiBold" VerticalAlignment="Center"/>
-          <Button DockPanel.Dock="Right" Content="Clear all" Click="ClearAllBindings_Click"
+          <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Clear all" Click="ClearAllBindings_Click"
                   Margin="0" HorizontalAlignment="Right"
                   ToolTip="Clear every G920 binding in this profile"/>
         </DockPanel>
@@ -306,24 +306,28 @@
                 <TextBlock x:Name="GainValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"/>
                 <Slider x:Name="GainSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1" IsSnapToTickEnabled="False" ValueChanged="GainSlider_ValueChanged"/>
               </DockPanel>
-              <CheckBox x:Name="InvertFfbCheck" Content="Invert FFB" Foreground="#E8EAED" Margin="0,8,0,0" Checked="InvertFfbCheck_Changed" Unchecked="InvertFfbCheck_Changed"/>
-              <CheckBox x:Name="FfbDebugCheck" Content="FFB debug" Foreground="#E8EAED" Margin="0,8,0,0"
-                        ToolTip="Show FFB test controls, Attach FFB, and OEM / HID++ diagnostics"
-                        Checked="FfbDebugCheck_Changed" Unchecked="FfbDebugCheck_Changed"/>
+              <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <CheckBox x:Name="InvertFfbCheck" Content="Invert FFB" Foreground="#E8EAED"
+                          Checked="InvertFfbCheck_Changed" Unchecked="InvertFfbCheck_Changed"/>
+                <CheckBox x:Name="FfbDebugCheck" Content="FFB debug" Foreground="#E8EAED" Margin="16,0,0,0"
+                          ToolTip="Show FFB test controls, Attach FFB, and OEM / HID++ diagnostics"
+                          Checked="FfbDebugCheck_Changed" Unchecked="FfbDebugCheck_Changed"/>
+              </StackPanel>
 
               <StackPanel x:Name="FfbDebugPanel" Visibility="Collapsed" Margin="0,14,0,0">
                 <TextBlock Text="FFB test" FontWeight="SemiBold" Margin="0,0,0,6"/>
                 <TextBlock Text="Sends constant force to any DirectInput FFB base (Fanatec, Simucube, Simagic, Moza, generic, etc.). No game required."
                            Opacity="0.65" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,10"/>
                 <WrapPanel Margin="0,0,0,4">
-                  <Button Content="Attach FFB" Click="FfbAttach_Click" Padding="12,6" Margin="0,0,8,8"
+                  <Button Style="{StaticResource WrapButton}" Content="Attach FFB" Click="FfbAttach_Click"
                           ToolTip="Debug: acquire the selected wheel for force feedback (Start bridge attaches automatically)"/>
-                  <Button Content="Left" Click="FfbTestLeft_Click" Padding="12,6" Margin="0,0,8,8"/>
-                  <Button Content="Center" Click="FfbTestCenter_Click" Padding="12,6" Margin="0,0,8,8"/>
-                  <Button Content="Right" Click="FfbTestRight_Click" Padding="12,6" Margin="0,0,8,8"/>
-                  <Button Content="Pulse" Click="FfbTestPulse_Click" Padding="12,6" Margin="0,0,8,8"
+                  <Button Style="{StaticResource WrapButton}" Content="Left" Click="FfbTestLeft_Click"/>
+                  <Button Style="{StaticResource WrapButton}" Content="Center" Click="FfbTestCenter_Click"/>
+                  <Button Style="{StaticResource WrapButton}" Content="Right" Click="FfbTestRight_Click"/>
+                  <Button Style="{StaticResource WrapButton}" Content="Pulse" Click="FfbTestPulse_Click"
                           ToolTip="Short left/right pulse"/>
-                  <Button Content="Release test" Click="FfbTestRelease_Click" Padding="12,6" Margin="0,0,0,8"
+                  <Button Style="{StaticResource WrapButton}" Content="Release test" Click="FfbTestRelease_Click"
+                          Margin="0,0,0,8"
                           ToolTip="Clear test override so game FFB can drive again"/>
                 </WrapPanel>
                 <DockPanel Margin="0,0,0,4">

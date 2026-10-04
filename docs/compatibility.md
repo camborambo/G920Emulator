@@ -23,11 +23,21 @@ These use the same DirectInput constant-force path as the DD2. Listed as **desig
 | Moza | Designed for |
 | Thrustmaster / Logitech / generic DI FFB | Designed for |
 
-## Games tested
+## Games tested / compatible
 
-| Game | Input | FFB | Notes |
-|------|-------|-----|--------|
-| Need for Speed Unbound | Virtual G920 recognized | OEM effects downloaded | Probed: ConstantForce, Spring, Sine, Damper. Gears R=12, 1–6=13–18. Centering spring needs physical rim angle. |
+| Game | Status | Input | FFB | Notes |
+|------|--------|-------|-----|--------|
+| Need for Speed Heat | **Tested** | Virtual G920 | OEM path used | Gears 1–6 = buttons 13–18. **Reverse: default button 19** (LGS / Driving Force Shifter). |
+| Need for Speed Unbound | **Tested** | Virtual G920 | OEM effects probed | ConstantForce, Spring, Sine, Damper. Gears 1–6 = 13–18. **Reverse: Bind Gear R → button 12**. Centering spring needs physical rim angle. |
+
+### Gear R quick reference
+
+| Game | Bind Gear R → G920 reverse button |
+|------|-----------------------------------|
+| NFS Heat (and most G920 titles) | **19** (default) |
+| NFS Unbound | **12** |
+
+See [user guide — H-pattern gears](user-guide.md#h-pattern-gears).
 
 ## Not validated yet
 

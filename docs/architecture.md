@@ -34,10 +34,10 @@ flowchart LR
 4. **VirtualG920Device** submits the report through WinUHid.
 5. The game reads the virtual G920 like any other DirectInput / HID wheel.
 
-Gear packing (Unbound-compatible):
+Gear packing:
 
-- Reverse = button **12**
-- Gears 1–6 = buttons **13–18**
+- Gears 1–6 = buttons **13–18** (LGS / Driving Force Shifter)
+- Reverse = profile `GearReverseOutputButton` (default **19** LGS; **12** for NFS Unbound)
 
 ## Force-feedback path (game → physical base)
 

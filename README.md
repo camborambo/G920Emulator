@@ -27,9 +27,9 @@ Game FFB effects  →  g920ffb.dll    →  Physical base
 |----------|--------|
 | Input | DualSense |
 | FFB base | Fanatec Clubsport DD2 |
-| Game | Need for Speed Unbound (G920 + OEM FFB effects) |
+| Games | **NFS Heat**, **NFS Unbound** (tested / compatible) |
 
-Full tables and how to extend them: [compatibility](docs/compatibility.md).
+**Gear R:** Heat uses default button **19**. Unbound needs Bind Gear R → **12**. Full matrix: [compatibility](docs/compatibility.md).
 
 ## Quick start
 
@@ -45,7 +45,7 @@ Binding changes apply while the bridge is running — no need to Stop/Start afte
 
 - Virtual G920 that games see as a normal system HID / DirectInput wheel
 - Binding UI for axes, buttons, hats, and axis→button mappings
-- H-pattern gears **R, 1–6** (Unbound-compatible button layout)
+- H-pattern gears **R, 1–6** (R defaults to button **19** / LGS; pick **12** in Bind Gear R for Unbound)
 - Force feedback via our DirectInput OEM driver (`g920ffb.dll`) — not Logitech HID++
 - JSON profiles under `%AppData%\G920Emulator\profiles` (Save / Export / Import)
 

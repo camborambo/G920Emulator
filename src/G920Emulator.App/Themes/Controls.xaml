@@ -1,9 +1,14 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-  <!-- Force custom chrome so Win11/Aero cannot replace Background with light system buttons. -->
-  <Style TargetType="Button">
+  <!--
+    Keyed base style. Windows must BasedOn this key (not {x:Type Button}) when
+    extending — a local TargetType Button BasedOn {x:Type Button} is circular
+    and drops the template (light system chrome + light text).
+  -->
+  <Style x:Key="AppButton" TargetType="Button">
     <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
     <Setter Property="Background" Value="#2A3140"/>
     <Setter Property="Foreground" Value="#E8EAED"/>
     <Setter Property="BorderBrush" Value="#3A4254"/>
@@ -49,7 +54,15 @@
     </Setter>
   </Style>
 
-  <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+  <!-- Implicit default for all buttons in scope -->
+  <Style TargetType="Button" BasedOn="{StaticResource AppButton}"/>
+
+  <!-- WrapPanel rows (Dependencies, FFB test) -->
+  <Style x:Key="WrapButton" TargetType="Button" BasedOn="{StaticResource AppButton}">
+    <Setter Property="Margin" Value="0,0,10,8"/>
+  </Style>
+
+  <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource AppButton}">
     <Setter Property="Background" Value="#1F6F4A"/>
     <Setter Property="BorderBrush" Value="#2F9E6B"/>
     <Setter Property="Foreground" Value="#FFFFFF"/>
@@ -84,7 +97,11 @@
     </Setter>
   </Style>
 
-  <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+  <Style x:Key="PrimaryWrapButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+    <Setter Property="Margin" Value="0,0,10,8"/>
+  </Style>
+
+  <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource AppButton}">
     <Setter Property="Background" Value="#6F1F2A"/>
     <Setter Property="BorderBrush" Value="#9E2F3F"/>
     <Setter Property="Foreground" Value="#FFFFFF"/>
@@ -119,7 +136,7 @@
     </Setter>
   </Style>
 
-  <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+  <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource AppButton}">
     <Setter Property="Background" Value="#3A2F1F"/>
     <Setter Property="BorderBrush" Value="#8A6A3A"/>
     <Setter Property="Foreground" Value="#F5E6C8"/>
@@ -152,6 +169,10 @@
         </ControlTemplate>
       </Setter.Value>
     </Setter>
+  </Style>
+
+  <Style x:Key="AccentWrapButton" TargetType="Button" BasedOn="{StaticResource AccentButton}">
+    <Setter Property="Margin" Value="0,0,10,8"/>
   </Style>
 
 </ResourceDictionary>

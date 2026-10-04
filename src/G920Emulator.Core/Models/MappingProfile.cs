@@ -16,6 +16,13 @@ public sealed class MappingProfile
     public ShifterMode ShifterMode { get; set; } = ShifterMode.ExclusiveHPattern;
     public double FfbGain { get; set; } = 1.0;
     public bool FfbInvert { get; set; }
+
+    /// <summary>
+    /// Virtual G920 DI button asserted for Gear R (1–19).
+    /// Default 19 = official G920 + Driving Force Shifter (LGS). Use 12 for NFS Unbound.
+    /// </summary>
+    public int GearReverseOutputButton { get; set; } = 19;
+
     public List<Binding> Bindings { get; set; } = [];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -65,6 +72,7 @@ public sealed class MappingProfile
 
     public void NormalizeBindings()
     {
+        GearReverseOutputButton = Math.Clamp(GearReverseOutputButton <= 0 ? 19 : GearReverseOutputButton, 1, 19);
         foreach (var binding in Bindings)
             binding.Normalize();
     }

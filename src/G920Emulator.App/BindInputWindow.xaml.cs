@@ -9,6 +9,7 @@ public partial class BindInputWindow : Window
 {
     private readonly G920Control _target;
     private readonly Binding _binding;
+    private readonly MappingProfile _profile;
     private readonly Func<IReadOnlyDictionary<string, DeviceState>> _poll;
     private readonly Action _refreshDevices;
     private readonly Func<string?, string> _resolveName;
@@ -16,6 +17,7 @@ public partial class BindInputWindow : Window
     private readonly bool _wantsAxis;
     private readonly bool _wantsHat;
     private readonly bool _wantsButton;
+    private readonly bool _isGearR;
     private readonly ObservableCollection<SourceRow> _sources = [];
 
     private Dictionary<string, DeviceState> _baseline = new();
@@ -25,6 +27,7 @@ public partial class BindInputWindow : Window
     public BindInputWindow(
         G920Control target,
         Binding binding,
+        MappingProfile profile,
         Func<IReadOnlyDictionary<string, DeviceState>> poll,
         Action refreshDevices,
         Func<string?, string> resolveName)
@@ -32,12 +35,14 @@ public partial class BindInputWindow : Window
         InitializeComponent();
         _target = target;
         _binding = binding;
+        _profile = profile;
         _poll = poll;
         _refreshDevices = refreshDevices;
         _resolveName = resolveName;
         _wantsAxis = G920ControlInfo.IsAxis(target);
         _wantsHat = target == G920Control.Hat;
         _wantsButton = !_wantsAxis && !_wantsHat;
+        _isGearR = target == G920Control.GearR;
 
         TitleText.Text = $"Bind {G920ControlInfo.DisplayName(target)}";
         InvertCheck.IsChecked = binding.Invert;
@@ -47,6 +52,7 @@ public partial class BindInputWindow : Window
         foreach (var source in binding.EffectiveSources)
             _sources.Add(new SourceRow(CloneSource(source)!, _resolveName, _wantsAxis));
 
+        ConfigureGearReverseUi();
         ConfigureThresholdUi(binding.Deadzone);
 
         HintText.Text = _wantsAxis
@@ -62,6 +68,31 @@ public partial class BindInputWindow : Window
 
         Loaded += OnLoaded;
         Closed += (_, _) => _listenTimer.Stop();
+    }
+
+    private void ConfigureGearReverseUi()
+    {
+        if (!_isGearR || GearReversePanel is null || GearReverseButtonCombo is null)
+            return;
+
+        GearReversePanel.Visibility = Visibility.Visible;
+        Height = 580;
+
+        var items = new List<GearReverseOption>();
+        for (var btn = 1; btn <= 19; btn++)
+        {
+            var label = btn switch
+            {
+                19 => "19 — G920 / LGS (default)",
+                12 => "12 — NFS Unbound",
+                _ => btn.ToString(),
+            };
+            items.Add(new GearReverseOption(btn, label));
+        }
+
+        GearReverseButtonCombo.ItemsSource = items;
+        var selected = Math.Clamp(_profile.GearReverseOutputButton <= 0 ? 19 : _profile.GearReverseOutputButton, 1, 19);
+        GearReverseButtonCombo.SelectedItem = items.First(i => i.Button == selected);
     }
 
     private void ConfigureThresholdUi(double savedDeadzone)
@@ -283,10 +314,15 @@ public partial class BindInputWindow : Window
                 : 0;
         }
 
+        if (_isGearR && GearReverseButtonCombo?.SelectedItem is GearReverseOption opt)
+            _profile.GearReverseOutputButton = opt.Button;
+
         Applied = true;
         DialogResult = true;
         Close();
     }
+
+    private sealed record GearReverseOption(int Button, string Label);
 
     private static bool SameSource(SourceRef a, SourceRef b) =>
         string.Equals(a.DeviceId, b.DeviceId, StringComparison.OrdinalIgnoreCase) &&

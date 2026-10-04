@@ -126,8 +126,6 @@ public partial class MainWindow : Window
                 $"{string.Join(" and ", missing)} required and missing. Mapping preview still works, but install them before playing.";
             StatusText.Text = $"{string.Join(" + ", missing)} missing — open Dependencies…";
         }
-
-        DriverText.Text = string.Join(" | ", report.Items.Select(i => $"{i.Name}: {i.StatusLabel}"));
     }
 
     private void DependenciesButton_Click(object sender, RoutedEventArgs e)
@@ -259,7 +257,7 @@ public partial class MainWindow : Window
         foreach (var control in G920ControlInfo.UiOrder)
         {
             var binding = _profile.GetOrCreate(control);
-            _bindings.Add(new BindingRow(control, binding, ResolveDeviceName));
+            _bindings.Add(new BindingRow(control, binding, ResolveDeviceName, () => _profile.GearReverseOutputButton));
         }
         if (selected is G920Control target)
             BindingList.SelectedItem = _bindings.FirstOrDefault(b => b.Target == target);
@@ -774,6 +772,7 @@ public partial class MainWindow : Window
             var dlg = new BindInputWindow(
                 target,
                 binding,
+                _profile,
                 () => _bridge.InputHub.Poll(),
                 () => _bridge.RefreshDevices(),
                 ResolveDeviceName)
@@ -850,11 +849,18 @@ public partial class MainWindow : Window
         private readonly Binding _binding;
         private readonly Func<string?, string> _nameResolver;
 
-        public BindingRow(G920Control target, Binding binding, Func<string?, string> nameResolver)
+        private readonly Func<int> _gearReverseButton;
+
+        public BindingRow(
+            G920Control target,
+            Binding binding,
+            Func<string?, string> nameResolver,
+            Func<int> gearReverseButton)
         {
             Target = target;
             _binding = binding;
             _nameResolver = nameResolver;
+            _gearReverseButton = gearReverseButton;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -898,14 +904,17 @@ public partial class MainWindow : Window
         {
             get
             {
+                var outBtn = Target == G920Control.GearR
+                    ? $" → btn {Math.Clamp(_gearReverseButton() <= 0 ? 19 : _gearReverseButton(), 1, 19)}"
+                    : "";
                 var sources = _binding.EffectiveSources;
-                if (sources.Count == 0) return "(click to bind)";
+                if (sources.Count == 0) return "(click to bind)" + outBtn;
                 var inv = _binding.Invert ? " · inverted" : "";
                 var thr = HasAxisSource && !IsAxisTarget ? $" · thr {Deadzone:P0}" : "";
                 if (sources.Count == 1)
-                    return FormatSource(sources[0], _nameResolver, IsAxisTarget) + thr + inv;
+                    return FormatSource(sources[0], _nameResolver, IsAxisTarget) + thr + inv + outBtn;
                 var parts = sources.Select(s => FormatSource(s, _nameResolver, IsAxisTarget));
-                return string.Join(" + ", parts) + thr + inv;
+                return string.Join(" + ", parts) + thr + inv + outBtn;
             }
         }
     }

@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Bind input"
         Icon="pack://application:,,,/Assets/app.ico"
-        Height="500" Width="500"
-        MinHeight="440" MinWidth="460"
+        Height="520" Width="520"
+        MinHeight="440" MinWidth="480"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#121418"
@@ -30,9 +30,9 @@
 
   <DockPanel Margin="20">
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-      <Button Content="Clear all" Click="Clear_Click" ToolTip="Remove every source from this binding"/>
-      <Button Content="Cancel" Click="Cancel_Click"/>
-      <Button Content="OK" Click="Ok_Click" Style="{StaticResource PrimaryButton}" Margin="0" IsDefault="True"/>
+      <Button Style="{StaticResource AppButton}" Content="Clear all" Click="Clear_Click" ToolTip="Remove every source from this binding"/>
+      <Button Style="{StaticResource AppButton}" Content="Cancel" Click="Cancel_Click"/>
+      <Button Style="{StaticResource PrimaryButton}" Content="OK" Click="Ok_Click" Margin="0" IsDefault="True"/>
     </StackPanel>
 
     <StackPanel>
@@ -42,11 +42,18 @@
 
       <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6">
         <DockPanel>
-          <Button DockPanel.Dock="Right" Content="Remove selected" Click="RemoveSelected_Click"
+          <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Remove selected" Click="RemoveSelected_Click"
                   Margin="10,0,0,0" VerticalAlignment="Top"/>
           <ListBox x:Name="SourcesList" MinHeight="120" DisplayMemberPath="Display"/>
         </DockPanel>
       </Border>
+
+      <StackPanel x:Name="GearReversePanel" Visibility="Collapsed" Margin="0,14,0,0">
+        <TextBlock Text="G920 reverse button" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <ComboBox x:Name="GearReverseButtonCombo" DisplayMemberPath="Label"/>
+        <TextBlock Opacity="0.65" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
+                   Text="Most games use button 19 (official G920 + Driving Force Shifter). NFS Unbound uses button 12."/>
+      </StackPanel>
 
       <CheckBox x:Name="InvertCheck" Content="Invert"/>
       <StackPanel x:Name="DeadzonePanel" Margin="0,12,0,0">

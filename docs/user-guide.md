@@ -50,12 +50,16 @@ Tips:
 
 ### H-pattern gears
 
-Bind **Gear R** and **Gear 1–6**. Report packing matches Unbound / Driving Force Shifter style:
+Bind **Gear R** and **Gear 1–6**. Gears 1–6 always map to G920 buttons **13–18** (official Driving Force Shifter).
 
-| Gear | G920 button |
-|------|-------------|
-| R | 12 |
-| 1–6 | 13–18 |
+**Gear R** output button is selectable in the Bind Gear R dialog (saved on the profile):
+
+| Setting | G920 button | Use when |
+|---------|-------------|----------|
+| **19** (default) | Official G920 / LGS reverse | **NFS Heat** and most titles |
+| **12** | Unbound native reverse | **NFS Unbound** only (required for reverse to work there) |
+
+If reverse works in Heat but not Unbound (or the reverse), change this setting — gears 1–6 stay on 13–18 either way.
 
 **Shifter mode** (Force feedback panel):
 

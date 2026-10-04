@@ -32,6 +32,8 @@ public sealed class MapperEngine
             Gear5 = ReadButton(profile, devices, G920Control.Gear5),
             Gear6 = ReadButton(profile, devices, G920Control.Gear6),
             GearR = ReadButton(profile, devices, G920Control.GearR),
+            GearReverseOutputButton = Math.Clamp(
+                profile.GearReverseOutputButton <= 0 ? 19 : profile.GearReverseOutputButton, 1, 19),
         };
 
         if (profile.ShifterMode == ShifterMode.ExclusiveHPattern)

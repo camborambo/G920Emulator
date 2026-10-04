@@ -31,8 +31,8 @@
       <TextBlock Opacity="0.65" TextWrapping="Wrap" Margin="0,0,0,12"
                  Text="Copies WinUHid.dll, enables test signing if needed (reboot once), registers the driver, and creates the Root\WinUHid device (works even when pnputil /add-device is missing). Approve UAC prompts."/>
       <DockPanel>
-        <Button DockPanel.Dock="Right" Content="Close" Width="110" Click="Close_Click" Margin="0"/>
-        <Button DockPanel.Dock="Right" Content="Recheck" Width="110" Click="Recheck_Click" Margin="0,0,10,0"/>
+        <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Close" Width="110" Click="Close_Click" Margin="0"/>
+        <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Recheck" Width="110" Click="Recheck_Click" Margin="0,0,10,0"/>
         <TextBlock x:Name="FooterText" Opacity="0.65" VerticalAlignment="Center" TextWrapping="Wrap"/>
       </DockPanel>
     </StackPanel>
