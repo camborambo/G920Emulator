@@ -1,0 +1,22 @@
+bin/
+obj/
+dist/
+.vs/
+third_party/
+**/packages/
+*.user
+*.suo
+*.dll
+!**/SharpDX*.dll
+!native/winuhid/**
+tools/wdk-nuget/
+*.log
+
+# Local probe dumps / vendored forks (not part of the app source)
+artifacts/xinput-ffb-driver/
+artifacts/lghub-probe/g920_extracted/
+artifacts/lghub-probe/driver_*/
+artifacts/lghub-probe/*.log
+artifacts/lghub-probe/*.out.txt
+artifacts/lghub-probe/*-bind.log
+CHAT_HANDOFF.md

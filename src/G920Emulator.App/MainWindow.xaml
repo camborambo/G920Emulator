@@ -1,0 +1,352 @@
+<Window x:Class="G920Emulator.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="G920 Emulator"
+        Icon="pack://application:,,,/Assets/app.ico"
+        Height="760" Width="1140"
+        MinHeight="640" MinWidth="960"
+        Background="#121418"
+        Foreground="#E8EAED"
+        FontFamily="Segoe UI">
+  <Window.Resources>
+    <!-- Buttons use App.xaml rounded template. -->
+    <Style TargetType="ListBox">
+      <Setter Property="Background" Value="#1A1F29"/>
+      <Setter Property="BorderBrush" Value="#2A3140"/>
+      <Setter Property="Foreground" Value="#E8EAED"/>
+    </Style>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="#1A1F29"/>
+      <Setter Property="Foreground" Value="#E8EAED"/>
+      <Setter Property="BorderBrush" Value="#2A3140"/>
+      <Setter Property="Padding" Value="6,4"/>
+      <Setter Property="CaretBrush" Value="#E8EAED"/>
+    </Style>
+    <!-- Force dark popup chrome; default ComboBox uses system Window brush (white) with our light text. -->
+    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1A1F29"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#E8EAED"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2A4554"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#E8EAED"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#1A1F29"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#E8EAED"/>
+
+    <Style TargetType="ComboBoxItem">
+      <Setter Property="Background" Value="#1A1F29"/>
+      <Setter Property="Foreground" Value="#E8EAED"/>
+      <Setter Property="Padding" Value="8,4"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBoxItem">
+            <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="Center"
+                                TextElement.Foreground="{TemplateBinding Foreground}"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="Bd" Property="Background" Value="#2A4554"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="#888888"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="28"/>
+        </Grid.ColumnDefinitions>
+        <Border x:Name="Border" Grid.ColumnSpan="2"
+                Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" CornerRadius="2"/>
+        <Path Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+              Data="M 0 0 L 6 6 L 12 0" Stroke="#E8EAED" StrokeThickness="1.5"/>
+      </Grid>
+      <ControlTemplate.Triggers>
+        <Trigger Property="IsMouseOver" Value="True">
+          <Setter TargetName="Border" Property="Background" Value="#222836"/>
+        </Trigger>
+        <Trigger Property="IsChecked" Value="True">
+          <Setter TargetName="Border" Property="Background" Value="#222836"/>
+        </Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style TargetType="ComboBox">
+      <Setter Property="Background" Value="#1A1F29"/>
+      <Setter Property="Foreground" Value="#E8EAED"/>
+      <Setter Property="BorderBrush" Value="#2A3140"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="8,5"/>
+      <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+      <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBox">
+            <Grid>
+              <ToggleButton x:Name="ToggleButton"
+                            Template="{StaticResource ComboBoxToggleButton}"
+                            Focusable="False"
+                            IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                            ClickMode="Press"/>
+              <ContentPresenter x:Name="ContentSite"
+                                IsHitTestVisible="False"
+                                Margin="8,5,32,5"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center"
+                                Content="{TemplateBinding SelectionBoxItem}"
+                                ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                TextElement.Foreground="#E8EAED"/>
+              <Popup x:Name="Popup"
+                     Placement="Bottom"
+                     IsOpen="{TemplateBinding IsDropDownOpen}"
+                     AllowsTransparency="True"
+                     Focusable="False"
+                     PopupAnimation="Slide">
+                <Grid x:Name="DropDown"
+                      MinWidth="{TemplateBinding ActualWidth}"
+                      MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                      SnapsToDevicePixels="True">
+                  <Border x:Name="DropDownBorder"
+                          Background="#1A1F29"
+                          BorderBrush="#2A3140"
+                          BorderThickness="1"/>
+                  <ScrollViewer Margin="1" SnapsToDevicePixels="True">
+                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                  </ScrollViewer>
+                </Grid>
+              </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="HasItems" Value="False">
+                <Setter TargetName="DropDownBorder" Property="MinHeight" Value="40"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="#888888"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+
+  <DockPanel Margin="16">
+    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+      <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Top">
+        <Button x:Name="StartButton" Content="Start bridge" Click="StartButton_Click"
+                Background="#1F6F4A" BorderBrush="#2F9E6B" Foreground="#FFFFFF" FontWeight="SemiBold"/>
+        <Button x:Name="StopButton" Content="Stop" Click="StopButton_Click" IsEnabled="False"
+                Background="#6F1F2A" BorderBrush="#9E2F3F" Foreground="#FFFFFF" Margin="0"/>
+      </StackPanel>
+      <StackPanel>
+        <TextBlock Text="G920 Emulator" FontSize="28" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
+        <TextBlock Text="Forward any wheel, pedals, and H-shifter into a virtual Logitech G920" Opacity="0.7" Margin="0,2,0,0"/>
+      </StackPanel>
+    </DockPanel>
+
+    <!-- Profile bar -->
+    <Border DockPanel.Dock="Top" Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4" Margin="0,0,0,12">
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="180"/>
+          <ColumnDefinition Width="12"/>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="200"/>
+          <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="Profile" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+        <TextBox x:Name="ProfileNameBox" Grid.Column="1" VerticalAlignment="Center" ToolTip="Profile name"/>
+        <TextBlock Grid.Column="3" Text="Saved" Opacity="0.7" VerticalAlignment="Center" Margin="0,0,8,0"/>
+        <ComboBox x:Name="SavedProfilesCombo" Grid.Column="4" VerticalAlignment="Center" SelectionChanged="SavedProfilesCombo_SelectionChanged"/>
+        <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button Content="Save" Click="SaveButton_Click" ToolTip="Save to the named profile in your AppData profiles folder"/>
+          <Button Content="Save As…" Click="SaveAsButton_Click"/>
+          <Button Content="Delete" Click="DeleteProfileButton_Click"/>
+          <Button Content="Export…" Click="ExportButton_Click"/>
+          <Button Content="Import…" Click="ImportButton_Click" Margin="0"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Dependencies status -->
+    <Border x:Name="DependenciesBanner" DockPanel.Dock="Top" Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4" Margin="0,0,0,12">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Content="Recheck" Click="RecheckDependencies_Click"/>
+          <Button x:Name="DependenciesActionButton" Content="Manage dependencies…" Click="DependenciesButton_Click"
+                  Background="#8A6A3A" BorderBrush="#C4A36A" Foreground="#FFFFFF" Margin="0"/>
+        </StackPanel>
+        <StackPanel Margin="0,0,12,0">
+          <TextBlock Text="Dependencies" FontWeight="SemiBold" Margin="0,0,0,8"/>
+          <StackPanel Orientation="Horizontal">
+            <Border x:Name="WinUHidChip" CornerRadius="4" Padding="10,5" Margin="0,0,8,0">
+              <TextBlock x:Name="WinUHidChipText" FontWeight="SemiBold"/>
+            </Border>
+            <Border x:Name="HidHideChip" CornerRadius="4" Padding="10,5">
+              <TextBlock x:Name="HidHideChipText" FontWeight="SemiBold"/>
+            </Border>
+          </StackPanel>
+          <TextBlock x:Name="DependenciesSummaryText" Opacity="0.7" Margin="0,8,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <StatusBar DockPanel.Dock="Bottom" Background="#0E1116" Foreground="#AAB0BB" Margin="0,12,0,0">
+      <StatusBarItem>
+        <TextBlock x:Name="StatusText" Text="Ready"/>
+      </StatusBarItem>
+    </StatusBar>
+
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="1.1*"/>
+        <ColumnDefinition Width="12"/>
+        <ColumnDefinition Width="1.2*"/>
+        <ColumnDefinition Width="12"/>
+        <ColumnDefinition Width="0.9*"/>
+      </Grid.ColumnDefinitions>
+
+      <DockPanel Grid.Column="0">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+          <TextBlock Text="Detected devices" FontWeight="SemiBold" VerticalAlignment="Center"/>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Refresh" Click="RefreshButton_Click"
+                    Margin="0,0,6,0" Padding="10,4"
+                    ToolTip="Re-scan DirectInput devices and restore any you hid with Remove"/>
+            <Button Content="Remove" Click="RemoveDevice_Click"
+                    Margin="0" Padding="10,4"
+                    ToolTip="Hide the selected device from this list. Refresh to show it again."/>
+          </StackPanel>
+        </DockPanel>
+        <TextBlock DockPanel.Dock="Bottom" x:Name="BindHintText"
+                   Text="Click a G920 binding to capture inputs. Buttons also accept axes (axis→button)."
+                   Opacity="0.65" TextWrapping="Wrap" Margin="0,8,0,0"/>
+        <ListBox x:Name="DeviceList" DisplayMemberPath="Display"/>
+      </DockPanel>
+
+      <DockPanel Grid.Column="2">
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+          <TextBlock Text="G920 bindings" FontWeight="SemiBold" VerticalAlignment="Center"/>
+          <Button DockPanel.Dock="Right" Content="Clear all" Click="ClearAllBindings_Click"
+                  Margin="0" Padding="10,4" HorizontalAlignment="Right"
+                  ToolTip="Clear every G920 binding in this profile"/>
+        </DockPanel>
+        <ListBox x:Name="BindingList" MouseLeftButtonUp="BindingList_MouseLeftButtonUp">
+          <ListBox.ItemContainerStyle>
+            <Style TargetType="ListBoxItem">
+              <Setter Property="Padding" Value="8,6"/>
+              <Setter Property="Cursor" Value="Hand"/>
+              <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            </Style>
+          </ListBox.ItemContainerStyle>
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="*"/>
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="{Binding TargetName}" FontWeight="SemiBold"/>
+                  <TextBlock Grid.Column="1" Text="{Binding SourceText}" Opacity="0.85" TextTrimming="CharacterEllipsis"/>
+                </Grid>
+                <DockPanel Margin="0,6,0,0" Visibility="{Binding DeadzoneVisibility}">
+                  <TextBlock Text="{Binding DeadzoneLabel}" Width="72" Opacity="0.7" VerticalAlignment="Center" FontSize="12"/>
+                  <TextBlock DockPanel.Dock="Right" Text="{Binding DeadzoneText}" Width="36"
+                             Opacity="0.85" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="12"/>
+                  <Slider Minimum="{Binding DeadzoneMinimum}" Maximum="{Binding DeadzoneMaximum}"
+                          TickFrequency="0.01" IsSnapToTickEnabled="False"
+                          Value="{Binding Deadzone, Mode=TwoWay}"
+                          Margin="8,0"
+                          ToolTip="{Binding DeadzoneToolTip}"
+                          PreviewMouseLeftButtonDown="DeadzoneSlider_PreviewMouseLeftButtonDown"/>
+                </DockPanel>
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+
+      <ScrollViewer Grid.Column="4" VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+          <TextBlock Text="Live virtual G920" FontWeight="SemiBold" Margin="0,0,0,8"/>
+          <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4">
+            <StackPanel>
+              <TextBlock x:Name="GearText" Text="Gear: N" FontSize="22" FontWeight="Bold" FontFamily="Bahnschrift"/>
+              <TextBlock x:Name="SteerText" Text="Steering: 0.00" Margin="0,8,0,0"/>
+              <ProgressBar x:Name="SteerBar" Height="8" Minimum="-1" Maximum="1" Value="0" Margin="0,4,0,0"/>
+              <TextBlock x:Name="ThrottleText" Text="Throttle: 0%" Margin="0,8,0,0"/>
+              <ProgressBar x:Name="ThrottleBar" Height="8" Minimum="0" Maximum="1" Value="0" Margin="0,4,0,0"/>
+              <TextBlock x:Name="BrakeText" Text="Brake: 0%" Margin="0,8,0,0"/>
+              <ProgressBar x:Name="BrakeBar" Height="8" Minimum="0" Maximum="1" Value="0" Margin="0,4,0,0"/>
+              <TextBlock x:Name="ClutchText" Text="Clutch: 0%" Margin="0,8,0,0"/>
+              <ProgressBar x:Name="ClutchBar" Height="8" Minimum="0" Maximum="1" Value="0" Margin="0,4,0,0"/>
+              <TextBlock x:Name="ButtonsText" Text="Buttons: —" Margin="0,10,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+          </Border>
+
+          <TextBlock Text="Force feedback" FontWeight="SemiBold" Margin="0,16,0,8"/>
+          <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4">
+            <StackPanel>
+              <TextBlock Text="FFB output device" Opacity="0.7" Margin="0,0,0,4"/>
+              <ComboBox x:Name="FfbDeviceCombo" DisplayMemberPath="Display" SelectionChanged="FfbDeviceCombo_SelectionChanged"/>
+              <DockPanel Margin="0,10,0,0">
+                <TextBlock Text="Gain" Width="40" VerticalAlignment="Center"/>
+                <TextBlock x:Name="GainValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"/>
+                <Slider x:Name="GainSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1" IsSnapToTickEnabled="False" ValueChanged="GainSlider_ValueChanged"/>
+              </DockPanel>
+              <CheckBox x:Name="InvertFfbCheck" Content="Invert FFB" Foreground="#E8EAED" Margin="0,8,0,0" Checked="InvertFfbCheck_Changed" Unchecked="InvertFfbCheck_Changed"/>
+              <CheckBox x:Name="FfbDebugCheck" Content="FFB debug" Foreground="#E8EAED" Margin="0,8,0,0"
+                        ToolTip="Show FFB test controls, Attach FFB, and OEM / HID++ diagnostics"
+                        Checked="FfbDebugCheck_Changed" Unchecked="FfbDebugCheck_Changed"/>
+
+              <StackPanel x:Name="FfbDebugPanel" Visibility="Collapsed" Margin="0,14,0,0">
+                <TextBlock Text="FFB test" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                <TextBlock Text="Sends constant force to any DirectInput FFB base (Fanatec, Simucube, Simagic, Moza, generic, etc.). No game required."
+                           Opacity="0.65" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,10"/>
+                <WrapPanel Margin="0,0,0,4">
+                  <Button Content="Attach FFB" Click="FfbAttach_Click" Padding="12,6" Margin="0,0,8,8"
+                          ToolTip="Debug: acquire the selected wheel for force feedback (Start bridge attaches automatically)"/>
+                  <Button Content="Left" Click="FfbTestLeft_Click" Padding="12,6" Margin="0,0,8,8"/>
+                  <Button Content="Center" Click="FfbTestCenter_Click" Padding="12,6" Margin="0,0,8,8"/>
+                  <Button Content="Right" Click="FfbTestRight_Click" Padding="12,6" Margin="0,0,8,8"/>
+                  <Button Content="Pulse" Click="FfbTestPulse_Click" Padding="12,6" Margin="0,0,8,8"
+                          ToolTip="Short left/right pulse"/>
+                  <Button Content="Release test" Click="FfbTestRelease_Click" Padding="12,6" Margin="0,0,0,8"
+                          ToolTip="Clear test override so game FFB can drive again"/>
+                </WrapPanel>
+                <DockPanel Margin="0,0,0,4">
+                  <TextBlock Text="Test torque" Width="72" VerticalAlignment="Center"/>
+                  <TextBlock x:Name="FfbTestTorqueValueText" DockPanel.Dock="Right" Width="48"
+                             Text="0%" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                  <Slider x:Name="FfbTestTorqueSlider" Minimum="-1" Maximum="1" Value="0"
+                          TickFrequency="0.05" IsSnapToTickEnabled="False"
+                          ValueChanged="FfbTestTorqueSlider_ValueChanged"/>
+                </DockPanel>
+                <TextBlock x:Name="FfbDiagText" Opacity="0.8" FontSize="11" TextWrapping="Wrap"
+                           FontFamily="Consolas" Margin="0,8,0,0"
+                           Text="FFB diagnostics will appear here."/>
+              </StackPanel>
+
+              <TextBlock Text="Shifter mode" Opacity="0.7" Margin="0,12,0,4"/>
+              <ComboBox x:Name="ShifterModeCombo" SelectionChanged="ShifterModeCombo_SelectionChanged">
+                <ComboBoxItem Content="Exclusive H-pattern" Tag="ExclusiveHPattern" IsSelected="True"/>
+                <ComboBoxItem Content="Passthrough" Tag="Passthrough"/>
+              </ComboBox>
+            </StackPanel>
+          </Border>
+
+          <TextBlock x:Name="DriverText" Text="" Opacity="0.65" TextWrapping="Wrap" Margin="0,16,0,0"/>
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </DockPanel>
+</Window>

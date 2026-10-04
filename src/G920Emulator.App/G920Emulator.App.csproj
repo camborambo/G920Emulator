@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>G920Emulator.App</RootNamespace>
+    <AssemblyName>G920Emulator</AssemblyName>
+    <AssemblyTitle>G920 Emulator</AssemblyTitle>
+    <Product>G920 Emulator</Product>
+    <Company>G920 Emulator</Company>
+    <Description>Map any wheel, pedals, and H-shifter to a virtual Logitech G920</Description>
+    <Version>0.1.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- Applied by publish.ps1 / `dotnet publish -r win-x64` -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\G920Emulator.Core\G920Emulator.Core.csproj" />
+    <ProjectReference Include="..\G920Emulator.VirtualHid\G920Emulator.VirtualHid.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\profiles\default.json" Link="profiles\default.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\docs\driver-install.md" Link="docs\driver-install.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\native\README.md" Link="native\README.md" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Bundled WinUHid package (no download required) -->
+    <None Include="..\..\native\winuhid\**\*" Link="winuhid\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\native\winuhid\WinUHid.dll" Link="WinUHid.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\native\winuhid\WinUHid.dll')" />
+  </ItemGroup>
+</Project>

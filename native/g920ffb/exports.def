@@ -1,0 +1,5 @@
+LIBRARY "g920ffb.dll"
+
+EXPORTS
+	DllGetClassObject	PRIVATE
+	DllCanUnloadNow		PRIVATE

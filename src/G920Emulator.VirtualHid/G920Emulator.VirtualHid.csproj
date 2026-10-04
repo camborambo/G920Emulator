@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>G920Emulator.VirtualHid</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\G920Emulator.Core\G920Emulator.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\native\README.md" Link="native\README.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
