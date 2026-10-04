@@ -47,7 +47,7 @@ Binding changes apply while the bridge is running — no need to Stop/Start afte
 - Binding UI for axes, buttons, hats, and axis→button mappings
 - H-pattern gears **R, 1–6** (R defaults to button **19** / LGS; pick **12** in Bind Gear R for Unbound)
 - Force feedback via our DirectInput OEM driver (`g920ffb.dll`) — not Logitech HID++
-- JSON profiles under `%AppData%\G920Emulator\profiles` (Save / Export / Import)
+- JSON profiles in `profiles\` next to the exe (Save / Export / Import; AppData fallback if that folder is not writable)
 
 ## Requirements
 
@@ -80,7 +80,7 @@ src/G920Emulator.Core         Input hub, mapper, bridge, FFB apply
 src/G920Emulator.VirtualHid   WinUHid + G920 identity + OEM registration
 native/g920ffb                DirectInput OEM EffectDriver (g920ffb.dll)
 docs/                         User and technical guides
-profiles/                     Sample JSON profiles
+profiles/                     Profile JSON (default.json starter + your saves)
 ```
 
 ## License

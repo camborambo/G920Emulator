@@ -59,4 +59,7 @@ Research notes: [research-logitech-g920.md](research-logitech-g920.md).
 
 ## Profiles
 
-Mapping profiles are JSON under `%AppData%\G920Emulator\profiles`. The UI supports Save / Save As / Delete / Export / Import and a Saved dropdown. Sample profiles may also ship under `profiles/` in the repo.
+- **Storage:** `profiles\*.json` next to the exe (Save / Save As / Delete / Import). `settings.json` sits beside the exe.
+- **Starter:** `profiles/default.json` ships with the publish output and is a normal editable profile.
+- **Fallback:** if the install directory is not writable, `%AppData%\G920Emulator\profiles` is used; older AppData / `N4Sunbound` profiles are migrated in when possible.
+- UI: Saved dropdown plus Export / Import for portable JSON.

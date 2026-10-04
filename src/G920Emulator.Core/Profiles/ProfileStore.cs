@@ -14,25 +14,62 @@ public sealed class ProfileStore
     public string ProfilesDirectory { get; }
     public string SettingsPath { get; }
 
+    /// <summary>
+    /// True when profiles/settings live next to the exe; false when falling back to AppData
+    /// (e.g. install directory is not writable).
+    /// </summary>
+    public bool UsesPortableStorage { get; }
+
     public ProfileStore()
     {
-        var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        var root = Path.Combine(appData, "G920Emulator");
+        var appDataRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "G920Emulator");
+
+        var portableRoot = AppContext.BaseDirectory.TrimEnd(
+            Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        UsesPortableStorage = TryEnsureWritableProfilesDir(portableRoot);
+
+        var root = UsesPortableStorage ? portableRoot : appDataRoot;
         ProfilesDirectory = Path.Combine(root, "profiles");
         SettingsPath = Path.Combine(root, "settings.json");
         Directory.CreateDirectory(ProfilesDirectory);
-        MigrateFromLegacy(Path.Combine(appData, "N4Sunbound"), root);
+
+        // Prefer local folder; pull older AppData / N4Sunbound saves in without overwriting.
+        if (UsesPortableStorage)
+            MigrateFolder(appDataRoot, root);
+        MigrateFolder(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "N4Sunbound"), root);
     }
 
-    private static void MigrateFromLegacy(string legacyRoot, string newRoot)
+    private static bool TryEnsureWritableProfilesDir(string root)
     {
         try
         {
-            if (!Directory.Exists(legacyRoot) || !Directory.Exists(newRoot))
+            var profiles = Path.Combine(root, "profiles");
+            Directory.CreateDirectory(profiles);
+            var probe = Path.Combine(profiles, ".write-test");
+            File.WriteAllText(probe, "ok");
+            File.Delete(probe);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static void MigrateFolder(string legacyRoot, string newRoot)
+    {
+        try
+        {
+            if (!Directory.Exists(legacyRoot))
                 return;
 
             var legacyProfiles = Path.Combine(legacyRoot, "profiles");
             var newProfiles = Path.Combine(newRoot, "profiles");
+            Directory.CreateDirectory(newProfiles);
             if (Directory.Exists(legacyProfiles))
             {
                 foreach (var file in Directory.EnumerateFiles(legacyProfiles, "*.json"))
@@ -50,7 +87,7 @@ public sealed class ProfileStore
         }
         catch
         {
-            // Best-effort rename migration only.
+            // Best-effort migration only.
         }
     }
 
@@ -116,13 +153,6 @@ public sealed class ProfileStore
         var first = ListProfiles().FirstOrDefault();
         if (first is not null)
             return Load(first);
-
-        var bundled = Path.Combine(AppContext.BaseDirectory, "profiles", "default.json");
-        if (File.Exists(bundled))
-        {
-            try { return MappingProfile.Load(bundled); }
-            catch { /* fall through */ }
-        }
 
         return MappingProfile.CreateDefault();
     }

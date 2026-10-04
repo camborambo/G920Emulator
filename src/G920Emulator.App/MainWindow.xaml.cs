@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -139,6 +140,18 @@ public partial class MainWindow : Window
     {
         UpdateDependencyUi();
         StatusText.Text = "Dependency check refreshed.";
+    }
+
+    private void AboutButton_Click(object sender, RoutedEventArgs e)
+    {
+        var window = new AboutWindow { Owner = this };
+        window.ShowDialog();
+    }
+
+    private void AuthorLink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        e.Handled = true;
     }
 
     private void RefreshDevices(bool restoreHidden = false)

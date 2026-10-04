@@ -20,7 +20,7 @@ Approve UAC when prompted (WinUHid requires elevation to open the device).
 1. Open **Dependencies** (banner **Manage dependencies…** or **Fix dependencies…**).
 2. **Install WinUHid** → Recheck until installed/ready.
 3. Install HidHide if missing → **Configure HidHide** (whitelists this app, cloaks, hides pads/wheels; keeps virtual G920 visible).
-4. Create a profile name → **Save** (stored under `%AppData%\G920Emulator\profiles`).
+4. Create a profile name → **Save** (stored in the `profiles\` folder next to the exe).
 
 Details and troubleshooting: [driver-install.md](driver-install.md).
 
@@ -88,13 +88,17 @@ Stop ends the virtual device and FFB apply loop.
 
 ## Profiles
 
+Saved profiles live in the **`profiles\`** folder next to `G920Emulator.exe` (same place as the shipped `default.json`). Settings are stored as `settings.json` beside the exe.
+
+If that folder cannot be written (uncommon), the app uses `%AppData%\G920Emulator\profiles` instead and will copy older AppData profiles into the local folder when possible.
+
 | Action | Behavior |
 |--------|----------|
-| Save | Write current profile under AppData |
-| Save As… | New name |
-| Delete | Remove saved profile |
-| Export / Import | JSON file exchange |
-| Saved dropdown | Switch among saved profiles |
+| Save | Write current profile under `profiles\` next to the exe |
+| Save As… | New name in the same folder |
+| Delete | Remove that profile JSON |
+| Export / Import | JSON file exchange (Import also saves a copy under `profiles\`) |
+| Saved dropdown | Switch among profiles in that folder |
 
 ## Validation checklist
 

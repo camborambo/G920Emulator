@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <None Include="..\..\profiles\default.json" Link="profiles\default.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\profiles\README.md" Link="profiles\README.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\docs\driver-install.md" Link="docs\driver-install.md" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\native\README.md" Link="native\README.md" CopyToOutputDirectory="PreserveNewest" />
     <!-- Bundled WinUHid package (no download required) -->

@@ -84,10 +84,18 @@ $oldDist = Join-Path $root "dist\Launch G920Emulator.bat"
 if (Test-Path $oldRoot) { Remove-Item $oldRoot -Force }
 if (Test-Path $oldDist) { Remove-Item $oldDist -Force }
 
+# Zip with a single top-level folder: G920Emulator-win-x64.zip → G920Emulator\...
+$zipPath = Join-Path $root "dist\G920Emulator-win-x64.zip"
+if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+Write-Host "Creating $zipPath ..." -ForegroundColor Cyan
+Compress-Archive -Path $outDir -DestinationPath $zipPath -CompressionLevel Optimal
+Write-Host "Zip layout: G920Emulator\ (folder) → app files"
+
 Write-Host ""
 Write-Host "Done." -ForegroundColor Green
 Write-Host "Run:  $outDir\G920Emulator.exe"
 Write-Host "Or double-click:  Launch G920 Emulator.bat"
+Write-Host "Zip:  $zipPath"
 Write-Host ""
 $bundledOk = (Test-Path (Join-Path $destWinuhid "WinUHidDriver.dll")) -and (Test-Path (Join-Path $destWinuhid "WinUHidDriver.inf"))
 if ($bundledOk) {

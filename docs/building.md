@@ -18,7 +18,7 @@ native/g920ffb                OEM DirectInput EffectDriver (C++)
 native/winuhid                Bundled WinUHid runtime + INF (published into dist)
 tools/build-g920ffb.ps1       MSBuild wrapper for g920ffb.dll
 tools/build-winuhid.ps1       Rebuild WinUHid package into native/winuhid
-publish.ps1                   Self-contained win-x64 publish → dist\G920Emulator
+publish.ps1                   Self-contained win-x64 publish → dist\G920Emulator + zip
 ```
 
 ## Publish (recommended)
@@ -36,6 +36,8 @@ This:
 1. Builds `native\g920ffb\bin\g920ffb.dll` via `tools\build-g920ffb.ps1`
 2. `dotnet publish`s the app self-contained for `win-x64` into `dist\G920Emulator\`
 3. Copies WinUHid package files and `g920ffb.dll` beside the EXE
+4. Creates `dist\G920Emulator-win-x64.zip` with a single top-level folder:
+   `G920Emulator-win-x64.zip` → `G920Emulator\` → app files
 
 Run:
 
