@@ -39,7 +39,7 @@ Full tables and how to extend them: [compatibility](docs/compatibility.md).
 3. **Refresh** devices, bind steering / pedals / buttons / gears **R–6**, pick an **FFB output device**.
 4. **Start bridge**, then launch your game and select the G920.
 
-Full walkthrough: [user guide](docs/user-guide.md).
+Binding changes apply while the bridge is running — no need to Stop/Start after rebinding. Full walkthrough: [user guide](docs/user-guide.md).
 
 ## What you get
 

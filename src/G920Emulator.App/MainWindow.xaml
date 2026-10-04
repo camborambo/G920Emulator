@@ -9,7 +9,11 @@
         Foreground="#E8EAED"
         FontFamily="Segoe UI">
   <Window.Resources>
-    <!-- Buttons use App.xaml rounded template. -->
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/Controls.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+
     <Style TargetType="ListBox">
       <Setter Property="Background" Value="#1A1F29"/>
       <Setter Property="BorderBrush" Value="#2A3140"/>
@@ -135,15 +139,16 @@
         </Setter.Value>
       </Setter>
     </Style>
+    </ResourceDictionary>
   </Window.Resources>
 
   <DockPanel Margin="16">
     <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
       <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Top">
         <Button x:Name="StartButton" Content="Start bridge" Click="StartButton_Click"
-                Background="#1F6F4A" BorderBrush="#2F9E6B" Foreground="#FFFFFF" FontWeight="SemiBold"/>
+                Style="{StaticResource PrimaryButton}"/>
         <Button x:Name="StopButton" Content="Stop" Click="StopButton_Click" IsEnabled="False"
-                Background="#6F1F2A" BorderBrush="#9E2F3F" Foreground="#FFFFFF" Margin="0"/>
+                Style="{StaticResource DangerButton}" Margin="0"/>
       </StackPanel>
       <StackPanel>
         <TextBlock Text="G920 Emulator" FontSize="28" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
@@ -182,7 +187,7 @@
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
           <Button Content="Recheck" Click="RecheckDependencies_Click"/>
           <Button x:Name="DependenciesActionButton" Content="Manage dependencies…" Click="DependenciesButton_Click"
-                  Background="#8A6A3A" BorderBrush="#C4A36A" Foreground="#FFFFFF" Margin="0"/>
+                  Style="{StaticResource AccentButton}" Margin="0"/>
         </StackPanel>
         <StackPanel Margin="0,0,12,0">
           <TextBlock Text="Dependencies" FontWeight="SemiBold" Margin="0,0,0,8"/>
@@ -219,10 +224,8 @@
           <TextBlock Text="Detected devices" FontWeight="SemiBold" VerticalAlignment="Center"/>
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Refresh" Click="RefreshButton_Click"
-                    Margin="0,0,6,0" Padding="10,4"
                     ToolTip="Re-scan DirectInput devices and restore any you hid with Remove"/>
-            <Button Content="Remove" Click="RemoveDevice_Click"
-                    Margin="0" Padding="10,4"
+            <Button Content="Remove" Click="RemoveDevice_Click" Margin="0"
                     ToolTip="Hide the selected device from this list. Refresh to show it again."/>
           </StackPanel>
         </DockPanel>
@@ -236,7 +239,7 @@
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
           <TextBlock Text="G920 bindings" FontWeight="SemiBold" VerticalAlignment="Center"/>
           <Button DockPanel.Dock="Right" Content="Clear all" Click="ClearAllBindings_Click"
-                  Margin="0" Padding="10,4" HorizontalAlignment="Right"
+                  Margin="0" HorizontalAlignment="Right"
                   ToolTip="Clear every G920 binding in this profile"/>
         </DockPanel>
         <ListBox x:Name="BindingList" MouseLeftButtonUp="BindingList_MouseLeftButtonUp">

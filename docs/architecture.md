@@ -29,7 +29,7 @@ flowchart LR
 ## Input path (physical → game)
 
 1. **InputHub** enumerates DirectInput joysticks and polls axes/buttons/hats.
-2. **MapperEngine** applies the active JSON profile (`Binding` / `SourceRef`) to produce a `MappedG920State`.
+2. **MapperEngine** applies the active JSON profile (`Binding` / `SourceRef`) to produce a `MappedG920State`. Profile updates from the UI are picked up on the next loop tick, so rebinding does not require restarting the bridge.
 3. **G920ReportBuilder** packs that state into a numbered HID input report matching a real G920 (report ID 1), including H-pattern gear buttons.
 4. **VirtualG920Device** submits the report through WinUHid.
 5. The game reads the virtual G920 like any other DirectInput / HID wheel.

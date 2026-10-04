@@ -46,6 +46,7 @@ Tips:
 - **Invert** and **deadzone** / **threshold** are per binding.
 - **Clear all** wipes every binding in the current profile.
 - Axis→button is for mapping pedals/triggers onto digital G920 buttons.
+- Binding changes apply **live** — you do **not** need to Stop and Start the bridge after rebinding. The running bridge remaps every frame from the current profile.
 
 ### H-pattern gears
 
@@ -76,6 +77,8 @@ See [force-feedback.md](force-feedback.md).
 2. Bindings update the live meters on the right.
 3. Click **Start bridge**.
 4. Launch the game and select the Logitech G920 / wheel device.
+
+You can change bindings (and tweak deadzone/invert) while the bridge is running; they take effect immediately. Restart the bridge only when you change something that attaches at Start (for example the **FFB output device**) or after driver/dependency changes.
 
 Stop ends the virtual device and FFB apply loop.
 

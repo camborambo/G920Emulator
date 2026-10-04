@@ -10,22 +10,14 @@
         FontFamily="Segoe UI"
         ResizeMode="NoResize">
   <Window.Resources>
-    <!-- Keep App.xaml rounded template; extra margin for WrapPanel rows. -->
-    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Padding" Value="14,8"/>
-      <Setter Property="Margin" Value="0,0,10,8"/>
-    </Style>
-    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Background" Value="#1F6F4A"/>
-      <Setter Property="BorderBrush" Value="#2F9E6B"/>
-      <Setter Property="Foreground" Value="#FFFFFF"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
-    </Style>
-    <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-      <Setter Property="Background" Value="#3A2F1F"/>
-      <Setter Property="BorderBrush" Value="#8A6A3A"/>
-      <Setter Property="Foreground" Value="#F0E6D0"/>
-    </Style>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/Controls.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+      <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="Margin" Value="0,0,10,8"/>
+      </Style>
+    </ResourceDictionary>
   </Window.Resources>
 
   <DockPanel Margin="20">
@@ -43,7 +35,7 @@
       <TextBlock Margin="0,4,0,16" Opacity="0.7" TextWrapping="Wrap"
                  Text="WinUHid and HidHide are both required. WinUHid exposes the virtual G920; HidHide hides your physical pad from games."/>
 
-      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="4" Margin="0,0,0,14">
+      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6" Margin="0,0,0,14">
         <StackPanel>
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="WinUHid" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -64,7 +56,7 @@
         </StackPanel>
       </Border>
 
-      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="4">
+      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6">
         <StackPanel>
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="HidHide" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>

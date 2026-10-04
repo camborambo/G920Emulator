@@ -12,61 +12,54 @@
         FontFamily="Segoe UI"
         ShowInTaskbar="False">
   <Window.Resources>
-    <Style TargetType="CheckBox">
-      <Setter Property="Foreground" Value="#E8EAED"/>
-      <Setter Property="Margin" Value="0,12,0,0"/>
-    </Style>
-    <Style TargetType="ListBox">
-      <Setter Property="Background" Value="#121418"/>
-      <Setter Property="BorderBrush" Value="#2A3140"/>
-      <Setter Property="Foreground" Value="#E8EAED"/>
-    </Style>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/Controls.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+      <Style TargetType="CheckBox">
+        <Setter Property="Foreground" Value="#E8EAED"/>
+        <Setter Property="Margin" Value="0,12,0,0"/>
+      </Style>
+      <Style TargetType="ListBox">
+        <Setter Property="Background" Value="#121418"/>
+        <Setter Property="BorderBrush" Value="#2A3140"/>
+        <Setter Property="Foreground" Value="#E8EAED"/>
+      </Style>
+    </ResourceDictionary>
   </Window.Resources>
 
   <DockPanel Margin="20">
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
       <Button Content="Clear all" Click="Clear_Click" ToolTip="Remove every source from this binding"/>
       <Button Content="Cancel" Click="Cancel_Click"/>
-      <Button Content="OK" Click="Ok_Click" Background="#1F6F4A" BorderBrush="#2F9E6B" Margin="0"
-              IsDefault="True"/>
+      <Button Content="OK" Click="Ok_Click" Style="{StaticResource PrimaryButton}" Margin="0" IsDefault="True"/>
     </StackPanel>
 
     <StackPanel>
       <TextBlock x:Name="TitleText" FontSize="20" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
-      <TextBlock x:Name="HintText" Opacity="0.7" Margin="0,6,0,12" TextWrapping="Wrap"
-                 Text="Move a control to add it. You can add multiple inputs from any device."/>
+      <TextBlock x:Name="HintText" Opacity="0.7" Margin="0,6,0,12" TextWrapping="Wrap"/>
+      <TextBlock x:Name="ListeningText" Opacity="0.85" Margin="0,0,0,8"/>
 
-      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4">
+      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6">
         <DockPanel>
-          <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-            <TextBlock Text="Sources" Opacity="0.65" FontSize="12" VerticalAlignment="Center"/>
-            <Button DockPanel.Dock="Right" Content="Remove selected" Click="RemoveSelected_Click"
-                    Padding="10,4" Margin="0" FontSize="12"
-                    ToolTip="Remove the selected source from this binding"/>
-          </DockPanel>
-          <ListBox x:Name="SourcesList" Height="120" DisplayMemberPath="Display"/>
+          <Button DockPanel.Dock="Right" Content="Remove selected" Click="RemoveSelected_Click"
+                  Margin="10,0,0,0" VerticalAlignment="Top"/>
+          <ListBox x:Name="SourcesList" MinHeight="120" DisplayMemberPath="Display"/>
         </DockPanel>
       </Border>
 
-      <TextBlock x:Name="ListeningText" Margin="0,8,0,0" Opacity="0.75" FontSize="12"
-                 Text="Listening for another input…"/>
-
-      <CheckBox x:Name="InvertCheck" Content="Invert axis / value"
-                ToolTip="Reverse the axis or toggle sense for this binding only"/>
-
-      <StackPanel x:Name="DeadzonePanel" Margin="0,12,0,0" Visibility="Collapsed">
+      <CheckBox x:Name="InvertCheck" Content="Invert"/>
+      <StackPanel x:Name="DeadzonePanel" Margin="0,12,0,0">
         <DockPanel>
-          <TextBlock x:Name="DeadzoneLabelText" Text="Deadzone" VerticalAlignment="Center"/>
-          <TextBlock x:Name="DeadzoneValueText" DockPanel.Dock="Right" Width="40"
-                     Text="0%" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+          <TextBlock x:Name="DeadzoneLabelText" Text="Deadzone" Opacity="0.7" VerticalAlignment="Center"/>
+          <TextBlock x:Name="DeadzoneValueText" DockPanel.Dock="Right" Width="48" Text="0%"
+                     HorizontalAlignment="Right" VerticalAlignment="Center"/>
           <Slider x:Name="DeadzoneSlider" Minimum="0" Maximum="0.5" Value="0"
-                  TickFrequency="0.01" IsSnapToTickEnabled="False" Margin="12,0"
-                  ToolTip="Ignore small axis movement near rest, then rescale the rest of the throw"
+                  Margin="10,0" TickFrequency="0.01"
                   ValueChanged="DeadzoneSlider_ValueChanged"/>
         </DockPanel>
-        <TextBlock x:Name="DeadzoneHintText" Opacity="0.55" FontSize="11" Margin="0,4,0,0"
-                   TextWrapping="Wrap" Visibility="Collapsed"
-                   Text="Axis→button: pressed when the axis is at or above this threshold (use Invert for rest-high axes)."/>
+        <TextBlock x:Name="DeadzoneHintText" Opacity="0.6" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                   Text="When binding an axis to this button, activation uses the threshold above."/>
       </StackPanel>
     </StackPanel>
   </DockPanel>

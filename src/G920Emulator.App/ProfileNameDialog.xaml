@@ -9,14 +9,23 @@
         Background="#121418"
         Foreground="#E8EAED"
         FontFamily="Segoe UI">
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/Controls.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
   <DockPanel Margin="16">
     <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-      <Button Content="Cancel" Width="90" IsCancel="True" Click="Cancel_Click" Margin="0,0,8,0"/>
-      <Button Content="OK" Width="90" IsDefault="True" Click="Ok_Click" Background="#1F6F4A" BorderBrush="#2F9E6B" Margin="0"/>
+      <Button Content="Cancel" Width="90" IsCancel="True" Click="Cancel_Click"/>
+      <Button Content="OK" Width="90" IsDefault="True" Click="Ok_Click"
+              Style="{StaticResource PrimaryButton}" Margin="0"/>
     </StackPanel>
     <StackPanel>
       <TextBlock Text="Profile name" FontWeight="SemiBold" Margin="0,0,0,8"/>
-      <TextBox x:Name="NameBox" Padding="8,6"/>
+      <TextBox x:Name="NameBox" Padding="8,6"
+               Background="#1A1F29" Foreground="#E8EAED" BorderBrush="#2A3140" CaretBrush="#E8EAED"/>
     </StackPanel>
   </DockPanel>
 </Window>

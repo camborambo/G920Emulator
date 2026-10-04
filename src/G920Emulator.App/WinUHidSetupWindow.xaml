@@ -10,28 +10,29 @@
         Foreground="#E8EAED"
         FontFamily="Segoe UI"
         ResizeMode="CanResizeWithGrip">
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/Controls.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
   <DockPanel Margin="20">
-    <!-- Primary actions always visible at bottom -->
     <StackPanel DockPanel.Dock="Bottom" Margin="0,16,0,0">
       <Button x:Name="InstallButton"
               Height="48"
-              Background="#1F6F4A"
-              BorderBrush="#2F9E6B"
+              Style="{StaticResource PrimaryButton}"
               Click="Install_Click"
               HorizontalAlignment="Stretch"
               Margin="0,0,0,10"
-              ToolTip="Install the bundled WinUHid driver">
-        <TextBlock Text="Install WinUHid"
-                   FontSize="15"
-                   FontWeight="SemiBold"
-                   Foreground="#FFFFFF"
-                   HorizontalAlignment="Center"/>
-      </Button>
+              Content="Install WinUHid"
+              FontSize="15"
+              ToolTip="Install the bundled WinUHid driver"/>
       <TextBlock Opacity="0.65" TextWrapping="Wrap" Margin="0,0,0,12"
                  Text="Copies WinUHid.dll, enables test signing if needed (reboot once), registers the driver, and creates the Root\WinUHid device (works even when pnputil /add-device is missing). Approve UAC prompts."/>
       <DockPanel>
-        <Button DockPanel.Dock="Right" Content="Close" Width="100" Click="Close_Click" Margin="0"/>
-        <Button DockPanel.Dock="Right" Content="Recheck" Width="100" Click="Recheck_Click" Margin="0,0,8,0"/>
+        <Button DockPanel.Dock="Right" Content="Close" Width="110" Click="Close_Click" Margin="0"/>
+        <Button DockPanel.Dock="Right" Content="Recheck" Width="110" Click="Recheck_Click" Margin="0,0,10,0"/>
         <TextBlock x:Name="FooterText" Opacity="0.65" VerticalAlignment="Center" TextWrapping="Wrap"/>
       </DockPanel>
     </StackPanel>
@@ -42,7 +43,7 @@
         <TextBlock Opacity="0.7" Margin="0,4,0,16" TextWrapping="Wrap"
                    Text="Required so games can see the virtual Logitech G920. Everything needed is bundled with G920 Emulator — no download."/>
 
-        <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4" Margin="0,0,0,12">
+        <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6" Margin="0,0,0,12">
           <StackPanel>
             <TextBlock Text="Status" FontWeight="SemiBold" Margin="0,0,0,6"/>
             <TextBlock x:Name="StatusSummary" Text="Checking…" TextWrapping="Wrap"/>
@@ -50,7 +51,7 @@
           </StackPanel>
         </Border>
 
-        <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4">
+        <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6">
           <StackPanel>
             <TextBlock Text="Bundled package" FontWeight="SemiBold" Margin="0,0,0,6"/>
             <TextBlock x:Name="PackageText" Opacity="0.85" TextWrapping="Wrap"/>
