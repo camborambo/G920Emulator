@@ -26,7 +26,7 @@ Game FFB effects  →  g920ffb.dll    →  Physical base
 | Category | Tested |
 |----------|--------|
 | Input | DualSense |
-| FFB base | Fanatec Clubsport DD2 |
+| FFB base | Fanatec Podium Wheel Base DD2 |
 | Games | **NFS Heat**, **NFS Unbound** (tested / compatible) |
 
 **Gear R:** Heat uses default button **19**. Unbound needs Bind Gear R → **12**. Full matrix: [compatibility](docs/compatibility.md).

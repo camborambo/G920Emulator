@@ -9,7 +9,7 @@ Update this page when you validate a new setup.
 | Device | Role | Notes |
 |--------|------|--------|
 | DualSense (PS5) | Steering / buttons / axes source | Bound into virtual G920; no DualSense-side FFB |
-| Fanatec Clubsport DD2 | FFB output (+ can be used as DI input) | Constant-force apply via shared InputHub acquire |
+| Fanatec Podium Wheel Base DD2 | FFB output (+ can be used as DI input) | Constant-force apply via shared InputHub acquire |
 
 ## Wheel bases expected to work (FFB output)
 
@@ -17,7 +17,7 @@ These use the same DirectInput constant-force path as the DD2. Listed as **desig
 
 | Device family | Status |
 |---------------|--------|
-| Fanatec (DD / Clubsport) | Tested (DD2) |
+| Fanatec (Podium / DD) | Tested (Podium Wheel Base DD2) |
 | Simucube | Designed for (DI FFConst-style updates) |
 | Simagic | Designed for |
 | Moza | Designed for |
