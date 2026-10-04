@@ -10,8 +10,10 @@
 
 ## Launch
 
-- Double-click **`Launch G920 Emulator.bat`**, or
-- Run `dist\G920Emulator\G920Emulator.exe` after `.\publish.ps1`
+1. Download **`G920Emulator-win-x64.zip`** from [Releases](https://github.com/camborambo/G920Emulator/releases).
+2. Extract → open the **`G920Emulator`** folder → run **`G920Emulator.exe`**.
+
+(From a source checkout: `.\publish.ps1`, then `dist\G920Emulator\G920Emulator.exe`.)
 
 Approve UAC when prompted (WinUHid requires elevation to open the device).
 

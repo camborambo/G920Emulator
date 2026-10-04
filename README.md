@@ -31,13 +31,17 @@ Game FFB effects  →  g920ffb.dll    →  Physical base
 
 **Gear R:** Heat uses default button **19**. Unbound needs Bind Gear R → **12**. Full matrix: [compatibility](docs/compatibility.md).
 
-## Quick start
+## Quick start (download a release)
 
-1. Double-click **`Launch G920 Emulator.bat`** (publishes a self-contained EXE on first run if needed).
-2. Open **Dependencies** → install **WinUHid** and **HidHide** → **Configure HidHide**.  
+No Visual Studio or .NET SDK required.
+
+1. Download **`G920Emulator-win-x64.zip`** from the latest [**Releases**](https://github.com/camborambo/G920Emulator/releases) page.
+2. Extract the zip — you get a **`G920Emulator`** folder.
+3. Run **`G920Emulator.exe`** inside that folder.
+4. Open **Dependencies** → **Install WinUHid** (bundled; approve UAC; reboot if asked for test signing) → install **HidHide** from its download link → **Configure HidHide**.  
    Step-by-step: [driver install](docs/driver-install.md).
-3. **Refresh** devices, bind steering / pedals / buttons / gears **R–6**, pick an **FFB output device**.
-4. **Start bridge**, then launch your game and select the G920.
+5. **Refresh** devices, bind steering / pedals / buttons / gears **R–6**, pick an **FFB output device**.
+6. **Start bridge**, then launch your game and select the G920.
 
 Binding changes apply while the bridge is running — no need to Stop/Start after rebinding. Full walkthrough: [user guide](docs/user-guide.md).
 
@@ -52,19 +56,20 @@ Binding changes apply while the bridge is running — no need to Stop/Start afte
 ## Requirements
 
 - Windows 10/11 (x64)
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) once, to publish (the published folder is self-contained)
-- [WinUHid](https://github.com/cgutman/WinUHid) — bundled; install from the app ([guide](docs/driver-install.md))
-- [HidHide](https://github.com/nefarius/HidHide) — **required** so games don’t see both your real pad and the virtual G920
+- [WinUHid](https://github.com/cgutman/WinUHid) — **bundled** in the release; install from the app ([guide](docs/driver-install.md))
+- [HidHide](https://github.com/nefarius/HidHide) — **required** (separate download) so games don’t see both your real pad and the virtual G920
 
-## Run / publish
+## Build from source
+
+For contributors (not needed to play):
 
 ```powershell
 .\publish.ps1 -OpenFolder
 ```
 
-Then run `dist\G920Emulator\G920Emulator.exe`, or use **`Launch G920 Emulator.bat`**.
+Needs the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0). Output: `dist\G920Emulator\` and `dist\G920Emulator-win-x64.zip`.
 
-For day-to-day development:
+Day-to-day development:
 
 ```powershell
 dotnet run --project src/G920Emulator.App
