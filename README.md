@@ -1,76 +1,88 @@
 # G920 Emulator
 
-Windows input bridge that maps **any DirectInput wheel, pedals, H-pattern shifter, or controller** onto a virtual **Logitech G920** (with Driving Force Shifter gears and force feedback forwarding).
+**Use any wheel, pedals, H-shifter, or controller as a Logitech G920** — including games that only offer a G920 / Logitech wheel profile.
 
-Works as a system HID device for any PC game that accepts a G920 / DirectInput wheel.
+G920 Emulator is a Windows app that creates a **virtual Logitech G920** (`VID 046D` / `PID C262`) on your PC. You bind your physical DirectInput devices to that virtual wheel, hide the real hardware from games with HidHide, and optionally forward **force feedback** to your Fanatec, Simucube, Simagic, Moza, or other DirectInput FFB base.
 
-## Features
+```
+Physical devices  →  G920 Emulator  →  Virtual G920  →  Game
+Game FFB effects  →  g920ffb.dll    →  Physical base
+```
 
-- Detects connected DirectInput game controllers / wheelbases / pedals / shifters
-- Per-control binding UI (listen for axis/button)
-- Virtual G920 identity: `VID 046D` / `PID C262`
-- H-pattern shifter targets: **R, 1–6** (exclusive or passthrough)
-- Force feedback: virtual PID/output → physical DirectInput FFB wheel
-- JSON mapping profiles
+## Guides
+
+| Guide | Start here if you want to… |
+|-------|----------------------------|
+| **[User guide](docs/user-guide.md)** | Install dependencies, bind controls, save profiles, Start bridge |
+| **[Driver install](docs/driver-install.md)** | Set up WinUHid and HidHide (required for games) |
+| **[Compatibility](docs/compatibility.md)** | Devices and games tested so far |
+| **[Force feedback](docs/force-feedback.md)** | Understand OEM FFB, FFB debug, and effect probing |
+| **[Architecture](docs/architecture.md)** | See how input and FFB flow through the stack |
+| **[Building](docs/building.md)** | Publish the EXE or build `g920ffb.dll` from source |
+| **[Research notes](docs/research-logitech-g920.md)** | Read G HUB / HID++ findings and the NFS Unbound probe |
+
+## Tested so far
+
+| Category | Tested |
+|----------|--------|
+| Input | DualSense |
+| FFB base | Fanatec Clubsport DD2 |
+| Game | Need for Speed Unbound (G920 + OEM FFB effects) |
+
+Full tables and how to extend them: [compatibility](docs/compatibility.md).
+
+## Quick start
+
+1. Double-click **`Launch G920 Emulator.bat`** (publishes a self-contained EXE on first run if needed).
+2. Open **Dependencies** → install **WinUHid** and **HidHide** → **Configure HidHide**.  
+   Step-by-step: [driver install](docs/driver-install.md).
+3. **Refresh** devices, bind steering / pedals / buttons / gears **R–6**, pick an **FFB output device**.
+4. **Start bridge**, then launch your game and select the G920.
+
+Full walkthrough: [user guide](docs/user-guide.md).
+
+## What you get
+
+- Virtual G920 that games see as a normal system HID / DirectInput wheel
+- Binding UI for axes, buttons, hats, and axis→button mappings
+- H-pattern gears **R, 1–6** (Unbound-compatible button layout)
+- Force feedback via our DirectInput OEM driver (`g920ffb.dll`) — not Logitech HID++
+- JSON profiles under `%AppData%\G920Emulator\profiles` (Save / Export / Import)
 
 ## Requirements
 
-- Windows 10/11
-- .NET 8 runtime (SDK to build)
-- [WinUHid](https://github.com/cgutman/WinUHid) driver + `WinUHid.dll` for real virtual device exposure ([install guide](docs/driver-install.md))
-- [HidHide](https://github.com/nefarius/HidHide) (**required**) to hide physical devices from games
+- Windows 10/11 (x64)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) once, to publish (the published folder is self-contained)
+- [WinUHid](https://github.com/cgutman/WinUHid) — bundled; install from the app ([guide](docs/driver-install.md))
+- [HidHide](https://github.com/nefarius/HidHide) — **required** so games don’t see both your real pad and the virtual G920
 
-## Run as EXE (recommended)
-
-Double-click:
-
-```
-Launch G920 Emulator.bat
-```
-
-That builds a self-contained Release app on first run (needs the .NET 8 SDK once), then starts:
-
-```
-dist\G920Emulator\G920Emulator.exe
-```
-
-Or publish manually:
+## Run / publish
 
 ```powershell
 .\publish.ps1 -OpenFolder
 ```
 
-Then run `dist\G920Emulator\G920Emulator.exe` anytime. The publish is **self-contained** (Windows x64), so other PCs don’t need the .NET runtime installed—just copy the whole `dist\G920Emulator\` folder.
+Then run `dist\G920Emulator\G920Emulator.exe`, or use **`Launch G920 Emulator.bat`**.
 
-WinUHid is bundled under `dist\G920Emulator\winuhid\`. Use **Dependencies → Install WinUHid** (one button, no download).
-
-## Dev run
+For day-to-day development:
 
 ```powershell
 dotnet run --project src/G920Emulator.App
 ```
 
-## Quick start
+Details: [building](docs/building.md).
 
-1. Double-click **Launch G920 Emulator.bat** (or run the published EXE)
-2. Open **Dependencies…**, install **WinUHid** and **HidHide** (both required), then click **Configure HidHide**
-3. Name your profile and click **Save** (stored under `%AppData%\G920Emulator\profiles`)
-4. **Refresh devices**, then **Listen / bind** for steering, pedals, buttons, and shifter gears R/1–6
-5. Pick an FFB output device (your wheelbase)
-6. Hide your physical pad in HidHide, **Start bridge**, launch your game
-
-Profiles support **Save**, **Save As**, **Delete**, **Export**, and **Import**, plus quick switching from the Saved dropdown.
-
-## Solution layout
+## Repository layout
 
 ```
 src/G920Emulator.App          WPF UI
-src/G920Emulator.Core         Input hub, mapper, FFB, bridge loop
-src/G920Emulator.VirtualHid   WinUHid P/Invoke + G920 descriptor
-profiles/                   JSON mapping profiles
-docs/                       Driver install & validation
+src/G920Emulator.Core         Input hub, mapper, bridge, FFB apply
+src/G920Emulator.VirtualHid   WinUHid + G920 identity + OEM registration
+native/g920ffb                DirectInput OEM EffectDriver (g920ffb.dll)
+docs/                         User and technical guides
+profiles/                     Sample JSON profiles
 ```
 
 ## License
 
-Project code is yours to use in this repository. WinUHid remains under its upstream license.
+Project code in this repository is available for use with the project. WinUHid remains under its upstream license.

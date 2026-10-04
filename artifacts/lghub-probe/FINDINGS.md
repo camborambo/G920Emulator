@@ -1,5 +1,7 @@
 # G HUB / Unbound G920 detection probe (2026-10-03)
 
+Canonical copy for the repo: [docs/research-logitech-g920.md](../../docs/research-logitech-g920.md).
+
 
 
 ## How G HUB exposes a real G920

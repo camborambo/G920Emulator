@@ -53,7 +53,9 @@ Games may read both your real pad/wheel and the virtual G920. HidHide is **requi
 ## Force feedback notes
 
 - Select your physical FFB wheel under **Force feedback → FFB output device**
-- Games send PID/output reports to the virtual G920; G920 Emulator forwards torque to the physical device via DirectInput
+- Games drive FFB through DirectInput OEM into **`g920ffb.dll`**, which publishes torque over shared memory; the bridge applies it to your base (not Logitech HID++ WriteReports)
+- **Start bridge** registers the OEM driver and attaches FFB; use **FFB debug** only when testing or probing effect types
+- Full detail: [force-feedback.md](force-feedback.md)
 - Exclusive cooperative level may require running G920 Emulator elevated on some setups
 
 ## Validation checklist
