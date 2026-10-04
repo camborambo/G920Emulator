@@ -110,8 +110,8 @@ public static class G920ControlInfo
         G920Control.ButtonLs => "LSB",
         G920Control.ButtonRs => "RSB",
         // Legacy paddle targets (merged into bumpers on load; same DI bits).
-        G920Control.PaddleLeft => "Right bumper",
-        G920Control.PaddleRight => "Left bumper",
+        G920Control.PaddleLeft => "Left bumper",
+        G920Control.PaddleRight => "Right bumper",
         G920Control.Gear1 => "Gear 1",
         G920Control.Gear2 => "Gear 2",
         G920Control.Gear3 => "Gear 3",

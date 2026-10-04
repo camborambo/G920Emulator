@@ -76,9 +76,9 @@ public sealed class MappingProfile
         foreach (var binding in Bindings)
             binding.Normalize();
 
-        // Legacy separate paddle rows → LB/RB (same DI bits on a real G920; L/R swapped).
-        MergeSources(G920Control.PaddleRight, G920Control.ButtonLb);
-        MergeSources(G920Control.PaddleLeft, G920Control.ButtonRb);
+        // Legacy separate paddle rows → LB/RB (same DI bits on a real G920).
+        MergeSources(G920Control.PaddleLeft, G920Control.ButtonLb);
+        MergeSources(G920Control.PaddleRight, G920Control.ButtonRb);
         Bindings.RemoveAll(b => b.Target is G920Control.PaddleLeft or G920Control.PaddleRight);
 
         // Ensure UI targets exist once (CreateDefault / older profiles).

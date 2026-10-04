@@ -506,8 +506,8 @@ public partial class MainWindow : Window
         if (s.ButtonB) pressed.Add("B");
         if (s.ButtonX) pressed.Add("X");
         if (s.ButtonY) pressed.Add("Y");
-        if (s.ButtonLb || s.PaddleRight) pressed.Add("LB");
-        if (s.ButtonRb || s.PaddleLeft) pressed.Add("RB");
+        if (s.ButtonLb || s.PaddleLeft) pressed.Add("LB");
+        if (s.ButtonRb || s.PaddleRight) pressed.Add("RB");
         if (s.Hat >= 0) pressed.Add($"Hat{s.Hat}");
         ButtonsText.Text = "Buttons: " + (pressed.Count == 0 ? "—" : string.Join(" ", pressed));
     }

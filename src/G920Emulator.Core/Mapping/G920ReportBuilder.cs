@@ -25,8 +25,8 @@ public static class G920ReportBuilder
 
         byte hatNibble = state.Hat is >= 0 and <= 7 ? (byte)state.Hat : (byte)0x0F;
 
-        // Face/paddles: DI buttons 1–10. Paddles share LB/RB; left/right are swapped
-        // vs naive bit order (left paddle = button 6 / RB bit) to match the real wheel.
+        // Face/paddles: DI buttons 1–10 (0-based bits). Real G920: RB = button 4, LB = button 5.
+        // Paddles share the matching bumper bit.
         //
         // Gears 1–6: LGS / G920 Driving Force Shifter buttons 13–18.
         // Reverse: profile-selected DI button (default 19 = LGS; Unbound uses 12).
@@ -35,10 +35,10 @@ public static class G920ReportBuilder
         if (state.ButtonB) buttons |= 1u << 1;
         if (state.ButtonX) buttons |= 1u << 2;
         if (state.ButtonY) buttons |= 1u << 3;
-        if (state.ButtonLb) buttons |= 1u << 4;   // Button 5
-        if (state.ButtonRb) buttons |= 1u << 5;   // Button 6
-        if (state.PaddleRight) buttons |= 1u << 4; // right paddle shares LB bit
-        if (state.PaddleLeft) buttons |= 1u << 5;  // left paddle shares RB bit (swapped)
+        if (state.ButtonRb) buttons |= 1u << 4;   // Button 4 (Right bumper / right paddle)
+        if (state.ButtonLb) buttons |= 1u << 5;   // Button 5 (Left bumper / left paddle)
+        if (state.PaddleRight) buttons |= 1u << 4;
+        if (state.PaddleLeft) buttons |= 1u << 5;
         if (state.ButtonView) buttons |= 1u << 6;
         if (state.ButtonMenu) buttons |= 1u << 7;
         if (state.ButtonLs) buttons |= 1u << 8;
