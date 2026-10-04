@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="About G920 Emulator"
         Icon="pack://application:,,,/Assets/app.ico"
-        Height="420" Width="520"
+        Height="480" Width="520"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#121418"
@@ -17,8 +17,12 @@
     </ResourceDictionary>
   </Window.Resources>
   <DockPanel Margin="20">
-    <Button DockPanel.Dock="Bottom" Style="{StaticResource PrimaryButton}" Content="Close" Width="110"
-            HorizontalAlignment="Right" IsDefault="True" IsCancel="True" Click="Close_Click" Margin="0,16,0,0"/>
+    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button Style="{StaticResource AppButton}" Content="Export diagnostics…" Click="ExportDiagnostics_Click"
+              ToolTip="Zip logs, dependency status, and profiles for a GitHub issue"/>
+      <Button Style="{StaticResource PrimaryButton}" Content="Close" Width="110"
+              IsDefault="True" IsCancel="True" Click="Close_Click" Margin="0"/>
+    </StackPanel>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
         <TextBlock Text="G920 Emulator" FontSize="22" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
@@ -27,6 +31,14 @@
           <Run Text="by "/>
           <Hyperlink NavigateUri="https://stachenscale.com/" RequestNavigate="AuthorLink_RequestNavigate"
                      Foreground="#8AB4F8" TextDecorations="None">CamboRambo</Hyperlink>
+        </TextBlock>
+
+        <TextBlock Text="Support" FontWeight="SemiBold" Margin="0,18,0,6"/>
+        <TextBlock TextWrapping="Wrap" Opacity="0.85" LineHeight="20"
+                   Text="Running into a problem? Click Export diagnostics…, then email the zip to obert@stachenscale.com (include what you were doing and your wheel/game)."/>
+        <TextBlock Margin="0,8,0,0">
+          <Hyperlink NavigateUri="mailto:obert@stachenscale.com" RequestNavigate="AuthorLink_RequestNavigate"
+                     Foreground="#8AB4F8" TextDecorations="None">obert@stachenscale.com</Hyperlink>
         </TextBlock>
 
         <TextBlock Text="Disclaimer" FontWeight="SemiBold" Margin="0,18,0,6"/>

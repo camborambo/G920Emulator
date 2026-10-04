@@ -31,11 +31,17 @@ public sealed class DependencyReport
         .Where(i => i.Requirement == DependencyRequirement.Required)
         .All(i => i.IsInstalled);
 
-    /// <summary>True when all Required dependencies are installed (WinUHid + HidHide).</summary>
+    /// <summary>True when all Required dependencies are installed (WinUHid, HidHide, Logitech SDK).</summary>
     public bool ReadyForGames => AllRequiredInstalled;
+
+    public IReadOnlyList<string> MissingRequiredNames => Items
+        .Where(i => i.Requirement == DependencyRequirement.Required && !i.IsInstalled)
+        .Select(i => i.Name)
+        .ToList();
 
     public DependencyInfo? WinUHid => Items.FirstOrDefault(i => i.Id == "winuhid");
     public DependencyInfo? HidHide => Items.FirstOrDefault(i => i.Id == "hidhide");
+    public DependencyInfo? LogitechSdk => Items.FirstOrDefault(i => i.Id == "logisdk");
 }
 
 public static class DependencyChecker
@@ -52,8 +58,66 @@ public static class DependencyChecker
             [
                 CheckWinUHid(probeWinUHid),
                 CheckHidHide(),
+                CheckLogitechSteeringSdk(),
             ],
         };
+    }
+
+    public const string LogitechSteeringSdkClsid = "{63BD165D-1584-4E75-AB56-08330350545F}";
+
+    /// <summary>Where the app installs its private SDK copy (must match G920OemRegistration).</summary>
+    public static string LogitechSteeringSdkDir => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "G920Emulator", "LogitechSDK");
+
+    /// <summary>
+    /// NFS Heat and other Logitech-SDK games load the wheel SDK via this CLSID's ServerBinary.
+    /// Missing (e.g. after a G HUB uninstall) or pointed at G HUB's SDK means the game never
+    /// shows a wheel layout, so only our own installed copy counts.
+    /// </summary>
+    public static DependencyInfo CheckLogitechSteeringSdk()
+    {
+        var ok64 = IsPinnedToOurSdk(RegistryView.Registry64, "x64", out var x64);
+        var ok86 = IsPinnedToOurSdk(RegistryView.Registry32, "x86", out var x86);
+        var installed = ok64 && ok86;
+
+        return new DependencyInfo
+        {
+            Id = "logisdk",
+            Name = "Logitech Steering Wheel SDK",
+            Requirement = DependencyRequirement.Required,
+            IsInstalled = installed,
+            StatusLabel = installed ? "Installed" : "Not installed",
+            Detail = $"x64: {Describe(ok64, x64)} · x86: {Describe(ok86, x86)}",
+            InstallOrSetupHint = installed
+                ? "Required for games built on the Logitech SDK (NFS Heat, etc.) to show a wheel layout. Kept in place by the G HUB guard."
+                : "Required. Without it Logitech-SDK games treat the wheel as a generic controller. Click Install (bundled — no Logitech software needed).",
+        };
+
+        static string Describe(bool ok, string? path) =>
+            ok ? "OK" : path is null ? "not registered" : $"points elsewhere ({path})";
+    }
+
+    private static bool IsPinnedToOurSdk(RegistryView view, string arch, out string? current)
+    {
+        current = ReadServerBinary(view);
+        var expected = Path.Combine(LogitechSteeringSdkDir, arch, "LogitechSteeringWheel.dll");
+        return current is not null &&
+               File.Exists(expected) &&
+               string.Equals(Path.GetFullPath(current), expected, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? ReadServerBinary(RegistryView view)
+    {
+        try
+        {
+            using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
+            using var key = hklm.OpenSubKey($@"SOFTWARE\Classes\CLSID\{LogitechSteeringSdkClsid}\ServerBinary");
+            return key?.GetValue("") as string;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public static DependencyInfo CheckWinUHid(Func<(bool Installed, string Detail)> probeWinUHid)
@@ -209,6 +273,10 @@ public static class DependencyChecker
         foreach (var p in emulatorPaths)
             commands.Add($"--app-reg \"{p}\"");
 
+        // If G HUB / manual config hid the virtual G920, games won't see it — unhide those paths.
+        foreach (var path in DiscoverVirtualG920PathsToUnhide(cli))
+            commands.Add($"--dev-unhide \"{path}\"");
+
         var hidePaths = hidePhysicalControllers ? DiscoverPhysicalGamingDevicesToHide(cli) : [];
         foreach (var path in hidePaths)
             commands.Add($"--dev-hide \"{path}\"");
@@ -324,6 +392,15 @@ public static class DependencyChecker
             set.Add(m.Groups[1].Value);
 
         return set;
+    }
+
+    /// <summary>
+    /// Virtual G920 paths currently on the HidHide hide list (must be visible to games).
+    /// </summary>
+    private static List<string> DiscoverVirtualG920PathsToUnhide(string cli)
+    {
+        var hidden = ReadAlreadyHiddenDevicePaths(cli);
+        return hidden.Where(p => IsVirtualG920KeepVisible(p, p)).ToList();
     }
 
     private static void CollectHidePaths(JsonElement device, string friendlyName, ISet<string> paths)

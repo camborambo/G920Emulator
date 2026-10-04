@@ -195,8 +195,11 @@
             <Border x:Name="WinUHidChip" CornerRadius="4" Padding="10,5" Margin="0,0,8,0">
               <TextBlock x:Name="WinUHidChipText" FontWeight="SemiBold"/>
             </Border>
-            <Border x:Name="HidHideChip" CornerRadius="4" Padding="10,5">
+            <Border x:Name="HidHideChip" CornerRadius="4" Padding="10,5" Margin="0,0,8,0">
               <TextBlock x:Name="HidHideChipText" FontWeight="SemiBold"/>
+            </Border>
+            <Border x:Name="LogiSdkChip" CornerRadius="4" Padding="10,5">
+              <TextBlock x:Name="LogiSdkChipText" FontWeight="SemiBold"/>
             </Border>
           </StackPanel>
           <TextBlock x:Name="DependenciesSummaryText" Opacity="0.7" Margin="0,8,0,0" TextWrapping="Wrap"/>

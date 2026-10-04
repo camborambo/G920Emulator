@@ -45,8 +45,23 @@ if (Test-Path $winuhid) {
     }
 }
 
+# Logitech Steering Wheel SDK runtime (registered by the app so SDK games detect the wheel)
+$logisdk = Join-Path $root "native\logisdk"
+if (Test-Path (Join-Path $logisdk "x64\LogitechSteeringWheel.dll")) {
+    $destLogisdk = Join-Path $outDir "logisdk"
+    New-Item -ItemType Directory -Force -Path $destLogisdk | Out-Null
+    Copy-Item (Join-Path $logisdk "*") $destLogisdk -Recurse -Force
+    Write-Host "Bundled Logitech Steering Wheel SDK (x64 + x86)."
+} else {
+    Write-Warning "native\logisdk missing - Logitech SDK games (NFS Heat, etc.) may not show a wheel layout."
+}
+
 if (Test-Path $g920ffbDll) {
-    Copy-Item $g920ffbDll $outDir -Force
+    # Games keep g920ffb.dll loaded; skip the copy when it's already identical.
+    $destFfb = Join-Path $outDir "g920ffb.dll"
+    if (-not ((Test-Path $destFfb) -and (Get-FileHash $destFfb).Hash -eq (Get-FileHash $g920ffbDll).Hash)) {
+        Copy-Item $g920ffbDll $outDir -Force
+    }
     Write-Host "Bundled g920ffb.dll (OEM DirectInput FFB driver)."
 } else {
     Write-Warning "g920ffb.dll missing - in-game FFB ingress via OEM driver will not work."

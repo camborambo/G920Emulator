@@ -5,6 +5,7 @@
 - Windows 10/11
 - [WinUHid](driver-install.md) (bundled installer in the app)
 - [HidHide](https://github.com/nefarius/HidHide) (**required**)
+- [Logitech Steering Wheel SDK](driver-install.md#logitech-steering-wheel-sdk-required) (**required**, bundled — installed from the app; needed for NFS Heat and other Logitech-SDK games to show a wheel layout)
 - A physical DirectInput controller / wheel / pedals / shifter to bind
 - Optional: DirectInput FFB wheel base for force feedback
 
@@ -102,6 +103,28 @@ If that folder cannot be written (uncommon), the app uses `%AppData%\G920Emulato
 | Export / Import | JSON file exchange (Import also saves a copy under `profiles\`) |
 | Saved dropdown | Switch among profiles in that folder |
 
+## Logitech G HUB
+
+You do **not** need G HUB. Installing or uninstalling it can overwrite the OEM FFB CLSID and leave `logi_joy` filters.
+
+While **Start bridge** is running, the app continuously re-applies OEM registration and the G920 friendly name. It does **not** restart the virtual PnP device (that used to orphan Col01 so games only saw DualSense / a pad layout).
+
+If Heat shows a **controller / D-pad** layout or ghost presses:
+
+1. Confirm the status line says the virtual G920 is active (not a Col01 warning).
+2. On Start, the app strips Windows’ `hidgamepad` filter from the **virtual G920 only** (DualSense keeps it).
+3. Steam → Heat → Properties → Controller → **Disable Steam Input** (Steam can inject DualSense into the game even when HidHide cloaks it for DirectInput).
+4. Fully quit Heat, keep the bridge running, launch Heat again.
+5. Use **Dependencies → Repair G HUB leftovers** if OEM still points at Logitech.
+
+## Getting help / diagnostics
+
+1. Reproduce the issue (Install WinUHid, Start bridge, launch the game, etc.).
+2. Open **About** (bottom-right) → **Export diagnostics…**
+3. Save the zip, then email it to **obert@stachenscale.com** with a short description (wheel, game, what failed).
+
+The zip includes a summary (version, OS, dependencies), temp logs when present, and your profile JSON.
+
 ## Validation checklist
 
 - [ ] Devices appear after Refresh
@@ -109,3 +132,4 @@ If that folder cannot be written (uncommon), the app uses `%AppData%\G920Emulato
 - [ ] Virtual G920 appears in `joy.cpl` while bridge is running
 - [ ] Game sees G920 (and not double input from the physical pad)
 - [ ] FFB moves the physical base when the game applies force
+

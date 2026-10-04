@@ -9,6 +9,7 @@ third_party/
 *.dll
 !**/SharpDX*.dll
 !native/winuhid/**
+!native/logisdk/**
 tools/wdk-nuget/
 *.log
 

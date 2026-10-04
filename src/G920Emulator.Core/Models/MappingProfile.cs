@@ -75,7 +75,47 @@ public sealed class MappingProfile
         GearReverseOutputButton = Math.Clamp(GearReverseOutputButton <= 0 ? 19 : GearReverseOutputButton, 1, 19);
         foreach (var binding in Bindings)
             binding.Normalize();
+
+        // Legacy separate paddle rows → LB/RB (same DI bits on a real G920; L/R swapped).
+        MergeSources(G920Control.PaddleRight, G920Control.ButtonLb);
+        MergeSources(G920Control.PaddleLeft, G920Control.ButtonRb);
+        Bindings.RemoveAll(b => b.Target is G920Control.PaddleLeft or G920Control.PaddleRight);
+
+        // Ensure UI targets exist once (CreateDefault / older profiles).
+        foreach (var target in G920ControlInfo.UiOrder)
+            GetOrCreate(target);
     }
+
+    private void MergeSources(G920Control from, G920Control into)
+    {
+        var src = Bindings.FirstOrDefault(b => b.Target == from);
+        if (src is null) return;
+        src.Normalize();
+        if (src.Sources.Count == 0) return;
+
+        var dest = GetOrCreate(into);
+        foreach (var s in src.Sources)
+        {
+            if (!dest.Sources.Any(d => SameSourceRef(d, s)))
+                dest.Sources.Add(CloneSource(s));
+        }
+    }
+
+    private static bool SameSourceRef(SourceRef a, SourceRef b) =>
+        string.Equals(a.DeviceId, b.DeviceId, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(a.Axis, b.Axis, StringComparison.OrdinalIgnoreCase) &&
+        a.Button == b.Button &&
+        a.IsHat == b.IsHat &&
+        a.AxisFromCenter == b.AxisFromCenter;
+
+    private static SourceRef CloneSource(SourceRef s) => new()
+    {
+        DeviceId = s.DeviceId,
+        Axis = s.Axis,
+        Button = s.Button,
+        IsHat = s.IsHat,
+        AxisFromCenter = s.AxisFromCenter,
+    };
 }
 
 public sealed class Binding

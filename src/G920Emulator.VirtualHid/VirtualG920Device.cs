@@ -27,7 +27,8 @@ public sealed class VirtualG920Device : IVirtualG920Device
     private Func<byte[]>? _reportProvider;
     private Action<FfbCommand>? _onFfb;
     private readonly HidppFfbEmulator _hidppFfb = new();
-    private byte[] _lastReport = G920ReportBuilder.Build(new());
+    private readonly GHubGuard _gHubGuard = new();
+    private byte[] _lastReport = G920ReportBuilder.Build(new Core.Models.MappedG920State());
     private byte[] _vendor11 = new byte[20]; // report id + 19 payload
     private byte[] _vendor12 = new byte[64]; // report id + 63 payload
     private bool _previewMode;
@@ -49,10 +50,15 @@ public sealed class VirtualG920Device : IVirtualG920Device
     public VirtualFfbIngressStats GetFfbIngressStats()
     {
         var s = _hidppFfb.GetStats();
+        var hint = _hostPathHint;
+        var guard = _gHubGuard.LastStatus;
+        if (!string.IsNullOrWhiteSpace(guard))
+            hint = string.IsNullOrWhiteSpace(hint) ? guard : hint + " · " + guard;
+
         return new VirtualFfbIngressStats(
             s.WriteCount, s.DownloadCount, s.PlayCount, s.CurrentTorque,
             s.LastFunction, s.SlotsInUse, s.SlotsPlaying,
-            _hostWriteCount, _lastHostReportId, _lastHostWriteHex, _hostPathHint);
+            _hostWriteCount, _lastHostReportId, _lastHostWriteHex, hint);
     }
 
     public VirtualG920Device()
@@ -93,8 +99,14 @@ public sealed class VirtualG920Device : IVirtualG920Device
 
         try
         {
-            // Drop any leftover Col01 still owned by logi_joy_hid_filter from older builds.
+            // === Last-known-good G HUB recovery (commit f229396 / HEAD Start path) ===
+            // 1) Hardware ID uses REV_9601 so logi_joy_hid.inf does not match.
+            // 2) Drop Col01 still owned by logi_joy_hid_filter (and legacy no-REV nodes).
+            // 3) After start, rewrite OEM in place to g920ffb (never delete OEM tree).
+            // 4) Background re-check that Microsoft HID owns Col01.
+            // Drop Logitech-bound Col01 + disconnected orphans left by abandoned stops / G HUB.
             LogiJoyHidBinder.TryRemoveLogitechCol01();
+            _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes();
 
             var descriptor = G920HidDescriptor.Bytes;
             _descriptorHandle = GCHandle.Alloc(descriptor, GCHandleType.Pinned);
@@ -145,8 +157,21 @@ public sealed class VirtualG920Device : IVirtualG920Device
             WinUHidNative.WinUHidSubmitInputReport(_device, initial, (uint)initial.Length);
             _lastReport = initial;
             G920OemRegistration.EnsureRegistered();
+            G920DeviceIdentityFix.Apply(restartDevice: false);
 
-            // After PnP settles, confirm we are NOT on Logitech's filter (required for FFB ingress).
+            // Confirm Col01 actually came online — Heat needs a live wheel node, not orphans.
+            var present = false;
+            for (var i = 0; i < 20; i++)
+            {
+                if (G920DeviceIdentityFix.IsVirtualCol01Present())
+                {
+                    present = true;
+                    break;
+                }
+                Thread.Sleep(100);
+            }
+
+            // After PnP settles, confirm we are NOT on Logitech's filter (required for FFB).
             _ = Task.Run(() =>
             {
                 Thread.Sleep(900);
@@ -157,12 +182,24 @@ public sealed class VirtualG920Device : IVirtualG920Device
                 }
                 else
                 {
-                    _hostPathHint = "Microsoft HID path (FFB writes should reach WinUHid)";
+                    _hostPathHint = present
+                        ? "Microsoft HID path · virtual Col01 present"
+                        : "WARNING: virtual Col01 not present — games will not see a wheel";
                 }
+
+                G920OemRegistration.EnsureRegistered();
             });
 
+            // Keep OEM/name correct while running (no PnP restarts).
+            _gHubGuard.Start();
+            _hostPathHint = present
+                ? "Virtual Col01 present"
+                : "WARNING: virtual Col01 not present — Stop/Start bridge";
+
             _running = true;
-            LastError = null;
+            LastError = present
+                ? null
+                : "WinUHid started but Col01 is not Present. Heat will not see a wheel. Stop bridge, then Start again.";
             return true;
         }
         catch (DllNotFoundException)
@@ -192,7 +229,12 @@ public sealed class VirtualG920Device : IVirtualG920Device
 
     public void Stop()
     {
+        // Mark stopped first so callbacks complete quickly and WinUHidStopDevice can return.
+        // Drop providers before native stop so OnEvent never blocks on BridgeService._gate.
         _running = false;
+        _reportProvider = null;
+        _onFfb = null;
+        _gHubGuard.Stop();
         DestroyNative();
         _previewMode = false;
     }
@@ -207,6 +249,22 @@ public sealed class VirtualG920Device : IVirtualG920Device
 
         if (type is WinUHidNative.EventType.ReadReport or WinUHidNative.EventType.GetFeature)
         {
+            // Always complete read events — even while stopping — or WinUHidStopDevice can hang.
+            if (!_running)
+            {
+                var idle = _lastReport.Length > 0 ? _lastReport : G920ReportBuilder.Build(new Core.Models.MappedG920State());
+                if (reportId is 0x11 or 0x12)
+                {
+                    var buffer = reportId == 0x12 ? _vendor12 : _vendor11;
+                    WinUHidNative.WinUHidCompleteReadEvent(device, evtPtr, buffer, (uint)buffer.Length);
+                }
+                else
+                {
+                    WinUHidNative.WinUHidCompleteReadEvent(device, evtPtr, idle, (uint)idle.Length);
+                }
+                return;
+            }
+
             if (reportId is 0x11 or 0x12)
             {
                 var buffer = reportId == 0x12 ? _vendor12 : _vendor11;
@@ -223,13 +281,16 @@ public sealed class VirtualG920Device : IVirtualG920Device
 
         if (type is WinUHidNative.EventType.WriteReport or WinUHidNative.EventType.SetFeature)
         {
-            var dataLength = Marshal.ReadInt32(evtPtr, 9);
-            if (dataLength > 0 && dataLength < 256)
+            if (_running)
             {
-                var data = new byte[dataLength];
-                Marshal.Copy(IntPtr.Add(evtPtr, 13), data, 0, dataLength);
-                NoteHostWrite(reportId, data);
-                HandleOutput(device, reportId, data);
+                var dataLength = Marshal.ReadInt32(evtPtr, 9);
+                if (dataLength > 0 && dataLength < 256)
+                {
+                    var data = new byte[dataLength];
+                    Marshal.Copy(IntPtr.Add(evtPtr, 13), data, 0, dataLength);
+                    NoteHostWrite(reportId, data);
+                    HandleOutput(device, reportId, data);
+                }
             }
 
             WinUHidNative.WinUHidCompleteWriteEvent(device, evtPtr, true);
@@ -293,6 +354,9 @@ public sealed class VirtualG920Device : IVirtualG920Device
 
     private void DestroyNative()
     {
+        // Synchronous teardown (last-known-good). Abandoning WinUHidStopDevice left
+        // Disconnected Col01 orphans — Heat then falls back to DualSense / pad layout.
+        // OnEvent completes reads while !_running so StopDevice should return.
         if (_device != IntPtr.Zero)
         {
             try { WinUHidNative.WinUHidStopDevice(_device); } catch { /* ignore */ }
@@ -320,6 +384,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
     {
         if (_disposed) return;
         _disposed = true;
+        _gHubGuard.Dispose();
         Stop();
     }
 }

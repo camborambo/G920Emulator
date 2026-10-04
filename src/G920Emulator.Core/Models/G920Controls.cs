@@ -63,12 +63,10 @@ public static class G920ControlInfo
         G920Control.ButtonMenu,
         G920Control.ButtonLs,
         G920Control.ButtonRs,
-        G920Control.PaddleLeft,
-        G920Control.PaddleRight,
         ..GearControls,
     ];
 
-    /// <summary>Binding list order (axes, hat, face buttons, paddles, gears R→6).</summary>
+    /// <summary>Binding list order (axes, hat, face buttons, gears R→6).</summary>
     public static readonly G920Control[] UiOrder =
     [
         G920Control.Steering,
@@ -86,8 +84,6 @@ public static class G920ControlInfo
         G920Control.ButtonMenu,
         G920Control.ButtonLs,
         G920Control.ButtonRs,
-        G920Control.PaddleLeft,
-        G920Control.PaddleRight,
         ..GearControls,
     ];
 
@@ -101,19 +97,21 @@ public static class G920ControlInfo
         G920Control.Throttle => "Throttle",
         G920Control.Brake => "Brake",
         G920Control.Clutch => "Clutch",
-        G920Control.Hat => "D-Pad / Hat",
+        // Face controls — names match Logitech G920 Driving Force user guide.
+        G920Control.Hat => "Directional pad",
         G920Control.ButtonA => "A",
         G920Control.ButtonB => "B",
         G920Control.ButtonX => "X",
         G920Control.ButtonY => "Y",
-        G920Control.ButtonLb => "LB",
-        G920Control.ButtonRb => "RB",
-        G920Control.ButtonView => "View",
-        G920Control.ButtonMenu => "Menu",
-        G920Control.ButtonLs => "LS",
-        G920Control.ButtonRs => "RS",
-        G920Control.PaddleLeft => "Paddle Left",
-        G920Control.PaddleRight => "Paddle Right",
+        G920Control.ButtonLb => "Left bumper",
+        G920Control.ButtonRb => "Right bumper",
+        G920Control.ButtonView => "View button",
+        G920Control.ButtonMenu => "Menu button",
+        G920Control.ButtonLs => "LSB",
+        G920Control.ButtonRs => "RSB",
+        // Legacy paddle targets (merged into bumpers on load; same DI bits).
+        G920Control.PaddleLeft => "Right bumper",
+        G920Control.PaddleRight => "Left bumper",
         G920Control.Gear1 => "Gear 1",
         G920Control.Gear2 => "Gear 2",
         G920Control.Gear3 => "Gear 3",

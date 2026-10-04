@@ -1,0 +1,261 @@
+{
+  "name": "N4S Heat",
+  "ffbSourceDeviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+  "shifterMode": "exclusiveHPattern",
+  "ffbGain": 1,
+  "ffbInvert": false,
+  "gearReverseOutputButton": 19,
+  "bindings": [
+    {
+      "target": "steering",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "axis": "X",
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "throttle",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "axis": "Ry",
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "brake",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "axis": "Rx",
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "clutch",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear1",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear2",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear3",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear4",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear5",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear6",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gearR",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonA",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "button": 1,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonB",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "button": 2,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonX",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "button": 0,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonY",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "button": 3,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "hat",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "isHat": true,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonLb",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "button": 4,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonRb",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "button": 5,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonView",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "button": 8,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonMenu",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "button": 9,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonLs",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "button": 10,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonRs",
+      "sources": [
+        {
+          "deviceId": "c02d10b0-bab1-11ed-8002-444553540000",
+          "button": 11,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    }
+  ]
+}

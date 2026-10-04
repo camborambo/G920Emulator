@@ -51,6 +51,7 @@ public partial class MainWindow : Window
         {
             var hwnd = new WindowInteropHelper(this).Handle;
             _bridge.BindFfbWindow(hwnd);
+            GHubGuard.StartAppWatch();
             RefreshDevices();
             UpdateDependencyUi();
             ApplyFfbDebugVisibility();
@@ -66,8 +67,15 @@ public partial class MainWindow : Window
     private static readonly Brush WarnBorderBrush = new SolidColorBrush(Color.FromRgb(0x8A, 0x6A, 0x3A));
     private static readonly Brush OkBorderBrush = new SolidColorBrush(Color.FromRgb(0x2A, 0x31, 0x40));
 
+    private bool _exitTeardownStarted;
+
     private void OnClosing(object? sender, CancelEventArgs e)
     {
+        if (_exitTeardownStarted)
+            return;
+
+        e.Cancel = true;
+        _exitTeardownStarted = true;
         _uiTimer.Stop();
         _ffbPulseCts?.Cancel();
         try { _bridge.Ffb.ClearTestOverride(); } catch { /* ignore */ }
@@ -79,8 +87,23 @@ public partial class MainWindow : Window
         }
         catch { /* ignore autosave failures on close */ }
 
-        _bridge.Dispose();
-        _virtual.Dispose();
+        StatusText.Text = "Shutting down…";
+        // Tear down off the UI thread, then close for real.
+        _ = Task.Run(() =>
+        {
+            try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
+            try { _bridge.Dispose(); } catch { /* ignore */ }
+            try { _virtual.Dispose(); } catch { /* ignore */ }
+            try
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    try { Close(); }
+                    catch { /* ignore */ }
+                });
+            }
+            catch { /* ignore */ }
+        });
     }
 
     private DependencyReport ProbeDependencies() =>
@@ -108,6 +131,12 @@ public partial class MainWindow : Window
             HidHideChipText.Text = hide.IsInstalled ? "HidHide · Installed (required)" : "HidHide · Missing (required)";
         }
 
+        if (report.LogitechSdk is { } sdk)
+        {
+            LogiSdkChip.Background = sdk.IsInstalled ? OkChipBrush : BadChipBrush;
+            LogiSdkChipText.Text = sdk.IsInstalled ? "Logitech SDK · Installed (required)" : "Logitech SDK · Missing (required)";
+        }
+
         DependenciesBanner.Background = report.ReadyForGames ? OkBannerBrush : WarnBannerBrush;
         DependenciesBanner.BorderBrush = report.ReadyForGames ? OkBorderBrush : WarnBorderBrush;
         DependenciesActionButton.Content = report.ReadyForGames ? "Manage dependencies…" : "Fix dependencies…";
@@ -115,16 +144,14 @@ public partial class MainWindow : Window
         if (report.ReadyForGames)
         {
             DependenciesSummaryText.Text =
-                "WinUHid and HidHide ready. Use Dependencies → Configure HidHide if needed, then Start bridge.";
+                "WinUHid, HidHide and Logitech SDK ready. G HUB guard active. Use Dependencies → Configure HidHide if needed, then Start bridge.";
             StatusText.Text = "Dependencies OK. Map controls, then Start bridge.";
         }
         else
         {
-            var missing = new List<string>();
-            if (win?.IsInstalled != true) missing.Add("WinUHid");
-            if (hide?.IsInstalled != true) missing.Add("HidHide");
+            var missing = report.MissingRequiredNames;
             DependenciesSummaryText.Text =
-                $"{string.Join(" and ", missing)} required and missing. Mapping preview still works, but install them before playing.";
+                $"{string.Join(", ", missing)} required and missing. Mapping preview still works, but install them before playing.";
             StatusText.Text = $"{string.Join(" + ", missing)} missing — open Dependencies…";
         }
     }
@@ -479,30 +506,30 @@ public partial class MainWindow : Window
         if (s.ButtonB) pressed.Add("B");
         if (s.ButtonX) pressed.Add("X");
         if (s.ButtonY) pressed.Add("Y");
-        if (s.ButtonLb) pressed.Add("LB");
-        if (s.ButtonRb) pressed.Add("RB");
-        if (s.PaddleLeft) pressed.Add("PL");
-        if (s.PaddleRight) pressed.Add("PR");
+        if (s.ButtonLb || s.PaddleRight) pressed.Add("LB");
+        if (s.ButtonRb || s.PaddleLeft) pressed.Add("RB");
         if (s.Hat >= 0) pressed.Add($"Hat{s.Hat}");
         ButtonsText.Text = "Buttons: " + (pressed.Count == 0 ? "—" : string.Join(" ", pressed));
     }
 
     private void RefreshButton_Click(object sender, RoutedEventArgs e) => RefreshDevices(restoreHidden: true);
 
-    private void StartButton_Click(object sender, RoutedEventArgs e)
+    private async void StartButton_Click(object sender, RoutedEventArgs e)
     {
         try
         {
+            // The Logitech SDK is bundled, so install it rather than nag.
+            if (!DependencyChecker.CheckLogitechSteeringSdk().IsInstalled)
+                G920OemRegistration.InstallSteeringWheelSdk();
+
             var deps = ProbeDependencies();
             if (!deps.ReadyForGames)
             {
-                var missing = new List<string>();
-                if (deps.WinUHid?.IsInstalled != true) missing.Add("WinUHid");
-                if (deps.HidHide?.IsInstalled != true) missing.Add("HidHide");
                 var proceed = MessageBox.Show(
-                    $"{string.Join(" and ", missing)} required and not installed.\n\n" +
+                    $"{string.Join(", ", deps.MissingRequiredNames)} required and not installed.\n\n" +
                     "WinUHid exposes the virtual G920 to games.\n" +
-                    "HidHide hides your physical pad so the game only sees the G920.\n\n" +
+                    "HidHide hides your physical pad so the game only sees the G920.\n" +
+                    "Logitech SDK lets SDK games (NFS Heat, etc.) recognise it as a wheel.\n\n" +
                     "Start anyway (preview / incomplete setup)?",
                     "Required dependencies missing",
                     MessageBoxButton.YesNo,
@@ -518,9 +545,6 @@ public partial class MainWindow : Window
             AutoSaveCurrent();
             _bridge.Profile = _profile;
 
-            // Allow-list only this emulator so it can read physical pads; games must stay blocked.
-            var hidHideNote = DependencyChecker.EnsureHidHideAppWhitelist();
-
             // Ensure FFB combo selection is on the profile before attach.
             if (FfbDeviceCombo.SelectedItem is DeviceRow ffbRow)
                 _profile.FfbSourceDeviceId = ffbRow.Id;
@@ -534,8 +558,30 @@ public partial class MainWindow : Window
                 }
             }
 
-            _bridge.Start();
             StartButton.IsEnabled = false;
+            StopButton.IsEnabled = false;
+            StatusText.Text = "Starting bridge…";
+
+            // Whitelist + hide DualSense from games. Emulator stays whitelisted so binds still work.
+            // Do NOT run full GHubConflictRepair here — it previously removed WinUHid enumerators.
+            var hidHideNote = "";
+            await Task.Run(() =>
+            {
+                hidHideNote = DependencyChecker.ConfigureHidHideFully().Message;
+                try
+                {
+                    // Safe leftovers only: OEM + Logi Col01 + disconnected C262 orphans.
+                    LogiJoyHidBinder.TryRemoveLogitechCol01();
+                    G920OemRegistration.EnsureRegistered();
+                    _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes();
+                }
+                catch { /* ignore */ }
+                _bridge.Start();
+            }).ConfigureAwait(true);
+
+            // Re-enumerate DI after Start so bind/preview still see physical pads (whitelist).
+            try { RefreshDevices(restoreHidden: false); } catch { /* ignore */ }
+
             StopButton.IsEnabled = true;
 
             // Sync combo if Start auto-selected an FFB device.
@@ -550,28 +596,56 @@ public partial class MainWindow : Window
             }
 
             var ffbStatus = _bridge.LastFfbStatus;
+            var col01Missing = !_virtual.IsPreviewMode &&
+                               !string.IsNullOrWhiteSpace(_virtual.LastError) &&
+                               _virtual.LastError.Contains("Col01", StringComparison.OrdinalIgnoreCase);
             StatusText.Text = _virtual.IsPreviewMode
                 ? "Bridge running in preview mode (no virtual HID)."
-                : string.IsNullOrWhiteSpace(ffbStatus)
-                    ? "Bridge running — virtual G920 active."
-                    : $"Bridge running — {ffbStatus}";
+                : col01Missing
+                    ? "Bridge running but virtual G920 is NOT visible to games — Stop, then Start again."
+                    : string.IsNullOrWhiteSpace(ffbStatus)
+                        ? "Bridge running — virtual G920 active."
+                        : $"Bridge running — {ffbStatus}";
             DriverText.Text = _virtual.LastError ?? "Virtual G920 started.";
             if (!string.IsNullOrWhiteSpace(hidHideNote))
                 DriverText.Text = $"{DriverText.Text} {hidHideNote}";
             if (!string.IsNullOrWhiteSpace(ffbStatus) && !_bridge.Ffb.IsReady)
                 DriverText.Text = $"{DriverText.Text} {ffbStatus}";
+            if (col01Missing)
+            {
+                MessageBox.Show(
+                    "The virtual G920 did not stay enumerated after Start.\n\n" +
+                    "Heat will fall back to a DualSense / pad layout when Col01 is missing.\n\n" +
+                    "Click Stop bridge, then Start bridge again. Keep the bridge running while you launch Heat.",
+                    "Virtual G920 not visible",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
             UpdateDependencyUi();
         }
         catch (Exception ex)
         {
+            StartButton.IsEnabled = true;
+            StopButton.IsEnabled = false;
             MessageBox.Show(ex.Message, "G920 Emulator", MessageBoxButton.OK, MessageBoxImage.Warning);
             StatusText.Text = ex.Message;
         }
     }
 
-    private void StopButton_Click(object sender, RoutedEventArgs e)
+    private async void StopButton_Click(object sender, RoutedEventArgs e)
     {
-        _bridge.Stop();
+        StopButton.IsEnabled = false;
+        StatusText.Text = "Stopping bridge…";
+        try
+        {
+            // Tear down off the UI thread — WinUHid stop + guard pnputil must not freeze the window.
+            await Task.Run(() => _bridge.Stop()).ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = "Stop failed: " + ex.Message;
+        }
+
         StartButton.IsEnabled = true;
         StopButton.IsEnabled = false;
         StatusText.Text = "Bridge stopped.";

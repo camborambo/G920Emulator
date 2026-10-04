@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Dependencies"
         Icon="pack://application:,,,/Assets/app.ico"
-        Height="600" Width="720"
+        Height="780" Width="720"
         WindowStartupLocation="CenterOwner"
         Background="#121418"
         Foreground="#E8EAED"
@@ -27,10 +27,11 @@
                  Margin="0,0,16,0"/>
     </DockPanel>
 
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel>
       <TextBlock Text="Dependencies" FontSize="24" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
       <TextBlock Margin="0,4,0,16" Opacity="0.7" TextWrapping="Wrap"
-                 Text="WinUHid and HidHide are both required. WinUHid exposes the virtual G920; HidHide hides your physical pad from games."/>
+                 Text="WinUHid, the Logitech Steering Wheel SDK and HidHide are all required. WinUHid exposes the virtual G920; the Logitech SDK lets SDK games (NFS Heat, etc.) recognise it as a wheel; HidHide hides your physical pad from games."/>
 
       <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6" Margin="0,0,0,14">
         <StackPanel>
@@ -49,6 +50,46 @@
             <Button Style="{StaticResource PrimaryWrapButton}" Click="SetupWinUHid_Click"
                     Content="Install WinUHid"
                     ToolTip="Open the bundled WinUHid installer"/>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6" Margin="0,0,0,14">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="Logitech Steering Wheel SDK" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Border Background="#6F3A1F" CornerRadius="3" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
+              <TextBlock Text="REQUIRED" FontSize="11" FontWeight="Bold"/>
+            </Border>
+            <Border x:Name="LogiSdkStatusBadge" CornerRadius="3" Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
+              <TextBlock x:Name="LogiSdkStatusText" FontSize="12" FontWeight="SemiBold"/>
+            </Border>
+          </StackPanel>
+          <TextBlock x:Name="LogiSdkHint" Margin="0,10,0,0" TextWrapping="Wrap"/>
+          <TextBlock x:Name="LogiSdkDetail" Margin="0,6,0,0" Opacity="0.65" TextWrapping="Wrap"/>
+          <WrapPanel Margin="0,14,0,-8">
+            <Button x:Name="InstallLogiSdkButton" Style="{StaticResource PrimaryWrapButton}" Click="InstallLogiSdk_Click"
+                    Content="Install Logitech SDK"
+                    ToolTip="Installs the bundled Logitech Steering Wheel SDK to ProgramData and registers it for 64- and 32-bit games. No G HUB or Logitech Gaming Software needed."/>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6" Margin="0,0,0,14">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="G HUB guard" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Border x:Name="GHubGuardBadge" CornerRadius="3" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+              <TextBlock x:Name="GHubGuardStatusText" FontSize="12" FontWeight="SemiBold"/>
+            </Border>
+          </StackPanel>
+          <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Opacity="0.85"
+                     Text="Installing or uninstalling Logitech G HUB rewrites or deletes the wheel identity, force-feedback driver and Logitech SDK registration. While this app is open the guard checks every 2 seconds and puts them back; with the bridge running it also removes G HUB drivers from the virtual G920."/>
+          <TextBlock x:Name="GHubGuardDetail" Margin="0,6,0,0" Opacity="0.65" TextWrapping="Wrap"/>
+          <WrapPanel Margin="0,14,0,-8">
+            <Button Style="{StaticResource AccentWrapButton}" Content="Repair G HUB leftovers"
+                    Click="RepairGHub_Click"
+                    ToolTip="Clears Logitech HID filters on the G920 VID/PID, rewrites OEM FFB to g920ffb.dll, removes stale DirectInput cache"/>
           </WrapPanel>
         </StackPanel>
       </Border>
@@ -78,5 +119,6 @@
         </StackPanel>
       </Border>
     </StackPanel>
+    </ScrollViewer>
   </DockPanel>
 </Window>

@@ -20,8 +20,6 @@
     { "target": "buttonMenu", "source": null, "deadzone": 0.0, "invert": false, "scale": 1.0 },
     { "target": "buttonLs", "source": null, "deadzone": 0.0, "invert": false, "scale": 1.0 },
     { "target": "buttonRs", "source": null, "deadzone": 0.0, "invert": false, "scale": 1.0 },
-    { "target": "paddleLeft", "source": null, "deadzone": 0.0, "invert": false, "scale": 1.0 },
-    { "target": "paddleRight", "source": null, "deadzone": 0.0, "invert": false, "scale": 1.0 },
     { "target": "gearR", "source": null, "deadzone": 0.0, "invert": false, "scale": 1.0 },
     { "target": "gear1", "source": null, "deadzone": 0.0, "invert": false, "scale": 1.0 },
     { "target": "gear2", "source": null, "deadzone": 0.0, "invert": false, "scale": 1.0 },

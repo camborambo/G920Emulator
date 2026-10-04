@@ -27,18 +27,25 @@ public partial class DependenciesWindow : Window
 
         Apply(report.WinUHid, WinUHidStatusBadge, WinUHidStatusText, WinUHidHint, WinUHidDetail);
         Apply(report.HidHide, HidHideStatusBadge, HidHideStatusText, HidHideHint, HidHideDetail);
+        Apply(report.LogitechSdk, LogiSdkStatusBadge, LogiSdkStatusText, LogiSdkHint, LogiSdkDetail);
+        InstallLogiSdkButton.Content = report.LogitechSdk?.IsInstalled == true ? "Reinstall Logitech SDK" : "Install Logitech SDK";
 
-        if (report.ReadyForGames)
-        {
-            FooterText.Text = "Ready for games. Use Configure HidHide if you have not yet, then Start bridge.";
-        }
-        else
-        {
-            var missing = new List<string>();
-            if (report.WinUHid?.IsInstalled != true) missing.Add("WinUHid");
-            if (report.HidHide?.IsInstalled != true) missing.Add("HidHide");
-            FooterText.Text = $"{string.Join(" and ", missing)} required and missing. Install before playing games.";
-        }
+        var guardOn = GHubGuard.IsAppWatchRunning;
+        GHubGuardBadge.Background = guardOn ? OkBrush : BadBrush;
+        GHubGuardStatusText.Text = guardOn ? "ACTIVE" : "OFF";
+        GHubGuardDetail.Text = $"Repairs since launch: {GHubGuard.AppWatchRestoreCount}";
+
+        FooterText.Text = report.ReadyForGames
+            ? "Ready for games. Use Configure HidHide if you have not yet, then Start bridge."
+            : $"{string.Join(", ", report.MissingRequiredNames)} required and missing. Install before playing games.";
+    }
+
+    private void InstallLogiSdk_Click(object sender, RoutedEventArgs e)
+    {
+        var message = G920OemRegistration.InstallSteeringWheelSdk();
+        Refresh();
+        MessageBox.Show(this, message, "Logitech Steering Wheel SDK", MessageBoxButton.OK,
+            DependencyChecker.CheckLogitechSteeringSdk().IsInstalled ? MessageBoxImage.Information : MessageBoxImage.Warning);
     }
 
     private static readonly Brush WarnBrush = new SolidColorBrush(Color.FromRgb(0x6F, 0x5A, 0x1F));
@@ -67,6 +74,31 @@ public partial class DependenciesWindow : Window
     {
         var window = new WinUHidSetupWindow { Owner = this };
         window.ShowDialog();
+        Refresh();
+    }
+
+    private void RepairGHub_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            FooterText.Text = "Repairing G HUB leftovers…";
+            var summary = GHubConflictRepair.Repair();
+            // Also unhide virtual G920 if HidHide cloaked it after G HUB churn.
+            var hid = DependencyChecker.EnsureHidHideAppWhitelist();
+            FooterText.Text = "G HUB repair finished. Start bridge, then launch the game.";
+            MessageBox.Show(
+                this,
+                summary + (string.IsNullOrWhiteSpace(hid) ? "" : "\n\n" + hid) +
+                "\n\nNext: Start bridge, confirm the G920 in joy.cpl, then launch the game.",
+                "Repair G HUB leftovers",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Repair G HUB leftovers", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
         Refresh();
     }
 

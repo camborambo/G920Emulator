@@ -58,6 +58,7 @@ Binding changes apply while the bridge is running — no need to Stop/Start afte
 - Windows 10/11 (x64)
 - [WinUHid](https://github.com/cgutman/WinUHid) — **bundled** in the release; install from the app ([guide](docs/driver-install.md))
 - [HidHide](https://github.com/nefarius/HidHide) — **required** (separate download) so games don’t see both your real pad and the virtual G920
+- Logitech Steering Wheel SDK — **required**, **bundled**; installed from the app so NFS Heat and other Logitech-SDK games detect a wheel ([guide](docs/driver-install.md#logitech-steering-wheel-sdk-required)). G HUB / Logitech Gaming Software are **not** needed. The bundled `LogitechSteeringWheel.dll` is © Logitech and not covered by this project's license ([details](native/logisdk/README.md)).
 
 ## Build from source
 

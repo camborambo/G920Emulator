@@ -130,21 +130,24 @@ public sealed class BridgeService : IDisposable
         if (_cts is not null)
             return;
 
+        IVirtualG920Device device;
         lock (_gate)
         {
             // Ensure game FFB is not blocked by a leftover test override.
             _ffb.ClearTestOverride();
             _ffb.BindInputHub(_inputHub, IntPtr.Zero);
             AttachFfbFromProfileUnlocked();
+            device = _virtualDevice ?? throw new InvalidOperationException("Virtual device not attached.");
+        }
 
-            var device = _virtualDevice ?? throw new InvalidOperationException("Virtual device not attached.");
-            if (!device.Start(() =>
-                {
-                    lock (_gate) return (byte[])_latestReport.Clone();
-                }, OnFfb))
+        // Never hold _gate across WinUHid create/start/repair. Host ReadReport callbacks
+        // take that same lock via the report provider — holding it here deadlocks Start.
+        if (!device.Start(() =>
             {
-                throw new InvalidOperationException(device.LastError ?? "Failed to start virtual G920.");
-            }
+                lock (_gate) return (byte[])_latestReport.Clone();
+            }, OnFfb))
+        {
+            throw new InvalidOperationException(device.LastError ?? "Failed to start virtual G920.");
         }
 
         _cts = new CancellationTokenSource();
@@ -154,17 +157,33 @@ public sealed class BridgeService : IDisposable
     public void Stop()
     {
         _cts?.Cancel();
-        try { _loop?.Wait(1000); } catch { /* ignore */ }
-        _cts?.Dispose();
-        _cts = null;
+        var loop = _loop;
         _loop = null;
+        // Brief wait only — never hang the UI on a stuck loop iteration.
+        try { loop?.Wait(300); } catch { /* ignore */ }
+        if (loop is { IsCompleted: false })
+            _ = loop.ContinueWith(_ => { /* observe */ }, TaskScheduler.Default);
+
+        try { _cts?.Dispose(); } catch { /* ignore */ }
+        _cts = null;
+
+        // Tear down WinUHid first, outside _gate. Callbacks use _reportProvider which locks
+        // _gate — if we held the lock while WinUHidStopDevice waited on those callbacks,
+        // Stop would deadlock and the app would freeze.
+        IVirtualG920Device? virtualDevice;
+        lock (_gate)
+        {
+            virtualDevice = _virtualDevice;
+        }
+
+        try { virtualDevice?.Stop(); } catch { /* ignore */ }
 
         lock (_gate)
         {
-            _virtualDevice?.Stop();
             _ffb.Stop();
             _ffb.Detach();
         }
+
         OemFfbSharedMemory.Close();
     }
 

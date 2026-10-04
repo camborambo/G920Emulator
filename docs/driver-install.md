@@ -50,6 +50,30 @@ Games may read both your real pad/wheel and the virtual G920. HidHide is **requi
 4. Accept UAC if prompted, and relaunch if the app asks
 5. Optional: open **HidHide Client** to hide extra devices or review the list
 
+## Logitech Steering Wheel SDK (required)
+
+Games built on the Logitech Steering Wheel SDK (NFS Heat and similar) find the SDK through
+`HKLM\SOFTWARE\Classes\CLSID\{63BD165D-1584-4E75-AB56-08330350545F}\ServerBinary`. If that key is missing or points at G HUB's SDK, the game never identifies a Logitech wheel: no wheel layout, wrong buttons, phantom D-pad input. DirectInput-only games and `joy.cpl` are unaffected, which is why the wheel can look fine in `joy.cpl` and still fail in-game.
+
+The SDK (`LogitechSteeringWheel.dll` 8.81, x64 + x86) is bundled in `logisdk\`. No G HUB or Logitech Gaming Software needed.
+
+1. Dependencies → **Install Logitech SDK** (Start bridge also installs it if missing)
+2. The DLLs are copied to `C:\ProgramData\G920Emulator\LogitechSDK\` and registered for 64- and 32-bit games
+
+## After installing or uninstalling Logitech G HUB
+
+G HUB's installer rewrites the DirectInput OEM entry for `VID_046D` / `PID_C262` (FFB CLSID) and repoints the Logitech SDK key at its own SDK; its uninstaller deletes the SDK key. It can also bind `logi_joy_hid` to the virtual wheel.
+
+**The G HUB guard runs whenever G920 Emulator is open** (Dependencies shows it as **ACTIVE**). Every 2 seconds it checks the OEM identity, FFB CLSID, `g920ffb.dll` COM registration and Logitech SDK registration, and rewrites anything G HUB changed or deleted. With the bridge running it also removes `logi_joy_hid` from the virtual Col01. It never `pnputil /restart-device`s the virtual wheel (that orphans WinUHid Col01). If a game still fails:
+
+1. Quit G HUB completely (if present)
+2. Dependencies → **Repair G HUB leftovers**
+3. **Configure HidHide** (DualSense hidden; virtual G920 visible)
+4. **Start bridge**, confirm device name looks like a G920 / wheel in `joy.cpl`, then launch the game
+5. Reboot once if Device Manager still shows Logitech-bound G920 nodes
+
+You do not need G HUB for this app.
+
 ## Force feedback notes
 
 - Select your physical FFB wheel under **Force feedback → FFB output device**
