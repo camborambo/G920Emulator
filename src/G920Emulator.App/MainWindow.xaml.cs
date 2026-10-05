@@ -38,6 +38,9 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _ffbPulseCts;
     private long _lastFfbDiagUiTick;
     private bool _refreshDevicesBusy;
+    /// <summary>True while Start/Stop/exit tears down DI — UI must not Poll InputHub.</summary>
+    private volatile bool _bridgeBusy;
+    private int _livePreviewPollInFlight;
 
     public MainWindow()
     {
@@ -98,10 +101,15 @@ public partial class MainWindow : Window
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         if (_exitTeardownStarted)
+        {
+            // Second Close after teardown — allow the window to shut down.
+            e.Cancel = false;
             return;
+        }
 
         e.Cancel = true;
         _exitTeardownStarted = true;
+        _bridgeBusy = true;
         _uiTimer.Stop();
         _ffbProfilePushTimer.Stop();
         _ffbPulseCts?.Cancel();
@@ -121,21 +129,33 @@ public partial class MainWindow : Window
             _debugSession.Dispose();
         }
         catch { /* ignore */ }
-        // Tear down off the UI thread, then close for real.
+
+        // Tear down off the UI thread. Cap wait — WinUHid/DI can hang forever and
+        // Dispatcher.Invoke would deadlock if the UI were still inside a DI Poll.
         _ = Task.Run(() =>
         {
             try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
-            try { _bridge.Dispose(); } catch { /* ignore */ }
-            try { _virtual.Dispose(); } catch { /* ignore */ }
+
+            var dispose = Task.Run(() =>
+            {
+                try { _bridge.Dispose(); } catch { /* ignore */ }
+                try { _virtual.Dispose(); } catch { /* ignore */ }
+            });
+            try { dispose.Wait(3500); } catch { /* ignore */ }
+
             try
             {
-                Dispatcher.Invoke(() =>
+                Dispatcher.BeginInvoke(new Action(() =>
                 {
                     try { Close(); }
                     catch { /* ignore */ }
-                });
+                }));
             }
             catch { /* ignore */ }
+
+            // Hard exit so abandoned native teardown / LongRunning tasks cannot keep the EXE alive.
+            try { Thread.Sleep(1200); } catch { /* ignore */ }
+            Environment.Exit(0);
         });
     }
 
@@ -686,36 +706,68 @@ public partial class MainWindow : Window
 
     private void RefreshLiveUi()
     {
-        // Binding dialog already polls; stacking another DI poll on the UI thread hangs WPF.
-        if (_bindingDialogOpen)
+        // Binding dialog already polls; never Poll DirectInput on the UI thread —
+        // Start's FFB attach / RefreshDevices holds InputHub and freezes WPF when the wheel moves.
+        if (_bindingDialogOpen || _bridgeBusy)
             return;
 
         if (!_bridge.IsRunning)
         {
-            var devices = _bridge.InputHub.Poll();
-            var mapped = new Core.Mapping.MapperEngine().Map(_profile, devices);
-            ApplyLive(mapped);
+            ScheduleLivePreviewPoll();
+            return;
         }
-        else
+
+        ApplyLive(_bridge.LatestState);
+        var link = _bridge.LinkStatus;
+        if (!string.IsNullOrWhiteSpace(link) && StatusText is not null &&
+            !StatusText.Text.StartsWith("FFB ", StringComparison.Ordinal) &&
+            !StatusText.Text.StartsWith("Return-to-center", StringComparison.Ordinal) &&
+            !StatusText.Text.StartsWith("Starting", StringComparison.Ordinal) &&
+            !StatusText.Text.StartsWith("Stopping", StringComparison.Ordinal) &&
+            !StatusText.Text.StartsWith("Shutting", StringComparison.Ordinal))
         {
-            ApplyLive(_bridge.LatestState);
-            var link = _bridge.LinkStatus;
-            if (!string.IsNullOrWhiteSpace(link) && StatusText is not null &&
-                !StatusText.Text.StartsWith("FFB ", StringComparison.Ordinal) &&
-                !StatusText.Text.StartsWith("Return-to-center", StringComparison.Ordinal))
-            {
-                StatusText.Text = link;
-                _shownLinkStatus = link;
-            }
-            else if (string.IsNullOrWhiteSpace(link) && _shownLinkStatus is not null && StatusText is not null)
-            {
-                if (StatusText.Text == _shownLinkStatus)
-                    StatusText.Text = "Bridge running — virtual G920 active.";
-                _shownLinkStatus = null;
-            }
+            StatusText.Text = link;
+            _shownLinkStatus = link;
+        }
+        else if (string.IsNullOrWhiteSpace(link) && _shownLinkStatus is not null && StatusText is not null)
+        {
+            if (StatusText.Text == _shownLinkStatus)
+                StatusText.Text = "Bridge running — virtual G920 active.";
+            _shownLinkStatus = null;
         }
 
         RefreshFfbDiagnostics();
+    }
+
+    private void ScheduleLivePreviewPoll()
+    {
+        if (Interlocked.CompareExchange(ref _livePreviewPollInFlight, 1, 0) != 0)
+            return;
+
+        var profile = _profile;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                if (_bridgeBusy || _bridge.IsRunning)
+                    return;
+                var devices = _bridge.InputHub.Poll();
+                var mapped = new Core.Mapping.MapperEngine().Map(profile, devices);
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (!_bridgeBusy && !_bridge.IsRunning)
+                        ApplyLive(mapped);
+                }));
+            }
+            catch
+            {
+                // ignore preview poll failures
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _livePreviewPollInFlight, 0);
+            }
+        });
     }
 
     private void ScheduleFfbProfilePush()
@@ -968,22 +1020,30 @@ public partial class MainWindow : Window
             StartButton.IsEnabled = false;
             StopButton.IsEnabled = false;
             StatusText.Text = "Starting bridge…";
+            _bridgeBusy = true;
 
             // Do not auto-configure HidHide — leave whitelist / hide lists to the user
             // (Dependencies → Configure HidHide, or HidHide Client).
             // Do NOT run full GHubConflictRepair here — it previously removed WinUHid enumerators.
-            await Task.Run(() =>
+            try
             {
-                try
+                await Task.Run(() =>
                 {
-                    // Safe leftovers only: OEM + Logi Col01 + disconnected C262 orphans.
-                    LogiJoyHidBinder.TryRemoveLogitechCol01();
-                    G920OemRegistration.EnsureRegistered();
-                    _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes();
-                }
-                catch { /* ignore */ }
-                _bridge.Start();
-            }).ConfigureAwait(true);
+                    try
+                    {
+                        // Safe leftovers only: OEM + Logi Col01 + disconnected C262 orphans.
+                        LogiJoyHidBinder.TryRemoveLogitechCol01();
+                        G920OemRegistration.EnsureRegistered();
+                        _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes();
+                    }
+                    catch { /* ignore */ }
+                    _bridge.Start();
+                }).ConfigureAwait(true);
+            }
+            finally
+            {
+                _bridgeBusy = false;
+            }
 
             // Re-enumerate DI after Start so bind/preview still see physical pads (whitelist).
             try { RefreshDevices(restoreHidden: false); } catch { /* ignore */ }
@@ -1031,6 +1091,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            _bridgeBusy = false;
             StartButton.IsEnabled = true;
             StopButton.IsEnabled = false;
             MessageBox.Show(ex.Message, "G920 Emulator", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -1043,6 +1104,7 @@ public partial class MainWindow : Window
         StopButton.IsEnabled = false;
         StartButton.IsEnabled = false;
         StatusText.Text = "Stopping bridge…";
+        _bridgeBusy = true;
         try
         {
             // Tear down off the UI thread — WinUHid stop + FFB detach must not freeze the window.
@@ -1051,7 +1113,7 @@ public partial class MainWindow : Window
             if (finished != stop)
             {
                 StatusText.Text = "Stopping bridge (waiting on driver)…";
-                await stop.ConfigureAwait(true);
+                await Task.WhenAny(stop, Task.Delay(3000)).ConfigureAwait(true);
             }
             else
             {
@@ -1061,6 +1123,10 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             StatusText.Text = "Stop failed: " + ex.Message;
+        }
+        finally
+        {
+            _bridgeBusy = false;
         }
 
         StartButton.IsEnabled = true;

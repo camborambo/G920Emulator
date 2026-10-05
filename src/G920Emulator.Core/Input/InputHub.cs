@@ -47,18 +47,25 @@ public sealed class InputHub : IDisposable
     {
         if (string.IsNullOrWhiteSpace(deviceId))
             return;
+
+        // Resolve session under lock, Poll outside — a moving FFB wheel's DI Poll can
+        // take tens/hundreds of ms and must not stall other InputHub callers.
+        JoystickSession? session;
         lock (_gate)
         {
-            if (!_sessions.TryGetValue(deviceId, out var session))
+            if (!_sessions.TryGetValue(deviceId, out session))
                 return;
-            try
-            {
-                var state = session.Poll();
-                if (!session.PollFailed)
-                    _lastStates[deviceId] = state;
-            }
-            catch { /* best-effort */ }
         }
+
+        try
+        {
+            var state = session.Poll();
+            if (session.PollFailed)
+                return;
+            lock (_gate)
+                _lastStates[deviceId] = state;
+        }
+        catch { /* best-effort */ }
     }
 
     /// <summary>

@@ -7,6 +7,13 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-04
+
+### Fixed
+
+- Start bridge no longer freezes the UI when the wheel is moving (DirectInput preview poll moved off the UI thread)
+- Closing the app always exits the process (capped DI/WinUHid teardown + hard exit failsafe)
+
 ## [0.2.0] - 2026-10-04
 
 ### Added
@@ -44,6 +51,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Initial public build: virtual Logitech G920 (WinUHid), binding UI, HidHide helpers, OEM `g920ffb.dll` path, bundled WinUHid + Logitech Steering Wheel SDK
 - NFS Heat / Unbound gear mapping (reverse button 19 vs 12)
 
-[Unreleased]: https://github.com/camborambo/G920Emulator/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/camborambo/G920Emulator/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/camborambo/G920Emulator/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/camborambo/G920Emulator/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/camborambo/G920Emulator/releases/tag/v0.1.0

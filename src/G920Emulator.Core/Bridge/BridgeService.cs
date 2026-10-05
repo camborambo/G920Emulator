@@ -238,8 +238,13 @@ public sealed class BridgeService : IDisposable
         // CRITICAL: do not hold Bridge._gate across FFB Detach. Detach → RestoreNonExclusive
         // needs InputHub._gate; the loop (if still winding down) takes InputHub then Bridge
         // — holding Bridge here deadlocks Stop and freezes the app.
-        try { _ffb.Stop(); } catch { /* ignore */ }
-        try { _ffb.Detach(); } catch { /* ignore */ }
+        // Cap DI detach — Unacquire/Reset can hang on some bases while the rim is moving.
+        var ffbTeardown = Task.Run(() =>
+        {
+            try { _ffb.Stop(); } catch { /* ignore */ }
+            try { _ffb.Detach(); } catch { /* ignore */ }
+        });
+        try { ffbTeardown.Wait(1500); } catch { /* ignore */ }
         _inputHub.PinFfbDevice(null);
         _lastFfbAxes01 = null;
 
