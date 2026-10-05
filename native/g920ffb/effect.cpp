@@ -1,5 +1,9 @@
 #include "effect.h"
 
+volatile LONG CEffect::s_InvertConstantForce = 0;
+volatile LONG CEffect::s_DamperVelScale = 10000;
+volatile LONG CEffect::s_DamperDeadbandScale = 10000;
+
 CEffect::CEffect()
 {
 	Type = 0;
@@ -147,13 +151,47 @@ VOID CEffect::CalcForce(ULONG Duration, ULONG CurrentPos, LONG AxisPos, LONG Axi
 		break;
 
 	case DAMPER:
-		Magnitude = EvalCondition(DiCondition, AxisVel);
+	{
+		DICONDITION cond = DiCondition;
+		LONG dbScale = s_DamperDeadbandScale;
+		if (dbScale <= 0) dbScale = 10000;
+		if (dbScale != 10000)
+		{
+			LONGLONG db = ((LONGLONG)cond.lDeadBand * dbScale) / 10000;
+			if (db > 10000) db = 10000;
+			if (db < 0) db = 0;
+			cond.lDeadBand = (LONG)db;
+		}
+		LONG vel = AxisVel;
+		LONG velScale = s_DamperVelScale;
+		if (velScale <= 0) velScale = 10000;
+		if (velScale != 10000)
+		{
+			LONGLONG v = ((LONGLONG)vel * velScale) / 10000;
+			if (v > 10000) v = 10000;
+			if (v < -10000) v = -10000;
+			vel = (LONG)v;
+		}
+		Magnitude = EvalCondition(cond, vel);
 		break;
+	}
 
 	case INERTIA:
+	{
 		// Approximate accel with velocity metric when accel is unavailable.
-		Magnitude = EvalCondition(DiCondition, AxisVel);
+		LONG vel = AxisVel;
+		LONG velScale = s_DamperVelScale;
+		if (velScale <= 0) velScale = 10000;
+		if (velScale != 10000)
+		{
+			LONGLONG v = ((LONGLONG)vel * velScale) / 10000;
+			if (v > 10000) v = 10000;
+			if (v < -10000) v = -10000;
+			vel = (LONG)v;
+		}
+		Magnitude = EvalCondition(DiCondition, vel);
 		break;
+	}
 
 	case FRICTION:
 	{
@@ -169,6 +207,8 @@ VOID CEffect::CalcForce(ULONG Duration, ULONG CurrentPos, LONG AxisPos, LONG Axi
 
 	case CONSTANT_FORCE:
 		Magnitude = ApplyEnvelope(DiConstantForce.lMagnitude, Duration, CurrentPos);
+		if (s_InvertConstantForce)
+			Magnitude = -Magnitude;
 		break;
 
 	case RAMP_FORCE:

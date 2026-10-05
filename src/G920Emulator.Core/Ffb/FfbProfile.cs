@@ -32,6 +32,35 @@ public sealed class FfbProfile
         OutputFeel = FfbOutputFeel.CreateDefault(),
     };
 
+    public const string NfsUnboundHeatProfileName = "Need For Speed Unbound / Heat";
+
+    /// <summary>
+    /// Desktop-era known-good Unbound/Heat mix: weakened spring, boosted CF/damper,
+    /// CF polarity flip, damper path scales, light torque shaping.
+    /// </summary>
+    public static FfbProfile CreateNfsUnboundHeat() => new()
+    {
+        Name = NfsUnboundHeatProfileName,
+        FfbGain = 1.0,
+        FfbInvert = false,
+        EffectGains = new FfbEffectGains
+        {
+            ConstantForce = 2.0,
+            SpringForce = 0.4,
+            DamperForce = 1.5,
+        },
+        OutputFeel = new FfbOutputFeel
+        {
+            InvertConstantForce = true,
+            DamperVelocityScale = 2.0,
+            DamperDeadbandScale = 1.0 / 3.0,
+            Deadband = 0.004,
+            MaxSlewPerSecond = 40,
+            MaxSpikeStep = 1.0,
+            MagnitudeEpsilon = 12,
+        },
+    };
+
     public void Normalize()
     {
         if (string.IsNullOrWhiteSpace(Name))

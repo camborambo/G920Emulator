@@ -51,6 +51,11 @@ public:
 	LONG LastLoggedExtra;
 	DWORD LastReportedStatus;
 
+	// Emulator mix options (updated each mixer tick from shared memory).
+	static volatile LONG s_InvertConstantForce;   // 0/1
+	static volatile LONG s_DamperVelScale;         // 10000 = 1.0
+	static volatile LONG s_DamperDeadbandScale;    // 10000 = 1.0
+
 private:
 	// Duration 0 = infinite. CurrentPos = ms into the current iteration.
 	LONG ApplyEnvelope(LONG Magnitude, ULONG Duration, ULONG CurrentPos) const;

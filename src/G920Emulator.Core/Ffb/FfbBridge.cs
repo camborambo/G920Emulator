@@ -55,6 +55,8 @@ public sealed class FfbBridge : IDisposable
     private bool _disposed;
     /// <summary>Latest rim axes from the exclusive FFB joy (0..1). Refreshed under _diGate.</summary>
     private Dictionary<string, float>? _cachedAxes01;
+    private bool[]? _cachedButtons;
+    private int _cachedHat = -1;
     private long _cachedAxesTick;
     /// <summary>Winning SetParameters flags for this base — skip multi-strategy probes after first success.</summary>
     private EffectParameterFlags? _fastMagnitudeFlags;
@@ -301,9 +303,23 @@ public sealed class FfbBridge : IDisposable
     /// Never blocks behind a slow DI SetParameters: returns a fresh cache when the
     /// FFB apply thread holds <c>_diGate</c>.
     /// </summary>
-    public bool TryGetPhysicalAxes01(out Dictionary<string, float> axes)
+    public bool TryGetPhysicalAxes01(out Dictionary<string, float> axes) =>
+        TryGetPhysicalInput(out axes, out _, out _);
+
+    /// <summary>
+    /// Live axes + buttons + hat from the exclusive FFB joystick. Required when the
+    /// FFB base is also a binding source: InputHub skips Poll on the pinned device, so
+    /// the bridge must overlay buttons from this shared exclusive handle (axes alone
+    /// left Fanatec wheel buttons frozen after Start).
+    /// </summary>
+    public bool TryGetPhysicalInput(
+        out Dictionary<string, float> axes,
+        out bool[] buttons,
+        out int hat)
     {
         axes = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+        buttons = [];
+        hat = -1;
 
         // Hot path: serve sub-frame cache so input submit is not serialized with FFB USB.
         lock (_gate)
@@ -311,8 +327,7 @@ public sealed class FfbBridge : IDisposable
             if (_cachedAxes01 is { Count: > 0 } &&
                 Environment.TickCount64 - _cachedAxesTick <= 4)
             {
-                foreach (var (k, v) in _cachedAxes01)
-                    axes[k] = v;
+                CopyCachedInputUnlocked(axes, out buttons, out hat);
                 return true;
             }
         }
@@ -324,8 +339,7 @@ public sealed class FfbBridge : IDisposable
             {
                 if (_cachedAxes01 is null || _cachedAxes01.Count == 0)
                     return false;
-                foreach (var (k, v) in _cachedAxes01)
-                    axes[k] = v;
+                CopyCachedInputUnlocked(axes, out buttons, out hat);
                 return true;
             }
         }
@@ -338,17 +352,15 @@ public sealed class FfbBridge : IDisposable
                 {
                     if (_cachedAxes01 is null || _cachedAxes01.Count == 0)
                         return false;
-                    foreach (var (k, v) in _cachedAxes01)
-                        axes[k] = v;
+                    CopyCachedInputUnlocked(axes, out buttons, out hat);
                     return true;
                 }
             }
 
-            CacheAxesFromState(state);
+            CacheInputFromState(state);
             lock (_gate)
             {
-                foreach (var (k, v) in _cachedAxes01!)
-                    axes[k] = v;
+                CopyCachedInputUnlocked(axes, out buttons, out hat);
             }
             return true;
         }
@@ -356,6 +368,19 @@ public sealed class FfbBridge : IDisposable
         {
             Monitor.Exit(_diGate);
         }
+    }
+
+    private void CopyCachedInputUnlocked(
+        Dictionary<string, float> axes,
+        out bool[] buttons,
+        out int hat)
+    {
+        foreach (var (k, v) in _cachedAxes01!)
+            axes[k] = v;
+        buttons = _cachedButtons is { Length: > 0 }
+            ? (bool[])_cachedButtons.Clone()
+            : [];
+        hat = _cachedHat;
     }
 
     private bool TryReadPhysicalJoystickState(out JoystickState state)
@@ -380,7 +405,7 @@ public sealed class FfbBridge : IDisposable
         {
             joy.Poll();
             state = joy.GetCurrentState();
-            CacheAxesFromState(state);
+            CacheInputFromState(state);
             return true;
         }
         catch
@@ -390,7 +415,7 @@ public sealed class FfbBridge : IDisposable
                 joy.Acquire();
                 joy.Poll();
                 state = joy.GetCurrentState();
-                CacheAxesFromState(state);
+                CacheInputFromState(state);
                 return true;
             }
             catch
@@ -400,7 +425,7 @@ public sealed class FfbBridge : IDisposable
         }
     }
 
-    private void CacheAxesFromState(JoystickState state)
+    private void CacheInputFromState(JoystickState state)
     {
         var axes = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
         {
@@ -416,9 +441,19 @@ public sealed class FfbBridge : IDisposable
         if (state.Sliders.Length > 1)
             axes["Slider1"] = NormalizeAxis01(state.Sliders[1]);
 
+        var hat = -1;
+        if (state.PointOfViewControllers.Length > 0)
+        {
+            var pov = state.PointOfViewControllers[0];
+            if (pov >= 0)
+                hat = pov / 4500; // 0..7 — same as InputHub
+        }
+
         lock (_gate)
         {
             _cachedAxes01 = axes;
+            _cachedButtons = (bool[])state.Buttons.Clone();
+            _cachedHat = hat;
             _cachedAxesTick = Environment.TickCount64;
         }
     }
@@ -993,6 +1028,8 @@ public sealed class FfbBridge : IDisposable
             shared = _joystick;
             _joystick = null;
             _cachedAxes01 = null;
+            _cachedButtons = null;
+            _cachedHat = -1;
             _cachedAxesTick = 0;
             id = _deviceId;
             hub = _hub;

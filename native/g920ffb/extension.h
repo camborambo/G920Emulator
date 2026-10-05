@@ -44,8 +44,15 @@ struct G920FfbSharedState
 	UINT32 AuxPlaying;
 	UINT32 AuxTypesPlaying;
 	UINT64 AuxTickMs;
+	// Emulator mix options (app-written; defaults = Raw / pass-through).
+	// MixFlags bit0 = InvertConstantForce.
+	UINT32 MixFlags;
+	UINT16 DamperVelScale;      // 10000 = 1.0, 20000 = 2.0
+	UINT16 DamperDeadbandScale; // 10000 = 1.0, ~3333 = 1/3
 };
 #pragma pack(pop)
+
+#define G920FFB_MIX_INVERT_CONSTANT 0x1u
 
 void G920FfbLogSession();
 void G920FfbLogEffect(DWORD effectType, DWORD flags, DWORD handle, LONG extra);

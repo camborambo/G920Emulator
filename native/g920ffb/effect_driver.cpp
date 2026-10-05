@@ -711,11 +711,19 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 		Shared->AuxPlaying = 0;
 		Shared->AuxTypesPlaying = 0;
 		Shared->AuxTickMs = 0;
+		Shared->MixFlags = 0;
+		Shared->DamperVelScale = 10000;
+		Shared->DamperDeadbandScale = 10000;
 	}
 	else
 	{
 		Shared->Magic = G920FFB_MAGIC;
 		Shared->Version = G920FFB_VERSION;
+		// In-place grow from older v6 layouts: zero scales mean "unset".
+		if (Shared->DamperVelScale == 0)
+			Shared->DamperVelScale = 10000;
+		if (Shared->DamperDeadbandScale == 0)
+			Shared->DamperDeadbandScale = 10000;
 	}
 
 	UINT32 Seq = Shared->Sequence;
@@ -745,6 +753,19 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 		{
 			UINT16 v = Shared->TypeGain[g];
 			typeGain[g] = (v > 20000) ? 10000 : v;
+		}
+
+		CEffect::s_InvertConstantForce =
+			(Shared->MixFlags & G920FFB_MIX_INVERT_CONSTANT) ? 1 : 0;
+		{
+			UINT16 vs = Shared->DamperVelScale;
+			if (vs == 0) vs = 10000;
+			if (vs > 40000) vs = 40000;
+			CEffect::s_DamperVelScale = (LONG)vs;
+			UINT16 ds = Shared->DamperDeadbandScale;
+			if (ds == 0) ds = 10000;
+			if (ds > 10000) ds = 10000;
+			CEffect::s_DamperDeadbandScale = (LONG)ds;
 		}
 
 		EnterCriticalSection(&CriticalSection);

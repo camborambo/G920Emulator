@@ -427,6 +427,9 @@ public static class DiagnosticsExporter
                 $"Feel: smooth={f.SmoothingMs:0}ms peak={f.PeakSoftStart:0.##} softStart={f.SoftStartMs:0} " +
                 $"dead={f.Deadband:0.###} slew={f.MaxSlewPerSecond:0} spike={f.MaxSpikeStep:0.##} eps={f.MagnitudeEpsilon:0}");
             sb.AppendLine(
+                $"OEM mix: invertCF={f.InvertConstantForce} dampVel={f.DamperVelocityScale:0.##} " +
+                $"dampDead={f.DamperDeadbandScale:0.##}");
+            sb.AppendLine(
                 $"Force center spring: {f.ForceCenterSpring} strength={f.CenterSpringStrength:0.##} " +
                 $"range={f.CenterSpringRange:0.##} deadzone={f.CenterSpringDeadzone:0.###}");
         }

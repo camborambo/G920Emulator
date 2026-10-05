@@ -34,6 +34,8 @@ public partial class MainWindow : Window
     private bool _bindingDialogOpen;
     private bool _ffbTestSliderSilent;
     private bool _effectGainSliderSilent;
+    private TextBox? _ffbValueEditBox;
+    private TextBlock? _ffbValueEditLabel;
     private string? _shownLinkStatus;
     private CancellationTokenSource? _ffbPulseCts;
     private long _lastFfbDiagUiTick;
@@ -751,7 +753,8 @@ public partial class MainWindow : Window
             {
                 if (_bridgeBusy || _bridge.IsRunning)
                     return;
-                var devices = _bridge.InputHub.Poll();
+                // PollForUi overlays pinned FFB (e.g. FFB debug Attach without bridge Start).
+                var devices = _bridge.PollForUi();
                 var mapped = new Core.Mapping.MapperEngine().Map(profile, devices);
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
@@ -966,7 +969,14 @@ public partial class MainWindow : Window
         if (s.ButtonY) pressed.Add("Y");
         if (s.ButtonLb || s.PaddleLeft) pressed.Add("LB");
         if (s.ButtonRb || s.PaddleRight) pressed.Add("RB");
+        if (s.ButtonView) pressed.Add("View");
+        if (s.ButtonMenu) pressed.Add("Menu");
+        if (s.ButtonLs) pressed.Add("LSB");
+        if (s.ButtonRs) pressed.Add("RSB");
         if (s.Hat >= 0) pressed.Add($"Hat{s.Hat}");
+        // Gears already shown on GearText; include active gear here when not Neutral.
+        if (s.ActiveGearLabel is not "N")
+            pressed.Add($"G{s.ActiveGearLabel}");
         ButtonsText.Text = "Buttons: " + (pressed.Count == 0 ? "—" : string.Join(" ", pressed));
     }
 
@@ -1353,7 +1363,9 @@ public partial class MainWindow : Window
                 target,
                 binding,
                 _profile,
-                () => _bridge.InputHub.Poll(),
+                // Must overlay pinned FFB buttons — plain InputHub.Poll skips Fanatec while
+                // the bridge holds exclusive FFB (broke bind-on-the-fly after Start).
+                () => _bridge.PollForUi(),
                 () => _bridge.RefreshDevices(),
                 ResolveDeviceName,
                 ResolveProductId)
@@ -1482,12 +1494,21 @@ public partial class MainWindow : Window
         FeelEpsilonValueText is not null &&
         ForceCenterCheck is not null && CenterStrengthSlider is not null && CenterRangeSlider is not null &&
         CenterDeadzoneSlider is not null && CenterStrengthValueText is not null &&
-        CenterRangeValueText is not null && CenterDeadzoneValueText is not null && CenterSpringPanel is not null;
+        CenterRangeValueText is not null && CenterDeadzoneValueText is not null && CenterSpringPanel is not null &&
+        InvertConstantForceCheck is not null && DamperVelScaleSlider is not null && DamperDeadbandScaleSlider is not null &&
+        DamperVelScaleValueText is not null && DamperDeadbandScaleValueText is not null;
 
     private void ForceCenterCheck_Changed(object sender, RoutedEventArgs e)
     {
         if (_effectGainSliderSilent || !AreFeelControlsReady()) return;
         SyncFeelLabels();
+        SyncFeelFromUi();
+        ScheduleFfbProfilePush();
+    }
+
+    private void MixOption_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_effectGainSliderSilent || !AreFeelControlsReady()) return;
         SyncFeelFromUi();
         ScheduleFfbProfilePush();
     }
@@ -1519,6 +1540,9 @@ public partial class MainWindow : Window
             CenterStrengthSlider.Value = feel.CenterSpringStrength;
             CenterRangeSlider.Value = feel.CenterSpringRange;
             CenterDeadzoneSlider.Value = feel.CenterSpringDeadzone;
+            InvertConstantForceCheck.IsChecked = feel.InvertConstantForce;
+            DamperVelScaleSlider.Value = feel.DamperVelocityScale;
+            DamperDeadbandScaleSlider.Value = feel.DamperDeadbandScale;
             SyncFeelLabels();
         }
         finally
@@ -1543,6 +1567,9 @@ public partial class MainWindow : Window
         f.CenterSpringStrength = CenterStrengthSlider.Value;
         f.CenterSpringRange = CenterRangeSlider.Value;
         f.CenterSpringDeadzone = CenterDeadzoneSlider.Value;
+        f.InvertConstantForce = InvertConstantForceCheck.IsChecked == true;
+        f.DamperVelocityScale = DamperVelScaleSlider.Value;
+        f.DamperDeadbandScale = DamperDeadbandScaleSlider.Value;
         f.Clamp();
     }
 
@@ -1567,8 +1594,195 @@ public partial class MainWindow : Window
         CenterDeadzoneValueText.Text = CenterDeadzoneSlider.Value <= 0.0005
             ? "off"
             : $"{CenterDeadzoneSlider.Value:P1}";
+        DamperVelScaleValueText.Text = $"{DamperVelScaleSlider.Value:P0}";
+        DamperDeadbandScaleValueText.Text = $"{DamperDeadbandScaleSlider.Value:P0}";
         CenterSpringPanel.IsEnabled = ForceCenterCheck.IsChecked == true;
         CenterSpringPanel.Opacity = CenterSpringPanel.IsEnabled ? 1.0 : 0.5;
+    }
+
+    private enum FfbValueEditKind
+    {
+        Percent01to2,   // 0..2 shown as %
+        Percent0to1,    // 0..1 shown as %
+        Milliseconds,
+        SoftStartMs,
+        Deadband,
+        SlewPerSec,
+        Epsilon,
+    }
+
+    private void FfbValueLabel_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not TextBlock label) return;
+        if (!TryGetFfbSliderForLabel(label, out var slider, out var kind)) return;
+        e.Handled = true;
+        BeginFfbValueEdit(label, slider, kind);
+    }
+
+    private bool TryGetFfbSliderForLabel(TextBlock label, out Slider slider, out FfbValueEditKind kind)
+    {
+        if (ReferenceEquals(label, GainValueText)) { slider = GainSlider; kind = FfbValueEditKind.Percent01to2; return true; }
+        if (ReferenceEquals(label, GainConstantValueText)) { slider = GainConstantSlider; kind = FfbValueEditKind.Percent01to2; return true; }
+        if (ReferenceEquals(label, GainSpringValueText)) { slider = GainSpringSlider; kind = FfbValueEditKind.Percent01to2; return true; }
+        if (ReferenceEquals(label, GainDamperValueText)) { slider = GainDamperSlider; kind = FfbValueEditKind.Percent01to2; return true; }
+        if (ReferenceEquals(label, GainFrictionValueText)) { slider = GainFrictionSlider; kind = FfbValueEditKind.Percent01to2; return true; }
+        if (ReferenceEquals(label, GainInertiaValueText)) { slider = GainInertiaSlider; kind = FfbValueEditKind.Percent01to2; return true; }
+        if (ReferenceEquals(label, GainPeriodicValueText)) { slider = GainPeriodicSlider; kind = FfbValueEditKind.Percent01to2; return true; }
+        if (ReferenceEquals(label, GainRampValueText)) { slider = GainRampSlider; kind = FfbValueEditKind.Percent01to2; return true; }
+        if (ReferenceEquals(label, FeelSmoothingValueText)) { slider = FeelSmoothingSlider; kind = FfbValueEditKind.Milliseconds; return true; }
+        if (ReferenceEquals(label, FeelPeakSoftValueText)) { slider = FeelPeakSoftSlider; kind = FfbValueEditKind.Percent0to1; return true; }
+        if (ReferenceEquals(label, FeelSoftStartValueText)) { slider = FeelSoftStartSlider; kind = FfbValueEditKind.SoftStartMs; return true; }
+        if (ReferenceEquals(label, FeelDeadbandValueText)) { slider = FeelDeadbandSlider; kind = FfbValueEditKind.Deadband; return true; }
+        if (ReferenceEquals(label, FeelSlewValueText)) { slider = FeelSlewSlider; kind = FfbValueEditKind.SlewPerSec; return true; }
+        if (ReferenceEquals(label, FeelSpikeValueText)) { slider = FeelSpikeSlider; kind = FfbValueEditKind.Percent0to1; return true; }
+        if (ReferenceEquals(label, FeelEpsilonValueText)) { slider = FeelEpsilonSlider; kind = FfbValueEditKind.Epsilon; return true; }
+        if (ReferenceEquals(label, CenterStrengthValueText)) { slider = CenterStrengthSlider; kind = FfbValueEditKind.Percent0to1; return true; }
+        if (ReferenceEquals(label, CenterRangeValueText)) { slider = CenterRangeSlider; kind = FfbValueEditKind.Percent0to1; return true; }
+        if (ReferenceEquals(label, CenterDeadzoneValueText)) { slider = CenterDeadzoneSlider; kind = FfbValueEditKind.Deadband; return true; }
+        if (ReferenceEquals(label, DamperVelScaleValueText)) { slider = DamperVelScaleSlider; kind = FfbValueEditKind.Percent01to2; return true; }
+        if (ReferenceEquals(label, DamperDeadbandScaleValueText)) { slider = DamperDeadbandScaleSlider; kind = FfbValueEditKind.Percent0to1; return true; }
+        slider = null!;
+        kind = default;
+        return false;
+    }
+
+    private void BeginFfbValueEdit(TextBlock label, Slider slider, FfbValueEditKind kind)
+    {
+        CancelFfbValueEdit();
+        if (label.Parent is not Panel panel) return;
+
+        var edit = new TextBox
+        {
+            Width = Math.Max(48, label.Width),
+            Height = 22,
+            VerticalAlignment = VerticalAlignment.Center,
+            FontSize = label.FontSize,
+            Text = FormatFfbEditSeed(slider.Value, kind),
+            Tag = (slider, kind),
+        };
+        DockPanel.SetDock(edit, Dock.Right);
+
+        var index = panel.Children.IndexOf(label);
+        panel.Children.Remove(label);
+        if (index < 0) panel.Children.Add(edit);
+        else panel.Children.Insert(index, edit);
+
+        _ffbValueEditBox = edit;
+        _ffbValueEditLabel = label;
+        edit.KeyDown += FfbValueEdit_KeyDown;
+        edit.LostKeyboardFocus += FfbValueEdit_LostFocus;
+        edit.Focus();
+        edit.SelectAll();
+    }
+
+    private static string FormatFfbEditSeed(double value, FfbValueEditKind kind) => kind switch
+    {
+        FfbValueEditKind.Percent01to2 or FfbValueEditKind.Percent0to1 => $"{value * 100:0.##}",
+        FfbValueEditKind.Milliseconds => $"{value:0}",
+        FfbValueEditKind.SoftStartMs => $"{value:0}",
+        FfbValueEditKind.Deadband => value <= 0.0005 ? "0" : value.ToString("0.###"),
+        FfbValueEditKind.SlewPerSec => value <= 0.5 ? "0" : $"{value:0.##}",
+        FfbValueEditKind.Epsilon => $"{value:0}",
+        _ => value.ToString("0.###"),
+    };
+
+    private void FfbValueEdit_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            CommitFfbValueEdit(save: true);
+        }
+        else if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            CancelFfbValueEdit();
+        }
+    }
+
+    private void FfbValueEdit_LostFocus(object sender, KeyboardFocusChangedEventArgs e) =>
+        CommitFfbValueEdit(save: true);
+
+    private void CommitFfbValueEdit(bool save)
+    {
+        var edit = _ffbValueEditBox;
+        var label = _ffbValueEditLabel;
+        if (edit is null || label is null) return;
+
+        // Clear first so LostFocus from removing the TextBox cannot re-enter.
+        _ffbValueEditBox = null;
+        _ffbValueEditLabel = null;
+
+        Slider? slider = null;
+        if (save && edit.Tag is ValueTuple<Slider, FfbValueEditKind> tag)
+        {
+            slider = tag.Item1;
+            if (TryParseFfbEdit(edit.Text, tag.Item2, slider.Minimum, slider.Maximum, out var value))
+                slider.Value = value;
+        }
+
+        EndFfbValueEdit(edit, label);
+        if (AreEffectGainControlsReady())
+            SyncEffectGainLabels();
+        if (AreFeelControlsReady())
+            SyncFeelLabels();
+        if (slider is not null && ReferenceEquals(slider, GainSlider) && GainValueText is not null)
+            GainValueText.Text = $"{GainSlider.Value:P0}";
+    }
+
+    private void CancelFfbValueEdit()
+    {
+        var edit = _ffbValueEditBox;
+        var label = _ffbValueEditLabel;
+        if (edit is null || label is null) return;
+        _ffbValueEditBox = null;
+        _ffbValueEditLabel = null;
+        EndFfbValueEdit(edit, label);
+    }
+
+    private void EndFfbValueEdit(TextBox edit, TextBlock label)
+    {
+        edit.KeyDown -= FfbValueEdit_KeyDown;
+        edit.LostKeyboardFocus -= FfbValueEdit_LostFocus;
+        if (edit.Parent is Panel panel)
+        {
+            var index = panel.Children.IndexOf(edit);
+            panel.Children.Remove(edit);
+            if (index < 0) panel.Children.Add(label);
+            else panel.Children.Insert(index, label);
+        }
+    }
+
+    private static bool TryParseFfbEdit(string? text, FfbValueEditKind kind, double min, double max, out double value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        var s = text.Trim();
+        var percent = s.EndsWith('%');
+        if (percent) s = s[..^1].Trim();
+        if (s.EndsWith("/s", StringComparison.OrdinalIgnoreCase))
+            s = s[..^2].Trim();
+        if (s.EndsWith("ms", StringComparison.OrdinalIgnoreCase))
+            s = s[..^2].Trim();
+        if (s.Equals("off", StringComparison.OrdinalIgnoreCase))
+        {
+            value = min;
+            return true;
+        }
+        if (!double.TryParse(s, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var n) &&
+            !double.TryParse(s, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.CurrentCulture, out n))
+            return false;
+
+        value = kind switch
+        {
+            FfbValueEditKind.Percent01to2 or FfbValueEditKind.Percent0to1 =>
+                percent || n > max + 0.0001 ? n / 100.0 : n,
+            _ => n,
+        };
+        value = Math.Clamp(value, min, max);
+        return true;
     }
 
     private void InvertFfbCheck_Changed(object sender, RoutedEventArgs e)

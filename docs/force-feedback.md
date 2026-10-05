@@ -10,14 +10,15 @@ Force-feedback presets live in `%AppData%\G920Emulator\ffb-profiles\` (not in th
 
 | Preset | Meaning |
 |--------|---------|
-| **Raw** (default) | Exact game mix — master/effect gains 100%, all feel / torque shaping off. Cannot be deleted. |
-| Your Save / Save As… | Capture current master gain, invert, per-effect gains, output feel, and torque shaping into a named JSON |
+| **Raw** (default) | Exact game mix — master/effect gains 100%, all feel / torque shaping / OEM mix options off. Cannot be deleted. |
+| **Need For Speed Unbound / Heat** | Desktop-era known-good mix for Heat/Unbound: CF 200%, Spring 40%, Damper 150%, Invert Constant Force on, damper vel ×2 / deadband ×⅓, light torque shaping (deadband 0.004, slew 40, DI ε 12). Seeded once; editable/deletable. |
+| Your Save / Save As… | Capture current master gain, invert, per-effect gains, output feel, OEM mix options, and torque shaping into a named JSON |
 
-**UI:** under Force feedback, pick the profile in the dropdown (its own row), then use **Save** / **Save As…** / **Delete** on the row below.
+**UI:** under Force feedback, pick the profile in the dropdown (its own row), then use **Save** / **Save As…** / **Delete** on the row below. Click any **% / value** label beside a slider to type an exact number (Enter to apply, Esc to cancel).
 
 Each input profile stores an `ffbProfileName` link. Changing the FFB dropdown loads that preset into the sliders; saving the input profile also quiet-saves the linked FFB file.
 
-Raw is the only built-in preset. Earlier builds also seeded an **NFS Unbound** preset; on startup that file is removed if it still has the seeded gains (CF 200% / Spring 40% / Damper 150%). A profile you saved yourself under that name is kept.
+Built-in presets are **Raw** and **Need For Speed Unbound / Heat**. Earlier short seeds (**NFS Unbound**, **Classic**) are removed on startup if they still match the original seeded values; a profile you edited under those names is kept.
 
 ## Why not Logitech HID++?
 
@@ -40,8 +41,9 @@ Game → DirectInput → g920ffb.dll (IDirectInputEffectDriver)
 | COM CLSID | `{A920FFB0-E7DB-4329-8C13-A966D84A289F}` |
 | DLL | `g920ffb.dll` next to `G920Emulator.exe` (built from `native/g920ffb`) |
 | Registration | `G920OemRegistration.EnsureRegistered()` on Start |
-| Shared memory | Magic `G9FF`, version 6 (`…FfbTorque.v6`): game `Torque` + optional `AuxTorque` (Steam/overlay), playing, steering in/out, type bitmasks, per-type gains. Each process mixes its own OEM instances; bridge sums game + aux. |
+| Shared memory | Magic `G9FF`, version 6 (`…FfbTorque.v6`): game `Torque` + optional `AuxTorque` (Steam/overlay), playing, steering in/out, type bitmasks, per-type gains, OEM mix flags/scales. Each process mixes its own OEM instances; bridge sums game + aux. |
 | Effect gains | Per-type sliders applied in `g920ffb.dll` before mix; master gain applies on the physical base |
+| OEM mix options | Optional inside `g920ffb.dll`: Invert Constant Force, damper velocity scale, damper deadband scale (see below). Defaults = pass-through |
 | Output feel / torque shaping | Optional, after the OEM mix, in the emulator (see below). Defaults = pass-through |
 
 ### Effect types mixed natively
@@ -88,6 +90,16 @@ Scale each DirectInput effect type **in the OEM mixer** before summing (0% mutes
 | **Inertia** | Acceleration-related condition |
 | **Periodic** | Sine / square / triangle / sawtooth rumble |
 | **Ramp** | Ramp force |
+
+### OEM mix (inside `g920ffb.dll`)
+
+Applied while evaluating effects, before the shared-memory torque is published. Independent of **Invert FFB** (which flips the whole final torque on the base).
+
+| Control | Default | NFS Unbound / Heat | Notes |
+|---------|---------|--------------------|--------|
+| **Invert Constant Force** | off | **on** | Negates Constant Force only (Desktop tire-load polarity) |
+| **Damp vel** | 100% | **200%** | Scales rim velocity before damper/inertia condition eval |
+| **Damp dead** | 100% | **~33%** | Scales damper deadband before eval |
 
 ### Output feel
 

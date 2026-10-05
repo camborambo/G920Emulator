@@ -367,57 +367,65 @@
               <DockPanel Margin="0,10,0,0"
                          ToolTip="Overall force feedback strength, applied after all effects are mixed. 100% = the game's own strength; up to 200% boosts weak games (strong peaks may clip).">
                 <TextBlock Text="Master" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"/>
+                <TextBlock x:Name="GainValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="GainSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1" IsSnapToTickEnabled="False" ValueChanged="GainSlider_ValueChanged"/>
               </DockPanel>
               <TextBlock Text="Effect gains" Opacity="0.7" Margin="0,12,0,4"
-                         ToolTip="Scale each type of effect the game sends before they are mixed. 100% = as the game sent it, 0% = mute that type, up to 200% = boost it."/>
+                         ToolTip="Scale each type of effect the game sends before they are mixed. 100% = as the game sent it, 0% = mute that type, up to 200% = boost it. Click a % to type an exact value."/>
               <DockPanel Margin="0,2,0,0"
                          ToolTip="Constant force: the main steering torque most games send — tyre load, self-aligning force, road surface, curb and crash hits. Turn this down if the wheel is too heavy overall.">
                 <TextBlock Text="Constant" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainConstantValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"/>
+                <TextBlock x:Name="GainConstantValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="GainConstantSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
                         ValueChanged="EffectGainSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"
                          ToolTip="Spring: pulls the wheel back toward center, harder the further you turn. Arcade games use it for self-centering and in menus. Lower it if centering feels too stiff.">
                 <TextBlock Text="Spring" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainSpringValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"/>
+                <TextBlock x:Name="GainSpringValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="GainSpringSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
                         ValueChanged="EffectGainSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"
                          ToolTip="Damper: resists how fast you turn the wheel (like moving through thick liquid). Adds weight and calms oscillation; too much feels sluggish.">
                 <TextBlock Text="Damper" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainDamperValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"/>
+                <TextBlock x:Name="GainDamperValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="GainDamperSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
                         ValueChanged="EffectGainSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"
                          ToolTip="Friction: a constant drag whenever the wheel moves, regardless of speed. Often used for tyre scrub or a heavy wheel when parked.">
                 <TextBlock Text="Friction" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainFrictionValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"/>
+                <TextBlock x:Name="GainFrictionValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="GainFrictionSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
                         ValueChanged="EffectGainSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"
                          ToolTip="Inertia: resists changes in turning speed, so the wheel feels like it has more mass. Few games use it.">
                 <TextBlock Text="Inertia" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainInertiaValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"/>
+                <TextBlock x:Name="GainInertiaValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="GainInertiaSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
                         ValueChanged="EffectGainSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"
                          ToolTip="Periodic: vibration effects (sine, square, triangle, sawtooth) — engine rumble, rumble strips, gravel, collisions and crash shake. Raise it if rumble feels weak, lower it if it is too buzzy.">
                 <TextBlock Text="Periodic" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainPeriodicValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"/>
+                <TextBlock x:Name="GainPeriodicValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="GainPeriodicSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
                         ValueChanged="EffectGainSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"
                          ToolTip="Ramp: a force that slides from one strength to another over time. Rarely used; some games use it for building or fading pushes.">
                 <TextBlock Text="Ramp" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainRampValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"/>
+                <TextBlock x:Name="GainRampValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="GainRampSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
                         ValueChanged="EffectGainSlider_ValueChanged"/>
               </DockPanel>
@@ -427,52 +435,59 @@
               <DockPanel Margin="0,2,0,0"
                          ToolTip="Smoothing: filters out harsh, grainy detail (low-pass, in milliseconds). 0 = off, exact game feedback. Try 8–15 ms on direct-drive bases that feel notchy. Higher values add a little delay and soften detail.">
                 <TextBlock Text="Smoothing" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelSmoothingValueText" DockPanel.Dock="Right" Width="40" Text="0 ms" VerticalAlignment="Center"/>
+                <TextBlock x:Name="FeelSmoothingValueText" DockPanel.Dock="Right" Width="40" Text="0 ms" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="FeelSmoothingSlider" Minimum="0" Maximum="40" Value="0" TickFrequency="1"
                         ValueChanged="FeelSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"
                          ToolTip="Peak soft: rounds off the strongest forces (crashes, big curbs) so they don't slam the wheel, while light and medium forces stay the same. 100% = off. Lower = gentler peaks.">
                 <TextBlock Text="Peak soft" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelPeakSoftValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"/>
+                <TextBlock x:Name="FeelPeakSoftValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="FeelPeakSoftSlider" Minimum="0.5" Maximum="1" Value="1" TickFrequency="0.01"
                         ValueChanged="FeelSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"
                          ToolTip="Soft start: when force feedback first kicks in (game launch, loading into a race), fade it in over this many milliseconds instead of jolting the wheel. Happens once, not every frame. 0 = off.">
                 <TextBlock Text="Soft start" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelSoftStartValueText" DockPanel.Dock="Right" Width="40" Text="0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="FeelSoftStartValueText" DockPanel.Dock="Right" Width="40" Text="0" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="FeelSoftStartSlider" Minimum="0" Maximum="2000" Value="0" TickFrequency="50"
                         ValueChanged="FeelSlider_ValueChanged"/>
               </DockPanel>
 
               <TextBlock Text="Torque shaping" Opacity="0.7" Margin="0,12,0,4"
-                         ToolTip="Optional cleanup for games that send noisy or jumpy torque. Off when Deadband/Slew/DI epsilon are 0 and Spike cap is 100% (as on Raw)."/>
+                         ToolTip="Optional cleanup for games that send noisy or jumpy torque. Off when Deadband/Slew/DI epsilon are 0 and Spike cap is 100% (as on Raw). Click a value to type."/>
               <DockPanel Margin="0,2,0,0"
                          ToolTip="Deadband: ignores very small forces (fraction of full strength) so the wheel doesn't twitch or hum around center. 0 = off. Try around 0.004.">
                 <TextBlock Text="Deadband" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelDeadbandValueText" DockPanel.Dock="Right" Width="48" Text="0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="FeelDeadbandValueText" DockPanel.Dock="Right" Width="48" Text="0" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="FeelDeadbandSlider" Minimum="0" Maximum="0.05" Value="0" TickFrequency="0.001"
                         ValueChanged="FeelSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"
                          ToolTip="Slew: limits how fast the force may change (full-strength units per second). Stops sudden snaps; lower = smoother but less sharp. Releasing to zero is allowed 2.5× faster. 0 = unlimited (off). Try around 40.">
                 <TextBlock Text="Slew" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelSlewValueText" DockPanel.Dock="Right" Width="48" Text="off" VerticalAlignment="Center"/>
+                <TextBlock x:Name="FeelSlewValueText" DockPanel.Dock="Right" Width="48" Text="off" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="FeelSlewSlider" Minimum="0" Maximum="200" Value="0" TickFrequency="1"
                         ValueChanged="FeelSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"
                          ToolTip="Spike cap: the largest jump allowed in a single update, as a percentage of full strength. Tames one-frame spikes from glitchy games. 100% = off.">
                 <TextBlock Text="Spike cap" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelSpikeValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"/>
+                <TextBlock x:Name="FeelSpikeValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="FeelSpikeSlider" Minimum="0.05" Maximum="1" Value="1" TickFrequency="0.01"
                         ValueChanged="FeelSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"
                          ToolTip="DI epsilon: skips sending tiny changes to your base (out of 10000). Reduces USB chatter and buzzing on some bases; returning to zero is always sent. 0 = off (every change is sent). Try around 12.">
                 <TextBlock Text="DI epsilon" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelEpsilonValueText" DockPanel.Dock="Right" Width="48" Text="0" VerticalAlignment="Center"/>
+                <TextBlock x:Name="FeelEpsilonValueText" DockPanel.Dock="Right" Width="48" Text="0" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="FeelEpsilonSlider" Minimum="0" Maximum="64" Value="0" TickFrequency="1"
                         ValueChanged="FeelSlider_ValueChanged"/>
               </DockPanel>
@@ -486,25 +501,50 @@
                 <DockPanel Margin="0,2,0,0"
                            ToolTip="Strength: the maximum centering force (percent of full strength). Scaled by Master. Start around 20–40% on direct-drive bases.">
                   <TextBlock Text="Strength" Width="72" VerticalAlignment="Center"/>
-                  <TextBlock x:Name="CenterStrengthValueText" DockPanel.Dock="Right" Width="48" Text="30%" VerticalAlignment="Center"/>
+                  <TextBlock x:Name="CenterStrengthValueText" DockPanel.Dock="Right" Width="48" Text="30%" VerticalAlignment="Center"
+                             Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                   <Slider x:Name="CenterStrengthSlider" Minimum="0.05" Maximum="1" Value="0.3" TickFrequency="0.01"
                           ValueChanged="FeelSlider_ValueChanged"/>
                 </DockPanel>
                 <DockPanel Margin="0,4,0,0"
                            ToolTip="Range: how far from center (percent of full rotation to one side) the spring reaches full strength. Lower = stiffer near center, higher = softer and more gradual.">
                   <TextBlock Text="Range" Width="72" VerticalAlignment="Center"/>
-                  <TextBlock x:Name="CenterRangeValueText" DockPanel.Dock="Right" Width="48" Text="25%" VerticalAlignment="Center"/>
+                  <TextBlock x:Name="CenterRangeValueText" DockPanel.Dock="Right" Width="48" Text="25%" VerticalAlignment="Center"
+                             Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                   <Slider x:Name="CenterRangeSlider" Minimum="0.05" Maximum="0.5" Value="0.25" TickFrequency="0.01"
                           ValueChanged="FeelSlider_ValueChanged"/>
                 </DockPanel>
                 <DockPanel Margin="0,4,0,0"
                            ToolTip="Deadzone: a small free zone around center where the spring doesn't push, so the wheel doesn't hunt or buzz at dead center. 0 = off.">
                   <TextBlock Text="Deadzone" Width="72" VerticalAlignment="Center"/>
-                  <TextBlock x:Name="CenterDeadzoneValueText" DockPanel.Dock="Right" Width="48" Text="off" VerticalAlignment="Center"/>
+                  <TextBlock x:Name="CenterDeadzoneValueText" DockPanel.Dock="Right" Width="48" Text="off" VerticalAlignment="Center"
+                             Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                   <Slider x:Name="CenterDeadzoneSlider" Minimum="0" Maximum="0.05" Value="0" TickFrequency="0.001"
                           ValueChanged="FeelSlider_ValueChanged"/>
                 </DockPanel>
               </StackPanel>
+
+              <TextBlock Text="OEM mix" Opacity="0.7" Margin="0,12,0,4"
+                         ToolTip="Options applied inside g920ffb.dll while mixing DirectInput effects. Defaults match Raw (pass-through). The Need For Speed Unbound / Heat profile enables the Desktop-era mix."/>
+              <CheckBox x:Name="InvertConstantForceCheck" Content="Invert Constant Force" Foreground="#E8EAED" Margin="0,0,0,4"
+                        ToolTip="Flip Constant Force polarity only (not Spring/Damper). Used by the Need For Speed Unbound / Heat profile for tire-load direction. Independent of Invert FFB."
+                        Checked="MixOption_Changed" Unchecked="MixOption_Changed"/>
+              <DockPanel Margin="0,2,0,0"
+                         ToolTip="Damper velocity scale: multiplies rim velocity before damper/inertia evaluation. 100% = off. Need For Speed Unbound / Heat uses 200%.">
+                <TextBlock Text="Damp vel" Width="72" VerticalAlignment="Center"/>
+                <TextBlock x:Name="DamperVelScaleValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                <Slider x:Name="DamperVelScaleSlider" Minimum="0.25" Maximum="4" Value="1" TickFrequency="0.05"
+                        ValueChanged="FeelSlider_ValueChanged"/>
+              </DockPanel>
+              <DockPanel Margin="0,4,0,0"
+                         ToolTip="Damper deadband scale: shrinks the game's damper deadband before evaluation. 100% = off. Need For Speed Unbound / Heat uses ~33%.">
+                <TextBlock Text="Damp dead" Width="72" VerticalAlignment="Center"/>
+                <TextBlock x:Name="DamperDeadbandScaleValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
+                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                <Slider x:Name="DamperDeadbandScaleSlider" Minimum="0.1" Maximum="1" Value="1" TickFrequency="0.01"
+                        ValueChanged="FeelSlider_ValueChanged"/>
+              </DockPanel>
 
               <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <CheckBox x:Name="InvertFfbCheck" Content="Invert FFB" Foreground="#E8EAED"

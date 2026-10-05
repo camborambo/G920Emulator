@@ -63,6 +63,23 @@ public sealed class FfbOutputFeel
     /// <summary>Centering deadzone around center (0–0.05 of full rotation).</summary>
     public double CenterSpringDeadzone { get; set; }
 
+    /// <summary>
+    /// Negate Constant Force only (Desktop classic mix). Independent of Invert FFB.
+    /// Off by default (Raw = game CF sign).
+    /// </summary>
+    public bool InvertConstantForce { get; set; }
+
+    /// <summary>
+    /// Scale applied to rim velocity before damper/inertia condition eval (1.0 = off).
+    /// Desktop classic used 2.0.
+    /// </summary>
+    public double DamperVelocityScale { get; set; } = 1.0;
+
+    /// <summary>
+    /// Scale applied to damper deadband before eval (1.0 = off). Desktop classic used ~0.33.
+    /// </summary>
+    public double DamperDeadbandScale { get; set; } = 1.0;
+
     public void Clamp()
     {
         SmoothingMs = Math.Clamp(SmoothingMs, 0, 40);
@@ -75,6 +92,8 @@ public sealed class FfbOutputFeel
         CenterSpringStrength = Math.Clamp(CenterSpringStrength, 0.05, 1.0);
         CenterSpringRange = Math.Clamp(CenterSpringRange, 0.05, 0.5);
         CenterSpringDeadzone = Math.Clamp(CenterSpringDeadzone, 0, 0.05);
+        DamperVelocityScale = Math.Clamp(DamperVelocityScale, 0.25, 4.0);
+        DamperDeadbandScale = Math.Clamp(DamperDeadbandScale, 0.1, 1.0);
     }
 
     /// <summary>

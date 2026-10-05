@@ -84,6 +84,8 @@ public sealed class BridgeService : IDisposable
     private string _linkStatus = "";
     /// <summary>Last live axes from the exclusive FFB base (InputHub does not Poll it).</summary>
     private Dictionary<string, float>? _lastFfbAxes01;
+    private bool[]? _lastFfbButtons;
+    private int _lastFfbHat = -1;
     /// <summary>Queued physical CF target — applied on a side thread so Simucube DI
     /// SetParameters cannot stall virtual G920 axis submits.</summary>
     private float _ffbQueuedTorque;
@@ -110,7 +112,14 @@ public sealed class BridgeService : IDisposable
         get { lock (_gate) return _profile; }
         set
         {
-            lock (_gate) _profile = value;
+            lock (_gate)
+            {
+                _profile = value;
+                // Bind-on-the-fly mutates the same profile instance — always rebuild the
+                // poll filter so newly bound device IDs are included next frame.
+                _pollDeviceIds = null;
+                _pollDeviceIdsForProfile = null;
+            }
             _ffb.ApplyFromProfile(value);
             ApplyEffectGains(value);
         }
@@ -135,6 +144,21 @@ public sealed class BridgeService : IDisposable
     }
 
     public IReadOnlyList<InputDeviceInfo> RefreshDevices() => _inputHub.RefreshDevices();
+
+    /// <summary>
+    /// Poll every attached device for bind-listen / UI, overlaying the pinned FFB base
+    /// so Fanatec (etc.) buttons stay live while exclusive FFB owns that joystick.
+    /// </summary>
+    public IReadOnlyDictionary<string, DeviceState> PollForUi()
+    {
+        string? ffbId;
+        lock (_gate) ffbId = _profile.FfbSourceDeviceId;
+        if (_ffb.IsReady && !string.IsNullOrWhiteSpace(_ffb.ActiveDeviceId))
+            ffbId = _ffb.ActiveDeviceId;
+
+        var devices = _inputHub.Poll();
+        return OverlayPinnedFfbAxes(devices, ffbId);
+    }
 
     public void BindFfbWindow(IntPtr hwnd) => _ffb.BindInputHub(_inputHub, hwnd);
 
@@ -254,6 +278,8 @@ public sealed class BridgeService : IDisposable
         try { ffbTeardown.Wait(1500); } catch { /* ignore */ }
         _inputHub.PinFfbDevice(null);
         _lastFfbAxes01 = null;
+        _lastFfbButtons = null;
+        _lastFfbHat = -1;
         _emittedSteerValid = false;
         _pollDeviceIds = null;
         _pollDeviceIdsForProfile = null;
@@ -303,6 +329,9 @@ public sealed class BridgeService : IDisposable
         if (string.IsNullOrWhiteSpace(profile.FfbSourceDeviceId))
         {
             _inputHub.PinFfbDevice(null);
+            _lastFfbAxes01 = null;
+            _lastFfbButtons = null;
+            _lastFfbHat = -1;
             LastFfbStatus = "FFB: no force-feedback device selected.";
             return;
         }
@@ -314,13 +343,19 @@ public sealed class BridgeService : IDisposable
         if (_ffb.TryAttach(profile.FfbSourceDeviceId, out var error))
         {
             LastFfbStatus = "FFB: attached to physical device.";
-            if (_ffb.TryGetPhysicalAxes01(out var axes))
+            if (_ffb.TryGetPhysicalInput(out var axes, out var buttons, out var hat))
+            {
                 _lastFfbAxes01 = axes;
+                _lastFfbButtons = buttons;
+                _lastFfbHat = hat;
+            }
         }
         else
         {
             _inputHub.PinFfbDevice(null);
             _lastFfbAxes01 = null;
+            _lastFfbButtons = null;
+            _lastFfbHat = -1;
             LastFfbStatus = string.IsNullOrWhiteSpace(error) ? "FFB: attach failed." : $"FFB: {error}";
         }
     }
@@ -498,6 +533,10 @@ public sealed class BridgeService : IDisposable
                 }
                 else if (oemErr is null)
                 {
+                    // Keep gains / mix options fresh once the DLL has created the map.
+                    OemFfbSharedMemory.WriteTypeGains(profile.FfbEffectGains);
+                    OemFfbSharedMemory.WriteMixOptions(profile.FfbOutputFeel);
+
                     // Game Torque + optional Aux rumble (Steam/etc.) — every OEM effect on
                     // the virtual G920 reaches the selected base regardless of host PC.
                     var combined = oemSnap.CombinedTorque;
@@ -679,8 +718,11 @@ public sealed class BridgeService : IDisposable
     }
 
     /// <summary>
-    /// Merge live FFB-base axes into the poll snapshot. Failures keep the last good axes
-    /// so a slow/failed rim read cannot drop pedals/buttons (those come from other devices).
+    /// Merge live FFB-base axes/buttons/hat into the poll snapshot. InputHub skips Poll on
+    /// the pinned exclusive FFB joystick (avoids blocking the loop); without this overlay,
+    /// Fanatec (and similar) wheel buttons stay frozen while steering still works.
+    /// Failures keep the last good sample so a slow rim read cannot drop pedals/buttons
+    /// that come from other devices.
     /// </summary>
     private IReadOnlyDictionary<string, DeviceState> OverlayPinnedFfbAxes(
         IReadOnlyDictionary<string, DeviceState> devices,
@@ -689,8 +731,13 @@ public sealed class BridgeService : IDisposable
         if (string.IsNullOrWhiteSpace(ffbDeviceId))
             return devices;
 
-        if (_ffb.IsReady && _ffb.TryGetPhysicalAxes01(out var live))
-            _lastFfbAxes01 = live;
+        if (_ffb.IsReady && _ffb.TryGetPhysicalInput(out var liveAxes, out var liveButtons, out var liveHat))
+        {
+            _lastFfbAxes01 = liveAxes;
+            if (liveButtons.Length > 0)
+                _lastFfbButtons = liveButtons;
+            _lastFfbHat = liveHat;
+        }
 
         var axes = _lastFfbAxes01;
         if (axes is null || axes.Count == 0)
@@ -702,12 +749,13 @@ public sealed class BridgeService : IDisposable
             var merged = new Dictionary<string, float>(existing.Axes, StringComparer.OrdinalIgnoreCase);
             foreach (var (k, v) in axes)
                 merged[k] = v;
+            var buttons = MergePinnedButtons(existing.Buttons, _lastFfbButtons);
             copy[ffbDeviceId] = new DeviceState
             {
                 DeviceId = existing.DeviceId,
                 Axes = merged,
-                Buttons = existing.Buttons,
-                Hat = existing.Hat,
+                Buttons = buttons,
+                Hat = _lastFfbButtons is not null || _lastFfbHat >= 0 ? _lastFfbHat : existing.Hat,
             };
         }
         else
@@ -716,12 +764,29 @@ public sealed class BridgeService : IDisposable
             {
                 DeviceId = ffbDeviceId,
                 Axes = new Dictionary<string, float>(axes, StringComparer.OrdinalIgnoreCase),
-                Buttons = [],
-                Hat = -1,
+                Buttons = _lastFfbButtons is { Length: > 0 }
+                    ? (bool[])_lastFfbButtons.Clone()
+                    : [],
+                Hat = _lastFfbHat,
             };
         }
 
         return copy;
+    }
+
+    private static bool[] MergePinnedButtons(bool[] existing, bool[]? live)
+    {
+        if (live is null || live.Length == 0)
+            return existing;
+        if (existing.Length == 0)
+            return (bool[])live.Clone();
+
+        // Prefer live length when larger (Fanatec wheel packs many DI buttons).
+        var n = Math.Max(existing.Length, live.Length);
+        var merged = new bool[n];
+        for (var i = 0; i < n; i++)
+            merged[i] = i < live.Length ? live[i] : existing[i];
+        return merged;
     }
 
     private static bool TrySteerFromDevice(
@@ -756,6 +821,7 @@ public sealed class BridgeService : IDisposable
     {
         _ffbSmoother.ApplyFeel(feel);
         _ffb.MagnitudeEpsilon = _ffbSmoother.MagnitudeEpsilon;
+        OemFfbSharedMemory.WriteMixOptions(feel);
     }
 
     private void ApplyEffectGainsUnlocked(MappingProfile profile)

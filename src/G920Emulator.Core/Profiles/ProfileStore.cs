@@ -53,6 +53,7 @@ public sealed class ProfileStore
 
         EnsureDefaultProfile();
         EnsureRawFfbProfile();
+        EnsureNfsUnboundHeatFfbProfile();
         RemoveLegacySeededFfbProfiles();
     }
 
@@ -107,27 +108,65 @@ public sealed class ProfileStore
     }
 
     /// <summary>
-    /// Earlier builds seeded an "NFS Unbound" FFB preset (CF 200% / Spring 40% / Damper 150%).
-    /// Raw is the only built-in now; remove that file only while it still has the seeded gains
+    /// Seed Desktop-era NFS Unbound/Heat mix once. Never overwrite a user-edited file.
+    /// </summary>
+    private void EnsureNfsUnboundHeatFfbProfile()
+    {
+        try
+        {
+            var name = FfbProfile.NfsUnboundHeatProfileName;
+            if (FfbExists(name))
+                return;
+            FfbProfile.CreateNfsUnboundHeat().Save(GetFfbPath(name));
+        }
+        catch
+        {
+            // Best-effort seed only.
+        }
+    }
+
+    /// <summary>
+    /// Remove superseded seed files when they still match the original seeded values
     /// so a user's own profile with the same name is kept.
     /// </summary>
     private void RemoveLegacySeededFfbProfiles()
     {
         try
         {
-            var path = GetFfbPath("NFS Unbound");
-            if (!File.Exists(path))
-                return;
-            var g = FfbProfile.Load(path).EffectGains;
-            if (Math.Abs(g.ConstantForce - 2.0) < 0.001 &&
-                Math.Abs(g.SpringForce - 0.4) < 0.001 &&
-                Math.Abs(g.DamperForce - 1.5) < 0.001)
-                File.Delete(path);
+            // Older short "NFS Unbound" seed (gains only).
+            TryDeleteSeededFfbIfUnchanged("NFS Unbound", isLegacyGainsOnly: true);
+            // Brief "Classic" name from an intermediate build.
+            TryDeleteSeededFfbIfUnchanged("Classic", isLegacyGainsOnly: false);
         }
         catch
         {
             // Best-effort cleanup only.
         }
+    }
+
+    private void TryDeleteSeededFfbIfUnchanged(string profileName, bool isLegacyGainsOnly)
+    {
+        var path = GetFfbPath(profileName);
+        if (!File.Exists(path))
+            return;
+        var loaded = FfbProfile.Load(path);
+        var g = loaded.EffectGains;
+        if (Math.Abs(g.ConstantForce - 2.0) >= 0.001 ||
+            Math.Abs(g.SpringForce - 0.4) >= 0.001 ||
+            Math.Abs(g.DamperForce - 1.5) >= 0.001)
+            return;
+
+        if (!isLegacyGainsOnly)
+        {
+            var f = loaded.OutputFeel ?? FfbOutputFeel.CreateDefault();
+            // Only remove if it still looks like our Classic seed (not a user tweak).
+            if (!f.InvertConstantForce ||
+                Math.Abs(f.DamperVelocityScale - 2.0) >= 0.001 ||
+                Math.Abs(f.DamperDeadbandScale - (1.0 / 3.0)) >= 0.02)
+                return;
+        }
+
+        File.Delete(path);
     }
 
     private static void MigrateFolder(string legacyRoot, string newRoot)
@@ -206,11 +245,25 @@ public sealed class ProfileStore
     public IReadOnlyList<string> ListFfbProfiles()
     {
         EnsureRawFfbProfile();
+        EnsureNfsUnboundHeatFfbProfile();
         return Directory.EnumerateFiles(FfbProfilesDirectory, "*.json")
-            .Select(Path.GetFileNameWithoutExtension)
+            .Select(path =>
+            {
+                try
+                {
+                    var named = FfbProfile.Load(path).Name;
+                    if (!string.IsNullOrWhiteSpace(named))
+                        return named.Trim();
+                }
+                catch
+                {
+                    // Fall back to file name.
+                }
+                return Path.GetFileNameWithoutExtension(path) ?? "profile";
+            })
             .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-            .Cast<string>()
             .ToList();
     }
 
@@ -345,7 +398,12 @@ public sealed class ProfileStore
 
     private static string Sanitize(string name)
     {
-        var cleaned = string.Join("_", name.Trim().Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+        // Keep a readable on-disk name for "Unbound / Heat" style titles.
+        var cleaned = name.Trim()
+            .Replace(" / ", " - ", StringComparison.Ordinal)
+            .Replace('/', '-')
+            .Replace('\\', '-');
+        cleaned = string.Join("_", cleaned.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
         return string.IsNullOrWhiteSpace(cleaned) ? "profile" : cleaned;
     }
 }

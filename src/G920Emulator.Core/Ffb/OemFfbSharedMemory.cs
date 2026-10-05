@@ -200,6 +200,31 @@ public static class OemFfbSharedMemory
     public static void WriteTypeGains(FfbEffectGains gains) =>
         WriteTypeGains(gains.ToSharedMemoryGains());
 
+    /// <summary>
+    /// Writes OEM mix options (CF invert, damper velocity/deadband scales) for <c>g920ffb.dll</c>.
+    /// Scales use the same 10000 = 1.0 convention as type gains.
+    /// </summary>
+    public static void WriteMixOptions(FfbOutputFeel? feel)
+    {
+        feel ??= FfbOutputFeel.CreateDefault();
+        feel.Clamp();
+        try
+        {
+            EnsureOpen();
+            if (_view is null) return;
+
+            uint flags = feel.InvertConstantForce ? 1u : 0u;
+            _view.Write(Offset.MixFlags, flags);
+            _view.Write(Offset.DamperVelScale, ToDiScale(feel.DamperVelocityScale));
+            _view.Write(Offset.DamperDeadbandScale, ToDiScale(feel.DamperDeadbandScale));
+        }
+        catch (FileNotFoundException) { Close(); }
+        catch { Close(); }
+    }
+
+    private static ushort ToDiScale(double scale) =>
+        (ushort)Math.Clamp((int)Math.Round(scale * 10000), 0, 40000);
+
     public static string FormatTypeMask(uint mask)
     {
         if (mask == 0) return "(none)";
@@ -263,6 +288,9 @@ public static class OemFfbSharedMemory
         public const int AuxPlaying = 92;
         public const int AuxTypesPlaying = 96;
         public const int AuxTickMs = 100;
-        public const int Size = 108;
+        public const int MixFlags = 108;
+        public const int DamperVelScale = 112;
+        public const int DamperDeadbandScale = 114;
+        public const int Size = 116;
     }
 }
