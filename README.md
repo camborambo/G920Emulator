@@ -120,7 +120,7 @@ User bindings and FFB presets live in **`%AppData%\G920Emulator\`** at runtime â
 
 ## Version notes
 
-Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.2** (local build; GitHub release pending test).
+Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.2**.
 
 ## Support
 
