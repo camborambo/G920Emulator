@@ -27,7 +27,7 @@ Game FFB effects  →  g920ffb.dll    →  Physical base
 | Category | Tested |
 |----------|--------|
 | Input | DualSense |
-| FFB bases | **Fanatec Podium Wheel Base DD2**, **Simucube** |
+| FFB bases | **Fanatec Podium Wheel Base DD2** (Heat / Unbound), **Simucube** (Unbound) |
 | Games | **NFS Heat**, **NFS Unbound** |
 
 **Gear R:** Heat uses default button **19**. Unbound needs Bind Gear R → **12**. Full matrix: [compatibility](docs/compatibility.md).
@@ -63,7 +63,7 @@ Profiles are **not** inside the install / zip folder. On first run the app creat
 That way unzipping a newer release over `G920Emulator\` does not wipe or replace your buttons or feel. The status bar shows this path when you refresh devices.
 
 - Bindings also store a stable DirectInput **product** id so devices can rematch if Windows changes the instance GUID after a replug.
-- Optional USB-stick mode: create an empty `portable.txt` beside `G920Emulator.exe` to keep saves next to the app instead (still created at runtime — never shipped in the zip).
+- Optional USB-stick mode: create an empty `portable.txt` beside `G920Emulator.exe` to keep `profiles\`, `ffb-profiles\`, and `settings.json` next to the app instead (created at runtime — never shipped in the zip).
 
 Details: [user guide → Profiles](docs/user-guide.md#profiles).
 
@@ -90,7 +90,7 @@ For contributors (not needed to play):
 .\publish.ps1 -OpenFolder
 ```
 
-Needs the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0). Output: `dist\G920Emulator\` and `dist\G920Emulator-win-x64.zip` (no `profiles\` or `ffb-profiles\` folder in either — user data is AppData-only).
+Needs the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0). Output: `dist\G920Emulator\` and `dist\G920Emulator-win-x64.zip` (includes `README.md` / `CHANGELOG.md`; no `profiles\` or `ffb-profiles\` — user data is AppData-only).
 
 Day-to-day development:
 
@@ -104,12 +104,19 @@ Details: [building](docs/building.md).
 
 ```
 src/G920Emulator.App          WPF UI
-src/G920Emulator.Core         Input hub, mapper, bridge, FFB apply
+src/G920Emulator.Core         Input hub, mapper, bridge, FFB apply, AppData profiles
 src/G920Emulator.VirtualHid   WinUHid + G920 identity + OEM registration
 native/g920ffb                DirectInput OEM EffectDriver (g920ffb.dll)
+native/winuhid                Bundled WinUHid runtime + INF (copied into dist)
+native/logisdk                Bundled Logitech Steering Wheel SDK runtimes
 docs/                         User and technical guides
-profiles/                     Repo reference only (not shipped; runtime → AppData)
+tools/                        Build helpers (g920ffb, WinUHid, probes)
+publish.ps1                   Self-contained win-x64 → dist\G920Emulator + zip
+CHANGELOG.md                  Version notes
+profiles/                     Repo reference only (not shipped; runtime data → AppData)
 ```
+
+User bindings and FFB presets live in **`%AppData%\G920Emulator\`** at runtime — not in this `profiles/` folder and not in the release zip.
 
 ## Version notes
 
@@ -117,7 +124,7 @@ Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Curr
 
 ## Support
 
-Report bugs and ask questions on [GitHub Issues](https://github.com/camborambo/G920Emulator/issues). From the app: **Debug** (status bar) → reproduce → **Stop debug** → **Export log…**, then attach the zip to your issue. When you cut a GitHub Release, paste that version’s changelog section into the release body.
+Report bugs and ask questions on [GitHub Issues](https://github.com/camborambo/G920Emulator/issues). From the app: **Debug** (status bar) → reproduce → **Stop debug** → **Export log…**, then attach the zip to your issue. Release notes on GitHub should match the matching section in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

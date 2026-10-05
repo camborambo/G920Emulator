@@ -12,13 +12,16 @@
 ```
 G920Emulator.sln
 src/G920Emulator.App          WPF UI
-src/G920Emulator.Core         Input, mapper, bridge, FFB apply
+src/G920Emulator.Core         Input, mapper, bridge, FFB apply, AppData profiles
 src/G920Emulator.VirtualHid   WinUHid P/Invoke, OEM registration
 native/g920ffb                OEM DirectInput EffectDriver (C++)
 native/winuhid                Bundled WinUHid runtime + INF (published into dist)
+native/logisdk                Bundled Logitech Steering Wheel SDK runtimes
 tools/build-g920ffb.ps1       MSBuild wrapper for g920ffb.dll
 tools/build-winuhid.ps1       Rebuild WinUHid package into native/winuhid
 publish.ps1                   Self-contained win-x64 publish → dist\G920Emulator + zip
+CHANGELOG.md                  Version notes (copied into dist)
+profiles/                     Repo reference only — runtime data is AppData
 ```
 
 ## Publish (recommended)
@@ -36,8 +39,9 @@ This:
 1. Builds `native\g920ffb\bin\g920ffb.dll` via `tools\build-g920ffb.ps1`
 2. `dotnet publish`s the app self-contained for `win-x64` into `dist\G920Emulator\`
 3. Copies WinUHid package files, Logitech SDK runtimes, and `g920ffb.dll` beside the EXE
-4. Removes any leftover `profiles\`, `ffb-profiles\`, and `settings.json` from `dist\` (user data is AppData-only at runtime)
-5. Creates `dist\G920Emulator-win-x64.zip` with a single top-level folder:
+4. Removes any leftover `profiles\`, `ffb-profiles\`, `settings.json`, and `portable.txt` from `dist\` (user data is AppData-only at runtime)
+5. Copies `CHANGELOG.md` and `README.md` into `dist\G920Emulator\`
+6. Creates `dist\G920Emulator-win-x64.zip` with a single top-level folder:
    `G920Emulator-win-x64.zip` → `G920Emulator\` → app files (no user profiles)
 
 Run:
@@ -46,7 +50,8 @@ Run:
 dist\G920Emulator\G920Emulator.exe
 ```
 
-or double-click **`Launch G920 Emulator.bat`** (publishes on first run if missing).
+- **`dist\Launch G920 Emulator.bat`** — starts the already-published EXE only
+- **Repo-root `Launch G920 Emulator.bat`** — starts `dist\…` if present, otherwise runs `publish.ps1` then launches
 
 Close a running emulator before republishing — files under `dist\` lock while the EXE is open.
 
@@ -74,6 +79,10 @@ Output: `native\g920ffb\bin\g920ffb.dll`.
 | `g920ffb.dll` | DirectInput OEM EffectDriver |
 | `WinUHid.dll` | Native WinUHid client library |
 | `winuhid\` | Driver INF / package for in-app Install WinUHid |
+| `logisdk\` | Logitech Steering Wheel SDK runtimes (x64 + x86) |
+| `README.md` / `CHANGELOG.md` | Docs + version notes |
+
+Does **not** ship: `profiles\`, `ffb-profiles\`, `settings.json`, or `portable.txt` (those are created under `%AppData%\G920Emulator\` on first run, unless the user opts into portable mode).
 
 `dist\` is gitignored; publish locally or CI as needed.
 

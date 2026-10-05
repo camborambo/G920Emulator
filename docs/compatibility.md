@@ -10,7 +10,7 @@ Update this page when you validate a new setup.
 |--------|------|--------|
 | DualSense (PS5) | Steering / buttons / axes source | Bound into virtual G920; no DualSense-side FFB |
 | Fanatec Podium Wheel Base DD2 | FFB output (+ can be used as DI input) | Constant-force apply via shared InputHub acquire |
-| Simucube | FFB output (+ can be used as DI input) | Validated with NFS Unbound (spring + race CF / Triangle / Damper). DI apply runs on a side thread so slower `SetParameters` does not stall input. |
+| Simucube | FFB output (+ can be used as DI input) | Validated with **NFS Unbound** (spring + race CF / Triangle / Damper). DI apply runs on a side thread so slower `SetParameters` does not stall input. |
 
 ## Wheel bases (FFB output)
 

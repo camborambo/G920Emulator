@@ -2,7 +2,7 @@
 
 ## Goal
 
-Forward game-authored DirectInput force-feedback from the virtual G920 to a physical wheel base. **Validated on Fanatec Podium DD2 and Simucube** (NFS Heat / Unbound); also designed for Simagic, Moza, Logitech, and other DirectInput FFB bases. **Raw** leaves magnitudes unshaped; optional **effect gains**, **output feel**, and **torque shaping** sliders (saved on FFB profiles) let you adjust the mix without baking feel into the driver.
+Forward game-authored DirectInput force-feedback from the virtual G920 to a physical wheel base. **Validated on Fanatec Podium DD2** (NFS Heat / Unbound) and **Simucube** (NFS Unbound); also designed for Simagic, Moza, Logitech, and other DirectInput FFB bases. **Raw** leaves magnitudes unshaped; optional **effect gains**, **output feel**, and **torque shaping** sliders (saved on FFB profiles) let you adjust the mix without baking feel into the driver.
 
 ## FFB profiles (separate from input)
 
@@ -139,12 +139,13 @@ Off by default so everyday use stays uncluttered. File logging (OEM effects + HI
 1. Start bridge with an FFB output device selected.
 2. Click **Debug** (status bar) so OEM file logging is on, then launch the game.
 3. Optional: enable **FFB debug** to watch live OEM effects seen / playing.
-4. After reproducing, **Stop debug** and **Export log…**, or open:
+4. After reproducing, **Stop debug** and **Export log…** (preferred for support zips). Starting **Debug** again clears the previous `%TEMP%` OEM / HID++ log files.
+
+While a Debug session is active (and until the next Start clears them), you can also open:
 
 ```
 %TEMP%\g920ffb-effects.log
 ```
-(only written while Debug is active)
 
 Each `DownloadEffect` logs type, handle, flags, and a type-specific “extra” (CF magnitude, spring offset, damper coeff, periodic magnitude). Parameter-only streaming updates are rate-limited per effect (see **Reading the OEM log** below). Spring downloads also emit `SPRING_DETAIL` lines.
 
@@ -154,7 +155,7 @@ When a game opens the virtual wheel's FFB, the log gets a `SESSION g920ffb loade
 
 At menu/load Unbound downloads **ConstantForce**, **Sine**, **Damper**, **Spring**, and in-race often **Triangle** (and streams `0x100` every frame). Universal mixing is required.
 
-Unbound can construct **multiple** OEM driver instances; older single-instance mixers published torque=0 while `effects.log` still grew. Current `g920ffb.dll` mixes all live instances and uses SHM **v5** so Steam/idle empty mixers cannot overwrite the live channel.
+Unbound can construct **multiple** OEM driver instances; older single-instance mixers published torque=0 while `effects.log` still grew. Current `g920ffb.dll` mixes all live instances and uses SHM **v6** (`Torque` + `AuxTorque`) so Steam/idle helpers cannot overwrite the game channel.
 
 For a stronger tire-follow / lighter arcade center on DD bases, raise **Constant** and lower **Spring** in the effect gains, then **Save As…** your own FFB profile. Default runtime path stays **Raw**.
 

@@ -56,7 +56,7 @@ G920 Emulator defaults to **19**. For Unbound, open **Gear R** binding and set *
 
 ## Effect probe
 
-`g920ffb.dll` publishes shared-memory v3 fields `TypesSeen` / `TypesPlaying` (bitmasks of DI effect type IDs). The emulator **FFB debug** UI shows human names. Full OEM log (`%TEMP%\g920ffb-effects.log`) is written only while the status-bar **Debug** session is active.
+`g920ffb.dll` publishes SHM **v6** (`Local\G920Emulator.FfbTorque.v6`), including `TypesSeen` / `TypesPlaying` bitmasks of DI effect type IDs. The emulator **FFB debug** UI shows human names. Full OEM log (`%TEMP%\g920ffb-effects.log`) is written only while the status-bar **Debug** session is active.
 
 ### NFS Unbound (2026-10-04)
 

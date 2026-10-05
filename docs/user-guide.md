@@ -111,24 +111,26 @@ Input bindings and force-feedback presets are stored **separately**, both outsid
 %AppData%\G920Emulator\settings.json
 ```
 
-There is **no** `profiles\` or `ffb-profiles\` directory next to `G920Emulator.exe` in the zip. On first run the app creates AppData, seeds an empty **Default** input profile, and seeds the built-in **Raw** FFB profile. Older installs that kept JSON next to the exe are migrated into AppData once (existing AppData files are never overwritten).
+There is **no** `profiles\` or `ffb-profiles\` directory next to `G920Emulator.exe` in the zip. On first run the app creates AppData, seeds an empty **Default** input profile, and seeds the built-in **Raw** FFB profile.
+
+**Migration (once, never overwrites AppData):** copies **input** `profiles\*.json` and `settings.json` from next-to-exe leftovers and from `%AppData%\N4Sunbound`. Next-to-exe `ffb-profiles\` are **not** migrated — re-Save FFB presets, or rely on legacy inline FFB fields on an input JSON becoming a named FFB profile when loaded.
 
 Each input profile links to an FFB profile name. Saving an input profile also saves the linked FFB preset’s current master / effect gains / feel / torque shaping.
 
 Bindings store both the DirectInput instance GUID and a stable **product** GUID. If Windows reassigns the instance id after a replug, Refresh devices remaps the profile to the same hardware when possible.
 
-For USB-stick installs, create an empty `portable.txt` beside the exe to keep saves next to the app instead (created at runtime; not shipped).
+For USB-stick installs, create an empty `portable.txt` beside the exe to keep `profiles\`, `ffb-profiles\`, and `settings.json` next to the app instead (created at runtime; not shipped).
 
 | Action | Behavior |
 |--------|----------|
-| Save (input) | Write bindings under `profiles\` and quiet-save the linked FFB profile |
-| Save As… (input) | New input profile name in `profiles\` (also quiet-saves linked FFB) |
+| Save (input) | Write bindings under AppData `profiles\` and quiet-save the linked FFB profile |
+| Save As… (input) | New input profile name in AppData `profiles\` (also quiet-saves linked FFB) |
 | Delete (input) | Remove that input profile JSON |
-| FFB Save / Save As… | Write master / effect gains / feel / torque shaping under `ffb-profiles\` (Raw cannot be deleted) |
-| Export / Import | JSON file exchange for input profiles (Import also saves a copy under that folder) |
+| FFB Save / Save As… | Write master / effect gains / feel / torque shaping under AppData `ffb-profiles\` (Raw cannot be deleted) |
+| Export / Import | JSON file exchange for input profiles (Import also saves a copy under AppData `profiles\`) |
 | Saved dropdowns | Switch among input or FFB profiles in their folders |
 
-The status bar shows the active profiles folder after **Refresh** devices.
+After **Refresh** devices, the status bar shows the **input** profiles directory (AppData or portable).
 
 ## Logitech G HUB
 
@@ -146,22 +148,23 @@ If Heat shows a **controller / D-pad** layout or ghost presses:
 
 ## Getting help / diagnostics
 
-1. Click **Debug** (status bar, bottom-right) — this turns on OEM / HID++ file logging.
+1. Click **Debug** (status bar, bottom-right) — this turns on OEM / HID++ file logging (and clears prior session logs in `%TEMP%`).
 2. Reproduce the issue (Start bridge, launch the game, hit a wall, etc.).
-3. Click **Stop debug**, then **Export log…**, save the zip, and attach it to a [GitHub issue](https://github.com/camborambo/G920Emulator/issues) with a short description (wheel, game, what failed).
+3. Click **Stop debug**, then **Export log…**, save the zip, and attach it to a [GitHub issue](https://github.com/camborambo/G920Emulator/issues) with a short description (wheel, game, what failed). Export before starting Debug again, or those logs are wiped.
 
 The zip includes:
 
+- `HOW-TO-SEND.txt` — how the capture was meant to be taken
 - `summary.txt` — machine name, deps, running wheel/SimHub/Steam processes, `g920ffb.dll` stamp, live bridge/FFB attach
 - `devices.txt` — every DirectInput game device (including virtual G920 and FFB flag)
 - `ffb-snapshot.txt` — OEM shared-memory mix + active gains at export time
 - `hidhide.txt` — cloak / app whitelist / hidden devices via HidHideCLI
 - `oem-registry.txt` — G920 OEMForceFeedback CLSID path
 - `game-ffb-analysis.txt` — Unbound race signature / Vibration hint from the OEM log
-- `logs\g920ffb-effects.log` — game OEM calls (`SESSION` / `CALL` / `EFFECT` / `MIX`)
-- input `profiles\` and `ffb-profiles\`
+- `logs\g920ffb-effects.log` — game OEM calls (`SESSION` / `CALL` / `EFFECT` / `MIX`) when Debug was used
+- Copies of AppData (or portable) `profiles\`, `ffb-profiles\`, and `settings.json`
 
-Both **Fanatec** and **Simucube** are validated FFB targets. For comparisons: **Debug** → race briefly with wall hits → **Stop debug** → **Export log…** on each PC with the same build.
+**Fanatec DD2** (Heat / Unbound) and **Simucube** (Unbound) are validated FFB targets. For comparisons: **Debug** → race briefly with wall hits → **Stop debug** → **Export log…** on each PC with the same build.
 
 ## Validation checklist
 

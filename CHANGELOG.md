@@ -34,7 +34,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Tested
 
-- FFB bases: Fanatec Podium Wheel Base DD2, Simucube
+- FFB bases: Fanatec Podium Wheel Base DD2 (NFS Heat / Unbound), Simucube (NFS Unbound)
 - Games: NFS Heat, NFS Unbound (Controller Vibration must be On for race rumble)
 
 ## [0.1.0] - 2026-10-03

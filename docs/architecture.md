@@ -52,7 +52,7 @@ Games that support a Logitech G920 via DirectInput OEM do **not** rely on Logite
    - **AuxTorque** — Steam/overlay only, layered under the game channel so helpers cannot wipe spring/road forces
 4. **BridgeService** writes physical rim angle into that shared memory (required for spring/damper), reads **combined** torque, optionally applies **output feel** / **torque shaping** from the FFB profile, and **FfbBridge** applies it as a constant-force effect on the selected physical base (master gain + invert). Physical DI apply runs on a **side thread** so a slow base cannot stall virtual G920 axis submits.
 
-**Validated FFB bases:** Fanatec Podium Wheel Base DD2 and Simucube (NFS Heat / Unbound). See [compatibility](compatibility.md).
+**Validated FFB bases:** Fanatec Podium Wheel Base DD2 (NFS Heat / Unbound) and Simucube (NFS Unbound). See [compatibility](compatibility.md).
 
 Verbose OEM / HID++ file logging is off until the UI **Debug** session is active; after **Stop debug**, **Export log…** builds the support zip.
 
@@ -69,9 +69,9 @@ Research notes: [research-logitech-g920.md](research-logitech-g920.md).
 
 - **Input storage:** `%AppData%\G920Emulator\profiles\*.json` and `settings.json`.
 - **FFB storage:** `%AppData%\G920Emulator\ffb-profiles\*.json` (seeded **Raw** only). Input profiles link via `ffbProfileName`.
-- The publish zip / `dist\G920Emulator\` do **not** include `profiles\` or `ffb-profiles\`.
-- **Starter:** on first run, `ProfileStore` creates AppData, an empty Default input profile, and the built-in FFB presets.
-- **Migration:** older next-to-exe / `N4Sunbound` profiles are copied into AppData once (never overwriting existing AppData files); legacy inline FFB fields on input JSON can migrate into an FFB profile.
+- The publish zip / `dist\G920Emulator\` do **not** include `profiles\` or `ffb-profiles\` (they do ship `README.md` + `CHANGELOG.md`).
+- **Starter:** on first run, `ProfileStore` creates AppData, an empty **Default** input profile, and the built-in **Raw** FFB profile only.
+- **Migration:** copies **input** `profiles\*.json` and `settings.json` once from (1) next-to-exe leftovers and (2) `%AppData%\N4Sunbound` — never overwrites existing AppData files. Next-to-exe `ffb-profiles\` are **not** migrated; legacy inline FFB fields on input JSON can still become a named FFB profile on load.
 - **Identity:** each `SourceRef` stores `deviceId` (instance GUID) and `productId` (product GUID); `DeviceBindingResolver` remaps instance ids when the product is still attached.
-- **Portable opt-in:** `portable.txt` beside the exe keeps saves next to the app (runtime-created folder only).
+- **Portable opt-in:** `portable.txt` beside the exe keeps `profiles\`, `ffb-profiles\`, and `settings.json` next to the app (runtime-created; not shipped).
 - UI: input Saved dropdown + Export / Import; FFB profile dropdown + Save / Save As / Delete under Force feedback.
