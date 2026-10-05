@@ -79,11 +79,11 @@ All of these are **user optional**. On **Raw**, everything below is at the “of
 
 ### Effect gains
 
-Scale each DirectInput effect type **in the OEM mixer** before summing (0% mutes that type, 200% doubles it):
+Scale each DirectInput effect type **in the OEM mixer** before summing (0% mutes that type; most types up to **200%**; **Constant** up to **400%** for tire load):
 
 | Slider | Typical use |
 |--------|-------------|
-| **Constant** | Road feel / main torque |
+| **Constant** | Road feel / tire load (0–400%) |
 | **Spring** | Arcade return-to-center |
 | **Damper** | Motion damping |
 | **Friction** | Static friction |

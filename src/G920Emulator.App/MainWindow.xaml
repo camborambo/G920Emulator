@@ -372,13 +372,13 @@
                 <Slider x:Name="GainSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1" IsSnapToTickEnabled="False" ValueChanged="GainSlider_ValueChanged"/>
               </DockPanel>
               <TextBlock Text="Effect gains" Opacity="0.7" Margin="0,12,0,4"
-                         ToolTip="Scale each type of effect the game sends before they are mixed. 100% = as the game sent it, 0% = mute that type, up to 200% = boost it. Click a % to type an exact value."/>
+                         ToolTip="Scale each type of effect the game sends before they are mixed. 100% = as the game sent it, 0% = mute. Most types up to 200%; Constant (tire load) up to 400%. Click a % to type an exact value."/>
               <DockPanel Margin="0,2,0,0"
-                         ToolTip="Constant force: the main steering torque most games send — tyre load, self-aligning force, road surface, curb and crash hits. Turn this down if the wheel is too heavy overall.">
+                         ToolTip="Constant force (tire load): the main steering torque most games send — tyre load, self-aligning force, road surface, curb and crash hits. Up to 400% (other effect gains max at 200%).">
                 <TextBlock Text="Constant" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainConstantValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                <TextBlock x:Name="GainConstantValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
                            Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="GainConstantSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
+                <Slider x:Name="GainConstantSlider" Minimum="0" Maximum="4" Value="1" TickFrequency="0.1"
                         ValueChanged="EffectGainSlider_ValueChanged"/>
               </DockPanel>
               <DockPanel Margin="0,4,0,0"

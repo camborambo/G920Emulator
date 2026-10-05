@@ -11,7 +11,7 @@
     <Product>G920 Emulator</Product>
     <Company>G920 Emulator</Company>
     <Description>Map any wheel, pedals, and H-shifter to a virtual Logitech G920</Description>
-    <Version>0.2.2</Version>
+    <Version>0.2.3</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>

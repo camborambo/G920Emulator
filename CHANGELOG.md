@@ -7,6 +7,22 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-10-04
+
+### Added
+
+- FFB profile **Need For Speed Unbound / Heat** (Desktop-era mix: CF/Spring/Damper gains, Invert Constant Force, damper velocity/deadband scales, light torque shaping)
+- OEM mix options on FFB profiles: Invert Constant Force, damper velocity scale, damper deadband scale (applied in `g920ffb.dll`)
+- Click FFB % / value labels to type exact numbers
+
+### Fixed
+
+- Fanatec (pinned FFB) wheel buttons frozen while steering still worked — overlay buttons/hat from the exclusive FFB handle
+- Bind-on-the-fly while the bridge is running (bind dialog uses FFB overlay poll)
+- Live Buttons line now shows View, Menu, LSB, RSB (and active gear)
+- Newly bound devices included in the poll set without restarting the bridge
+- Live preview respects pinned FFB when FFB debug Attach is used without Start
+
 ## [0.2.2] - 2026-10-04
 
 ### Fixed
