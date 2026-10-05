@@ -78,6 +78,7 @@ If reverse works in Heat but not Unbound (or the reverse), change this setting �
    - **Master** + **Invert FFB**
    - **Effect gains** — Constant, Spring, Damper, Friction, Inertia, Periodic, Ramp (0% mutes that DI type)
    - **Output feel** — Smoothing (ms), Peak soft, Soft start (all off on Raw)
+   - **Advanced mix** — Invert Constant Force, damper velocity / deadband scales (all off on Raw)
    - **Torque shaping** — Deadband, Slew, Spike cap, DI epsilon (all off on Raw; optional ShapeGameTorque path)
    - **Centering** — **Force center spring** checkbox plus Strength / Range / Deadzone, for games that never center the wheel (off on Raw)
    - Hover any FFB row (label, slider or value) for a tooltip explaining what it does and what 0% / off means.

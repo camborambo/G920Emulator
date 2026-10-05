@@ -1,14 +1,12 @@
 namespace G920Emulator.Core.Ffb;
 
 /// <summary>
-/// Per DirectInput effect-type gains (typically 0..2 = 0–200%).
-/// Constant Force (tire load) allows 0..4 = 0–400%.
+/// Per DirectInput effect-type gains (0..2 = 0–200%).
 /// Applied in <c>g920ffb.dll</c> before effects are mixed into the output torque.
 /// </summary>
 public sealed class FfbEffectGains
 {
     public const double MaxGain = 2.0;
-    public const double MaxConstantGain = 4.0;
 
     public const int TypeCount = 12;
 
@@ -38,7 +36,7 @@ public sealed class FfbEffectGains
 
     public void Clamp()
     {
-        ConstantForce = Math.Clamp(ConstantForce, 0, MaxConstantGain);
+        ConstantForce = ClampGain(ConstantForce);
         RampForce = ClampGain(RampForce);
         Periodic = ClampGain(Periodic);
         SpringForce = ClampGain(SpringForce);
@@ -48,7 +46,7 @@ public sealed class FfbEffectGains
         CustomForce = ClampGain(CustomForce);
     }
 
-    /// <summary>DI type id → gain (Constant up to 4; others up to 2).</summary>
+    /// <summary>DI type id → gain (0–2).</summary>
     public double ForType(int typeId) => typeId switch
     {
         Constant => ConstantForce,
@@ -62,7 +60,7 @@ public sealed class FfbEffectGains
         _ => 1.0,
     };
 
-    /// <summary>16 slots of UINT16 gains (10000 = 100%, up to 40000 for Constant).</summary>
+    /// <summary>16 slots of UINT16 gains (10000 = 100%, up to 20000 = 200%).</summary>
     public ushort[] ToSharedMemoryGains()
     {
         Clamp();
@@ -77,5 +75,5 @@ public sealed class FfbEffectGains
     private static double ClampGain(double v) => Math.Clamp(v, 0, MaxGain);
 
     private static ushort ToDi(double gain) =>
-        (ushort)Math.Clamp((int)Math.Round(gain * 10000), 0, (int)(MaxConstantGain * 10000));
+        (ushort)Math.Clamp((int)Math.Round(gain * 10000), 0, (int)(MaxGain * 10000));
 }

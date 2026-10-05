@@ -752,9 +752,9 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 		for (int g = 0; g < G920FFB_TYPE_GAIN_COUNT; g++)
 		{
 			UINT16 v = Shared->TypeGain[g];
-			// 10000 = 100%; allow up to 400% (Constant / tire load). Unset 0 → 100%.
+			// 10000 = 100%; allow up to 200%. Unset 0 → 100%.
 			if (v == 0) v = 10000;
-			if (v > 40000) v = 40000;
+			if (v > 20000) v = 20000;
 			typeGain[g] = v;
 		}
 

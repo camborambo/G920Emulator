@@ -10,9 +10,9 @@ Force-feedback presets live in `%AppData%\G920Emulator\ffb-profiles\` (not in th
 
 | Preset | Meaning |
 |--------|---------|
-| **Raw** (default) | Exact game mix — master/effect gains 100%, all feel / torque shaping / OEM mix options off. Cannot be deleted. |
+| **Raw** (default) | Exact game mix — master/effect gains 100%, all feel / torque shaping / advanced mix options off. Cannot be deleted. |
 | **Need For Speed Unbound / Heat** | Desktop-era known-good mix for Heat/Unbound: CF 200%, Spring 40%, Damper 150%, Invert Constant Force on, damper vel ×2 / deadband ×⅓, light torque shaping (deadband 0.004, slew 40, DI ε 12). Seeded once; editable/deletable. |
-| Your Save / Save As… | Capture current master gain, invert, per-effect gains, output feel, OEM mix options, and torque shaping into a named JSON |
+| Your Save / Save As… | Capture current master gain, invert, per-effect gains, output feel, advanced mix options, and torque shaping into a named JSON |
 
 **UI:** under Force feedback, pick the profile in the dropdown (its own row), then use **Save** / **Save As…** / **Delete** on the row below. Click any **% / value** label beside a slider to type an exact number (Enter to apply, Esc to cancel).
 
@@ -43,8 +43,8 @@ Game → DirectInput → g920ffb.dll (IDirectInputEffectDriver)
 | Registration | `G920OemRegistration.EnsureRegistered()` on Start |
 | Shared memory | Magic `G9FF`, version 6 (`…FfbTorque.v6`): game `Torque` + optional `AuxTorque` (Steam/overlay), playing, steering in/out, type bitmasks, per-type gains, OEM mix flags/scales. Each process mixes its own OEM instances; bridge sums game + aux. |
 | Effect gains | Per-type sliders applied in `g920ffb.dll` before mix; master gain applies on the physical base |
-| OEM mix options | Optional inside `g920ffb.dll`: Invert Constant Force, damper velocity scale, damper deadband scale (see below). Defaults = pass-through |
-| Output feel / torque shaping | Optional, after the OEM mix, in the emulator (see below). Defaults = pass-through |
+| Advanced mix options | Optional inside `g920ffb.dll`: Invert Constant Force, damper velocity scale, damper deadband scale (see below). Defaults = pass-through |
+| Output feel / torque shaping | Optional, after the advanced mix, in the emulator (see below). Defaults = pass-through |
 
 ### Effect types mixed natively
 
@@ -79,11 +79,11 @@ All of these are **user optional**. On **Raw**, everything below is at the “of
 
 ### Effect gains
 
-Scale each DirectInput effect type **in the OEM mixer** before summing (0% mutes that type; most types up to **200%**; **Constant** up to **400%** for tire load):
+Scale each DirectInput effect type **in the mixer** before summing (0% mutes that type; up to **200%**):
 
 | Slider | Typical use |
 |--------|-------------|
-| **Constant** | Road feel / tire load (0–400%) |
+| **Constant** | Road feel / tire load |
 | **Spring** | Arcade return-to-center |
 | **Damper** | Motion damping |
 | **Friction** | Static friction |
@@ -91,7 +91,7 @@ Scale each DirectInput effect type **in the OEM mixer** before summing (0% mutes
 | **Periodic** | Sine / square / triangle / sawtooth rumble |
 | **Ramp** | Ramp force |
 
-### OEM mix (inside `g920ffb.dll`)
+### Advanced mix (inside `g920ffb.dll`)
 
 Applied while evaluating effects, before the shared-memory torque is published. Independent of **Invert FFB** (which flips the whole final torque on the base).
 
@@ -103,7 +103,7 @@ Applied while evaluating effects, before the shared-memory torque is published. 
 
 ### Output feel
 
-Applied **after** the OEM mix (emulator side):
+Applied **after** the advanced mix (emulator side):
 
 | Slider | Range | Off | Notes |
 |--------|-------|-----|--------|

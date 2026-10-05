@@ -179,7 +179,7 @@ public static class OemFfbSharedMemory
     }
 
     /// <summary>
-    /// Writes per DI effect-type gains (UINT16, 10000 = 100%, up to 40000 = 400%).
+    /// Writes per DI effect-type gains (UINT16, 10000 = 100%, up to 20000 = 200%).
     /// Applied by <c>g920ffb.dll</c> before effects are mixed.
     /// </summary>
     public static void WriteTypeGains(ReadOnlySpan<ushort> gains)
