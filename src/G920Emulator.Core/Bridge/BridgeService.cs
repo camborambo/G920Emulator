@@ -78,6 +78,7 @@ public sealed class BridgeService : IDisposable
     private float _rimVelocity;
     private bool _forcedCenterActive;
     private long _lastInputRefreshTick;
+    private int _inputRefreshInFlight;
     private int _submitFailStreak;
     private int _recoverCount;
     private string _linkStatus = "";
@@ -87,7 +88,13 @@ public sealed class BridgeService : IDisposable
     /// SetParameters cannot stall virtual G920 axis submits.</summary>
     private float _ffbQueuedTorque;
     private int _ffbQueuedVersion;
+    private float _emittedSteer;
+    private bool _emittedSteerValid;
+    private HashSet<string>? _pollDeviceIds;
+    private MappingProfile? _pollDeviceIdsForProfile;
     private const int InputTargetPeriodMs = 2;
+    /// <summary>Background DI rescan interval. Hot-path RefreshDevices was hitching steering.</summary>
+    private const int InputRefreshIntervalMs = 8000;
 
     public InputHub InputHub => _inputHub;
     public FfbBridge Ffb => _ffb;
@@ -241,12 +248,15 @@ public sealed class BridgeService : IDisposable
         // Cap DI detach — Unacquire/Reset can hang on some bases while the rim is moving.
         var ffbTeardown = Task.Run(() =>
         {
-            try { _ffb.Stop(); } catch { /* ignore */ }
-            try { _ffb.Detach(); } catch { /* ignore */ }
+        try { _ffb.Stop(); } catch { /* ignore */ }
+        try { _ffb.Detach(); } catch { /* ignore */ }
         });
         try { ffbTeardown.Wait(1500); } catch { /* ignore */ }
         _inputHub.PinFfbDevice(null);
         _lastFfbAxes01 = null;
+        _emittedSteerValid = false;
+        _pollDeviceIds = null;
+        _pollDeviceIdsForProfile = null;
 
         OemFfbSharedMemory.Close();
         lock (_gate) _linkStatus = "";
@@ -371,32 +381,51 @@ public sealed class BridgeService : IDisposable
             try
             {
                 var now = Environment.TickCount64;
-                // Re-enumerate + remap product GUIDs so a DualSense/wheel replug mid-race
-                // does not leave the mapper pointed at a dead instance GUID.
-                if (now - _lastInputRefreshTick >= 1500)
+                // Re-enumerate off the hot path — GetDevices under the loop caused visible
+                // steering pauses on multi-device Simucube rigs (~every 1.5s before).
+                if (now - _lastInputRefreshTick >= InputRefreshIntervalMs &&
+                    Interlocked.CompareExchange(ref _inputRefreshInFlight, 1, 0) == 0)
                 {
                     _lastInputRefreshTick = now;
-                    var attached = _inputHub.RefreshDevices();
-                    lock (_gate)
+                    _ = Task.Run(() =>
                     {
-                        var remapped = Profiles.DeviceBindingResolver.RemapProfile(_profile, attached);
-                        if (remapped > 0)
-                            _linkStatus = $"Remapped {remapped} binding(s) after device refresh";
-                    }
+                        try
+                        {
+                            var attached = _inputHub.RefreshDevices();
+                            lock (_gate)
+                            {
+                                var remapped = Profiles.DeviceBindingResolver.RemapProfile(_profile, attached);
+                                if (remapped > 0)
+                                    _linkStatus = $"Remapped {remapped} binding(s) after device refresh";
+                                _pollDeviceIds = null; // rebuild filter after remap
+                            }
+                        }
+                        catch { /* keep looping */ }
+                        finally
+                        {
+                            Interlocked.Exchange(ref _inputRefreshInFlight, 0);
+                        }
+                    });
                 }
 
-                // Non-FFB devices only — never blocks on the exclusive FFB joystick.
-                var devices = _inputHub.Poll();
-                devices = OverlayPinnedFfbAxes(devices, _profile.FfbSourceDeviceId);
+                MappingProfile profile;
+                lock (_gate) profile = _profile;
+                var pollIds = GetPollDeviceIds(profile);
+
+                // Only bound devices (+ pinned FFB cache) — never USB-poll unused pads/shifters.
+                var devices = _inputHub.Poll(pollIds);
+                devices = OverlayPinnedFfbAxes(devices, profile.FfbSourceDeviceId);
 
                 MappedG920State mapped;
-                MappingProfile profile;
                 Action<MappedG920State>? mappedCallback;
                 byte[] report;
                 lock (_gate)
                 {
                     profile = _profile;
                     mapped = _mapper.Map(profile, devices);
+                    // Soften rim catch-up after Simucube SetParameters held the DI lock
+                    // (freeze → jump felt like a steering hitch).
+                    mapped.Steering = SoftCatchUpSteer(mapped.Steering);
                     _latest = mapped;
                     report = G920ReportBuilder.Build(mapped);
                     _latestReport = report;
@@ -599,6 +628,54 @@ public sealed class BridgeService : IDisposable
             return 0f;
         var torque = feel.ComputeCenterSpring(rim, _rimVelocity);
         return _ffb.Invert ? -torque : torque;
+    }
+
+    private HashSet<string> GetPollDeviceIds(MappingProfile profile)
+    {
+        if (_pollDeviceIds is not null && ReferenceEquals(_pollDeviceIdsForProfile, profile))
+            return _pollDeviceIds;
+
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(profile.FfbSourceDeviceId))
+            ids.Add(profile.FfbSourceDeviceId);
+        foreach (var binding in profile.Bindings)
+        {
+            foreach (var src in binding.Sources)
+            {
+                if (!string.IsNullOrWhiteSpace(src.DeviceId))
+                    ids.Add(src.DeviceId);
+            }
+        }
+
+        _pollDeviceIds = ids;
+        _pollDeviceIdsForProfile = profile;
+        return ids;
+    }
+
+    /// <summary>
+    /// Limit per-frame steering jumps after a Simucube DI apply stalls rim sampling.
+    /// At 500 Hz, 0.08/frame still allows very fast turns but softens USB catch-up spikes.
+    /// </summary>
+    private float SoftCatchUpSteer(float target)
+    {
+        target = Math.Clamp(target, -1f, 1f);
+        if (!_emittedSteerValid)
+        {
+            _emittedSteer = target;
+            _emittedSteerValid = true;
+            return target;
+        }
+
+        var delta = target - _emittedSteer;
+        const float maxStep = 0.08f;
+        if (Math.Abs(delta) <= maxStep)
+        {
+            _emittedSteer = target;
+            return target;
+        }
+
+        _emittedSteer += Math.Sign(delta) * maxStep;
+        return _emittedSteer;
     }
 
     /// <summary>

@@ -120,9 +120,29 @@ public sealed class InputHub : IDisposable
 
     public IReadOnlyList<InputDeviceInfo> RefreshDevices()
     {
+        // Enumerate outside the session lock — GetDevices can take 10–50ms+ with many
+        // HID devices and must not stall the 500 Hz bridge/Poll path.
+        DeviceInstance[] devices;
+        try
+        {
+            devices = _directInput
+                .GetDevices(DeviceClass.GameControl, DeviceEnumerationFlags.AttachedOnly)
+                .ToArray();
+        }
+        catch
+        {
+            lock (_gate)
+            {
+                return _sessions.Values
+                    .Select(s => s.Info)
+                    .OrderBy(d => d.Kind)
+                    .ThenBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+        }
+
         lock (_gate)
         {
-            var devices = _directInput.GetDevices(DeviceClass.GameControl, DeviceEnumerationFlags.AttachedOnly);
             var result = new List<InputDeviceInfo>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -167,7 +187,11 @@ public sealed class InputHub : IDisposable
         }
     }
 
-    public IReadOnlyDictionary<string, DeviceState> Poll()
+    /// <summary>
+    /// Poll sessions. When <paramref name="includeIds"/> is set, only those devices
+    /// (plus any pinned FFB cache) are touched — avoids USB work on unused pads every frame.
+    /// </summary>
+    public IReadOnlyDictionary<string, DeviceState> Poll(IReadOnlyCollection<string>? includeIds = null)
     {
         var needsRescan = false;
         Dictionary<string, DeviceState> states;
@@ -177,6 +201,10 @@ public sealed class InputHub : IDisposable
             var dead = new List<string>();
             foreach (var (id, session) in _sessions)
             {
+                if (includeIds is not null &&
+                    !includeIds.Contains(id, StringComparer.OrdinalIgnoreCase))
+                    continue;
+
                 // Never Poll the exclusive FFB joystick here — that can block the whole
                 // bridge loop (all bindings freeze). Bridge overlays live axes from FfbBridge.
                 if (_pinnedFfbDeviceId is not null &&
@@ -229,6 +257,10 @@ public sealed class InputHub : IDisposable
                 states = new Dictionary<string, DeviceState>(StringComparer.OrdinalIgnoreCase);
                 foreach (var (id, session) in _sessions)
                 {
+                    if (includeIds is not null &&
+                        !includeIds.Contains(id, StringComparer.OrdinalIgnoreCase))
+                        continue;
+
                     // Still skip pinned — never block the loop on the exclusive FFB base.
                     if (_pinnedFfbDeviceId is not null &&
                         string.Equals(id, _pinnedFfbDeviceId, StringComparison.OrdinalIgnoreCase))

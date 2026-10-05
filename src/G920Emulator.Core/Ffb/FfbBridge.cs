@@ -56,6 +56,9 @@ public sealed class FfbBridge : IDisposable
     /// <summary>Latest rim axes from the exclusive FFB joy (0..1). Refreshed under _diGate.</summary>
     private Dictionary<string, float>? _cachedAxes01;
     private long _cachedAxesTick;
+    /// <summary>Winning SetParameters flags for this base — skip multi-strategy probes after first success.</summary>
+    private EffectParameterFlags? _fastMagnitudeFlags;
+    private bool _fastMagnitudeUsesFullParams;
 
     private enum WheelVendor
     {
@@ -635,6 +638,7 @@ public sealed class FfbBridge : IDisposable
                         try { _constantEffect?.Dispose(); } catch { /* ignore */ }
                         _constantEffect = recreated;
                     }
+                    _fastMagnitudeFlags = null;
                 }
                 else
                 {
@@ -647,6 +651,10 @@ public sealed class FfbBridge : IDisposable
                     return;
                 }
             }
+
+            // Refresh rim after USB returns so catch-up uses a current sample.
+            if (joy is not null)
+                TryReadPhysicalJoystickStateUnlocked(out _);
         }
 
         lock (_gate)
@@ -680,6 +688,38 @@ public sealed class FfbBridge : IDisposable
             dirs = _directions;
         }
 
+        // Hot path: reuse the flags that already worked on this base (avoids 2–3 USB probes).
+        if (_fastMagnitudeFlags is { } fastFlags)
+        {
+            try
+            {
+                if (_fastMagnitudeUsesFullParams)
+                {
+                    var p = new EffectParameters
+                    {
+                        Flags = flags,
+                        Axes = axes,
+                        Directions = dirs,
+                        Parameters = new ConstantForce { Magnitude = magnitude },
+                    };
+                    effect.SetParameters(p, fastFlags);
+                }
+                else
+                {
+                    var p = new EffectParameters
+                    {
+                        Parameters = new ConstantForce { Magnitude = magnitude },
+                    };
+                    effect.SetParameters(p, fastFlags);
+                }
+                return true;
+            }
+            catch
+            {
+                _fastMagnitudeFlags = null;
+            }
+        }
+
         // 1) FFConst-style: direction + type-specific + start (best for Simucube).
         try
         {
@@ -690,10 +730,12 @@ public sealed class FfbBridge : IDisposable
                 Directions = dirs,
                 Parameters = new ConstantForce { Magnitude = magnitude },
             };
-            effect.SetParameters(p,
-                EffectParameterFlags.Direction |
-                EffectParameterFlags.TypeSpecificParameters |
-                EffectParameterFlags.Start);
+            var updateFlags = EffectParameterFlags.Direction |
+                              EffectParameterFlags.TypeSpecificParameters |
+                              EffectParameterFlags.Start;
+            effect.SetParameters(p, updateFlags);
+            _fastMagnitudeFlags = updateFlags;
+            _fastMagnitudeUsesFullParams = true;
             return true;
         }
         catch (Exception ex) { last = ex; }
@@ -713,6 +755,8 @@ public sealed class FfbBridge : IDisposable
                     Parameters = new ConstantForce { Magnitude = magnitude },
                 };
                 effect.SetParameters(p, updateFlags);
+                _fastMagnitudeFlags = updateFlags;
+                _fastMagnitudeUsesFullParams = false;
                 return true;
             }
             catch (Exception ex) { last = ex; }
