@@ -15,6 +15,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - OEM mix options on FFB profiles: Invert Constant Force, damper velocity scale, damper deadband scale (applied in `g920ffb.dll`)
 - Click FFB % / value labels to type exact numbers
 
+### Changed
+
+- Constant Force (tire load) effect gain slider and OEM clamp raised from 200% to **400%**
+
 ### Fixed
 
 - Fanatec (pinned FFB) wheel buttons frozen while steering still worked — overlay buttons/hat from the exclusive FFB handle
@@ -73,7 +77,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Initial public build: virtual Logitech G920 (WinUHid), binding UI, HidHide helpers, OEM `g920ffb.dll` path, bundled WinUHid + Logitech Steering Wheel SDK
 - NFS Heat / Unbound gear mapping (reverse button 19 vs 12)
 
-[Unreleased]: https://github.com/camborambo/G920Emulator/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/camborambo/G920Emulator/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/camborambo/G920Emulator/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/camborambo/G920Emulator/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/camborambo/G920Emulator/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/camborambo/G920Emulator/compare/v0.1.0...v0.2.0
