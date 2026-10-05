@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
@@ -175,8 +176,8 @@ public static class DependencyChecker
             Version = version,
             Detail = string.Join(" · ", detailParts),
             InstallOrSetupHint = installed
-                ? "Required: hide DualSense / physical pads from games so only the virtual G920 is seen. Whitelist G920Emulator.exe (inverse off)."
-                : "Required. Install HidHide, whitelist G920Emulator.exe, hide your physical pad, and enable cloaking.",
+                ? "Required: hide DualSense / physical pads from games so only the virtual G920 is seen. Configure in HidHide Client (or use Configure HidHide). The app does not change HidHide on Start."
+                : "Required. Install HidHide, then configure it yourself (whitelist G920Emulator.exe, hide your pad, cloak on). The app does not change HidHide on Start.",
         };
     }
 
@@ -321,15 +322,31 @@ public static class DependencyChecker
     /// Hides every gaming HID from games except the virtual G920 (which games must see).
     /// Pads and wheel bases are both hidden so the game does not get double input; the
     /// whitelisted emulator can still read them for binding and FFB.
+    /// Also pulls vJoy (<c>VID_1234&amp;PID_BEAD</c>) from <c>--dev-all</c> — it is often
+    /// missing from <c>--dev-gaming</c> but still appears to games as an FFB joystick.
     /// </summary>
     private static List<string> DiscoverPhysicalGamingDevicesToHide(string cli)
     {
-        var (ok, output) = RunHidHideCapture(cli, "--dev-gaming");
-        if (!ok || string.IsNullOrWhiteSpace(output))
-            return [];
-
         var alreadyHidden = ReadAlreadyHiddenDevicePaths(cli);
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        CollectHideCandidatesFromHidHideJson(cli, "--dev-gaming", paths);
+        // vJoy / other root virtual joysticks may not be classified as "gaming" by HidHide.
+        CollectHideCandidatesFromHidHideJson(cli, "--dev-all", paths, vJoyOnly: true);
+
+        paths.RemoveWhere(alreadyHidden.Contains);
+        return paths.ToList();
+    }
+
+    private static void CollectHideCandidatesFromHidHideJson(
+        string cli,
+        string args,
+        ISet<string> paths,
+        bool vJoyOnly = false)
+    {
+        var (ok, output) = RunHidHideCapture(cli, args);
+        if (!ok || string.IsNullOrWhiteSpace(output))
+            return;
 
         try
         {
@@ -344,9 +361,12 @@ public static class DependencyChecker
 
                     foreach (var device in devices.EnumerateArray())
                     {
+                        if (vJoyOnly && !LooksLikeVjoy(device, friendly))
+                            continue;
                         CollectHidePaths(device, friendly, paths);
                     }
                 }
+                return;
             }
         }
         catch (JsonException)
@@ -354,31 +374,43 @@ public static class DependencyChecker
             // Fall through to regex extraction below.
         }
 
-        if (paths.Count == 0)
+        foreach (Match m in Regex.Matches(output, "\"deviceInstancePath\"\\s*:\\s*\"([^\"]+)\""))
         {
-            foreach (Match m in Regex.Matches(output, "\"deviceInstancePath\"\\s*:\\s*\"([^\"]+)\""))
-            {
-                var path = UnescapeJson(m.Groups[1].Value);
-                if (ShouldAutoHideDevice(path, output) && !alreadyHidden.Contains(path))
-                    paths.Add(path);
-            }
-
-            foreach (Match m in Regex.Matches(output, "\"xusbDeviceInstancePath\"\\s*:\\s*\"([^\"]+)\""))
-            {
-                var path = UnescapeJson(m.Groups[1].Value);
-                if (!string.IsNullOrWhiteSpace(path) &&
-                    ShouldAutoHideDevice(path, output) &&
-                    !alreadyHidden.Contains(path))
-                    paths.Add(path);
-            }
-        }
-        else
-        {
-            paths.RemoveWhere(alreadyHidden.Contains);
+            var path = UnescapeJson(m.Groups[1].Value);
+            if (vJoyOnly && !IsVjoyInstancePath(path))
+                continue;
+            if (ShouldAutoHideDevice(path, output))
+                paths.Add(path);
         }
 
-        return paths.ToList();
+        foreach (Match m in Regex.Matches(output, "\"xusbDeviceInstancePath\"\\s*:\\s*\"([^\"]+)\""))
+        {
+            var path = UnescapeJson(m.Groups[1].Value);
+            if (string.IsNullOrWhiteSpace(path))
+                continue;
+            if (vJoyOnly && !IsVjoyInstancePath(path))
+                continue;
+            if (ShouldAutoHideDevice(path, output))
+                paths.Add(path);
+        }
     }
+
+    private static bool LooksLikeVjoy(JsonElement device, string friendlyName)
+    {
+        var vendor = device.TryGetProperty("vendor", out var v) ? v.GetString() ?? "" : "";
+        var product = device.TryGetProperty("product", out var p) ? p.GetString() ?? "" : "";
+        var description = device.TryGetProperty("description", out var d) ? d.GetString() ?? "" : "";
+        var path = device.TryGetProperty("deviceInstancePath", out var dip) ? dip.GetString() ?? "" : "";
+        var blob = $"{friendlyName} {vendor} {product} {description} {path}";
+        return blob.Contains("vJoy", StringComparison.OrdinalIgnoreCase) ||
+               IsVjoyInstancePath(path) ||
+               (blob.Contains("VID_1234", StringComparison.OrdinalIgnoreCase) &&
+                blob.Contains("PID_BEAD", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsVjoyInstancePath(string? instancePath) =>
+        !string.IsNullOrWhiteSpace(instancePath) &&
+        instancePath.Contains("VID_1234&PID_BEAD", StringComparison.OrdinalIgnoreCase);
 
     private static HashSet<string> ReadAlreadyHiddenDevicePaths(string cli)
     {
@@ -600,6 +632,31 @@ public static class DependencyChecker
         catch { /* ignore */ }
 
         return set.Where(File.Exists);
+    }
+
+    /// <summary>
+    /// Capture HidHide cloak / inverse / app / hide-list state for diagnostics (via CLI; no registry admin needed).
+    /// </summary>
+    public static string CaptureHidHideDiagnostics()
+    {
+        var sb = new StringBuilder();
+        var cli = FindHidHideCli();
+        if (cli is null)
+        {
+            sb.AppendLine("HidHideCLI.exe: not found");
+            return sb.ToString();
+        }
+
+        sb.AppendLine("HidHideCLI: " + cli);
+        foreach (var args in new[] { "--cloak-state", "--inv-state", "--app-list", "--dev-list" })
+        {
+            sb.AppendLine();
+            sb.AppendLine("### " + args);
+            var (ok, output) = RunHidHideCapture(cli, args);
+            sb.AppendLine(ok ? output : ("FAILED: " + output));
+        }
+
+        return sb.ToString();
     }
 
     private static string? FindHidHideCli()

@@ -20,6 +20,8 @@ public sealed class FfbBridge : IDisposable
     private const int InfiniteDuration = -1;
 
     private readonly object _gate = new();
+    /// <summary>Serializes all DirectInput joy/effect calls (DI is not thread-safe).</summary>
+    private readonly object _diGate = new();
     private readonly DirectInput _fallbackDi = new();
     private InputHub? _hub;
     private IntPtr _hwnd;
@@ -37,15 +39,23 @@ public sealed class FfbBridge : IDisposable
     private string _axisInfo = "";
     private float _lastCommandTorque;
     private int _lastMagnitude;
+    private int _lastAppliedMagnitude = int.MinValue;
     private float _lastIncomingTorque;
     private DateTime? _lastIncomingUtc;
     private DateTime? _lastApplyUtc;
     private string? _lastError;
     private string _status = "FFB: not attached.";
     private bool _testOverride;
+    private bool _testAutoCenter;
+    private float _testAutoCenterGain = 0.85f;
+    private CancellationTokenSource? _testAutoCenterCts;
+    private Task? _testAutoCenterTask;
     private int _incomingCount;
     private int _applyCount;
     private bool _disposed;
+    /// <summary>Latest rim axes from the exclusive FFB joy (0..1). Refreshed under _diGate.</summary>
+    private Dictionary<string, float>? _cachedAxes01;
+    private long _cachedAxesTick;
 
     private enum WheelVendor
     {
@@ -71,6 +81,11 @@ public sealed class FfbBridge : IDisposable
 
     public double Gain { get; set; } = 1.0;
     public bool Invert { get; set; }
+
+    /// <summary>
+    /// Skip DI updates when |Δmagnitude| is below this (0 = off). From FFB feel / ShapeGameTorque.
+    /// </summary>
+    public int MagnitudeEpsilon { get; set; }
 
     public bool TestOverride
     {
@@ -142,49 +157,91 @@ public sealed class FfbBridge : IDisposable
                 return false;
             }
 
-            try { joy.Unacquire(); } catch { /* ignore */ }
-
             string coop;
-            try
+            Effect? effect;
+            string axisInfo;
+            lock (_diGate)
             {
-                joy.SetCooperativeLevel(hwnd, CooperativeLevel.Background | CooperativeLevel.Exclusive);
-                coop = "Background|Exclusive";
+                try { joy.Unacquire(); } catch { /* ignore */ }
+
+                try
+                {
+                    joy.SetCooperativeLevel(hwnd, CooperativeLevel.Background | CooperativeLevel.Exclusive);
+                    coop = "Background|Exclusive";
+                }
+                catch
+                {
+                    joy.SetCooperativeLevel(hwnd, CooperativeLevel.Background | CooperativeLevel.NonExclusive);
+                    coop = "Background|NonExclusive (exclusive failed)";
+                }
+
+                // Normalize steering axis to 0..65535 so spring auto-center sees a real rim angle.
+                try
+                {
+                    foreach (var obj in joy.GetObjects(DeviceObjectTypeFlags.AbsoluteAxis))
+                    {
+                        var n = obj.Name ?? "";
+                        if (n.Contains("X", StringComparison.OrdinalIgnoreCase) ||
+                            n.Contains("Wheel", StringComparison.OrdinalIgnoreCase) ||
+                            n.Contains("Steer", StringComparison.OrdinalIgnoreCase))
+                        {
+                            joy.GetObjectPropertiesById(obj.ObjectId).Range = new InputRange(0, 65535);
+                            break;
+                        }
+                    }
+                }
+                catch { /* range optional */ }
+
+                // Hardware auto-center stays OFF during gameplay so it cannot fight the
+                // OEM DI mix (CF/Spring/Damper/periodic). FFB debug Center can enable it
+                // briefly for a manual return-to-center test.
+                try { joy.Properties.AutoCenter = false; } catch { /* some devices reject */ }
+                try { joy.Properties.ForceFeedbackGain = 10000; } catch { /* optional */ }
+                joy.Acquire();
+
+                // Soft reset so True Drive / Fanatec drop stale effects from other clients.
+                try { joy.SendForceFeedbackCommand(ForceFeedbackCommand.Reset); } catch { /* optional */ }
+                try { joy.SendForceFeedbackCommand(ForceFeedbackCommand.SetActuatorsOn); } catch { /* optional */ }
+
+                _constantForceGuid = ResolveConstantForceGuid(joy);
+
+                var objectId = ResolveFfAxisObjectId(joy, out var axisName);
+                if (objectId < 0)
+                {
+                    error = "Could not find an FFB axis on the selected device.";
+                    lock (_gate) { _status = "FFB: no FFB axis."; _lastError = error; }
+                    // Fall through to DetachEffectsOnly outside this lock.
+                    effect = null;
+                    axisInfo = "";
+                }
+                else
+                {
+                    var created = TryCreateConstantEffect(joy, objectId, axisName, out effect, out axisInfo, out var createError);
+                    if (!created || effect is null)
+                    {
+                        error = createError ?? "Could not create constant-force effect.";
+                        lock (_gate) { _status = "FFB: effect create failed."; _lastError = error; }
+                        effect = null;
+                    }
+                    else
+                    {
+                        // Simucube True Drive only calculates torque for effects that are created AND playing.
+                        try { effect.Start(EffectPlayFlags.NoDownload); } catch { /* some drivers ignore */ }
+                        try { effect.Start(); } catch { /* already playing */ }
+
+                        if (!TrySetMagnitude(effect, 0, out var setError))
+                        {
+                            error = $"Effect created but updates fail: {setError}";
+                            lock (_gate) { _status = "FFB: effect update failed."; _lastError = error; }
+                            try { effect.Dispose(); } catch { /* ignore */ }
+                            effect = null;
+                        }
+                    }
+                }
             }
-            catch
+
+            if (effect is null)
             {
-                joy.SetCooperativeLevel(hwnd, CooperativeLevel.Background | CooperativeLevel.NonExclusive);
-                coop = "Background|NonExclusive (exclusive failed)";
-            }
-
-            try { joy.Properties.AutoCenter = false; } catch { /* some devices reject */ }
-            try { joy.Properties.ForceFeedbackGain = 10000; } catch { /* optional */ }
-            joy.Acquire();
-
-            // Soft reset so True Drive / Fanatec drop stale effects from other clients.
-            try { joy.SendForceFeedbackCommand(ForceFeedbackCommand.Reset); } catch { /* optional */ }
-            try { joy.SendForceFeedbackCommand(ForceFeedbackCommand.SetActuatorsOn); } catch { /* optional */ }
-
-            _constantForceGuid = ResolveConstantForceGuid(joy);
-
-            var objectId = ResolveFfAxisObjectId(joy, out var axisName);
-            var created = TryCreateConstantEffect(joy, objectId, axisName, out var effect, out var axisInfo, out var createError);
-            if (!created || effect is null)
-            {
-                error = createError ?? "Could not create constant-force effect.";
-                lock (_gate) { _status = "FFB: effect create failed."; _lastError = error; }
-                DetachEffectsOnly();
-                return false;
-            }
-
-            // Simucube True Drive only calculates torque for effects that are created AND playing.
-            try { effect.Start(EffectPlayFlags.NoDownload); } catch { /* some drivers ignore */ }
-            try { effect.Start(); } catch { /* already playing */ }
-
-            if (!TrySetMagnitude(effect, 0, out var setError))
-            {
-                error = $"Effect created but updates fail: {setError}";
-                lock (_gate) { _status = "FFB: effect update failed."; _lastError = error; }
-                try { effect.Dispose(); } catch { /* ignore */ }
                 DetachEffectsOnly();
                 return false;
             }
@@ -200,6 +257,8 @@ public sealed class FfbBridge : IDisposable
                 _status = $"FFB: attached to {deviceName}";
                 _lastCommandTorque = 0;
                 _lastMagnitude = 0;
+                _lastAppliedMagnitude = int.MinValue;
+                _lastApplyUtc = null;
             }
 
             return true;
@@ -227,6 +286,89 @@ public sealed class FfbBridge : IDisposable
     public bool TryGetPhysicalSteering(out float steeringCentered)
     {
         steeringCentered = 0f;
+        if (!TryReadPhysicalJoystickState(out var state))
+            return false;
+        steeringCentered = NormalizeAxisToCentered(state.X);
+        return true;
+    }
+
+    /// <summary>
+    /// Live axis values (0..1) from the exclusive FFB joystick — same scale as
+    /// <see cref="Input.InputHub"/> DeviceState axes.
+    /// Never blocks behind a slow DI SetParameters: returns a fresh cache when the
+    /// FFB apply thread holds <c>_diGate</c>.
+    /// </summary>
+    public bool TryGetPhysicalAxes01(out Dictionary<string, float> axes)
+    {
+        axes = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+
+        // Hot path: serve sub-frame cache so input submit is not serialized with FFB USB.
+        lock (_gate)
+        {
+            if (_cachedAxes01 is { Count: > 0 } &&
+                Environment.TickCount64 - _cachedAxesTick <= 4)
+            {
+                foreach (var (k, v) in _cachedAxes01)
+                    axes[k] = v;
+                return true;
+            }
+        }
+
+        if (!Monitor.TryEnter(_diGate, 0))
+        {
+            // Apply thread is busy — last sample is better than stalling the bridge.
+            lock (_gate)
+            {
+                if (_cachedAxes01 is null || _cachedAxes01.Count == 0)
+                    return false;
+                foreach (var (k, v) in _cachedAxes01)
+                    axes[k] = v;
+                return true;
+            }
+        }
+
+        try
+        {
+            if (!TryReadPhysicalJoystickStateUnlocked(out var state))
+            {
+                lock (_gate)
+                {
+                    if (_cachedAxes01 is null || _cachedAxes01.Count == 0)
+                        return false;
+                    foreach (var (k, v) in _cachedAxes01)
+                        axes[k] = v;
+                    return true;
+                }
+            }
+
+            CacheAxesFromState(state);
+            lock (_gate)
+            {
+                foreach (var (k, v) in _cachedAxes01!)
+                    axes[k] = v;
+            }
+            return true;
+        }
+        finally
+        {
+            Monitor.Exit(_diGate);
+        }
+    }
+
+    private bool TryReadPhysicalJoystickState(out JoystickState state)
+    {
+        state = default!;
+        Joystick? joy;
+        lock (_gate) joy = _joystick;
+        if (joy is null) return false;
+
+        lock (_diGate)
+            return TryReadPhysicalJoystickStateUnlocked(out state);
+    }
+
+    private bool TryReadPhysicalJoystickStateUnlocked(out JoystickState state)
+    {
+        state = default!;
         Joystick? joy;
         lock (_gate) joy = _joystick;
         if (joy is null) return false;
@@ -234,11 +376,8 @@ public sealed class FfbBridge : IDisposable
         try
         {
             joy.Poll();
-            var state = joy.GetCurrentState();
-            var x = state.X;
-            if (x < 0) x = 0;
-            if (x > 65535) x = 65535;
-            steeringCentered = (x / 65535f) * 2f - 1f;
+            state = joy.GetCurrentState();
+            CacheAxesFromState(state);
             return true;
         }
         catch
@@ -247,11 +386,8 @@ public sealed class FfbBridge : IDisposable
             {
                 joy.Acquire();
                 joy.Poll();
-                var state = joy.GetCurrentState();
-                var x = state.X;
-                if (x < 0) x = 0;
-                if (x > 65535) x = 65535;
-                steeringCentered = (x / 65535f) * 2f - 1f;
+                state = joy.GetCurrentState();
+                CacheAxesFromState(state);
                 return true;
             }
             catch
@@ -261,19 +397,167 @@ public sealed class FfbBridge : IDisposable
         }
     }
 
+    private void CacheAxesFromState(JoystickState state)
+    {
+        var axes = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["X"] = NormalizeAxis01(state.X),
+            ["Y"] = NormalizeAxis01(state.Y),
+            ["Z"] = NormalizeAxis01(state.Z),
+            ["Rx"] = NormalizeAxis01(state.RotationX),
+            ["Ry"] = NormalizeAxis01(state.RotationY),
+            ["Rz"] = NormalizeAxis01(state.RotationZ),
+        };
+        if (state.Sliders.Length > 0)
+            axes["Slider0"] = NormalizeAxis01(state.Sliders[0]);
+        if (state.Sliders.Length > 1)
+            axes["Slider1"] = NormalizeAxis01(state.Sliders[1]);
+
+        lock (_gate)
+        {
+            _cachedAxes01 = axes;
+            _cachedAxesTick = Environment.TickCount64;
+        }
+    }
+
+    /// <summary>
+    /// Optional hardware DIPROP_AUTOCENTER. Used only by FFB debug Center test —
+    /// not toggled from the game OEM mix (that would fight Fanatec/Simucube DI effects).
+    /// </summary>
+    public void SetHardwareAutoCenter(bool enabled)
+    {
+        Joystick? joy;
+        lock (_gate) joy = _joystick;
+        if (joy is null) return;
+
+        // Prefer live property change so we do not interrupt the CF effect or the
+        // shared InputHub acquire (Unacquire here used to make Poll dispose the joy
+        // and freeze virtual G920 buttons).
+        lock (_diGate)
+        {
+            try
+            {
+                joy.Properties.AutoCenter = enabled;
+            }
+            catch
+            {
+                // Unsupported on this base — do not Unacquire; FFB debug Center still has
+                // the software spring path.
+            }
+        }
+    }
+
+    private static float NormalizeAxisToCentered(int x)
+    {
+        // Prefer unsigned 0..65535. Signed -32768..32767 (center 0) is remapped.
+        if (x < 0)
+            return Math.Clamp(x / 32767f, -1f, 1f);
+        if (x > 65535) x = 65535;
+        return (x / 65535f) * 2f - 1f;
+    }
+
+    /// <summary>Match InputHub DeviceState axis scale (0..1).</summary>
+    private static float NormalizeAxis01(int value)
+    {
+        if (value < 0)
+            return Math.Clamp((value + 32768) / 65535f, 0f, 1f);
+        if (value > 65535) value = 65535;
+        return value / 65535f;
+    }
+
     /// <param name="torque">-1 .. 1, positive = right</param>
     public void UpdateTorque(float torque) => ApplyTorque(torque, fromTest: false);
 
+    public bool TestAutoCenterActive
+    {
+        get { lock (_gate) return _testAutoCenter; }
+    }
+
     public void ApplyTestTorque(float torque)
     {
-        lock (_gate) _testOverride = true;
+        StopTestAutoCenterLoop();
+        lock (_gate)
+        {
+            _testOverride = true;
+            _testAutoCenter = false;
+        }
+        try { SetHardwareAutoCenter(false); } catch { /* ignore */ }
         ApplyTorque(torque, fromTest: true);
+    }
+
+    /// <summary>
+    /// FFB debug Center: software return-to-center spring from physical rim angle,
+    /// plus hardware AutoCenter when the driver supports it.
+    /// </summary>
+    public void StartTestAutoCenter(float gain = 0.85f)
+    {
+        StopTestAutoCenterLoop();
+        lock (_gate)
+        {
+            _testOverride = true;
+            _testAutoCenter = true;
+            _testAutoCenterGain = Math.Clamp(gain, 0.05f, 2f);
+        }
+
+        try { SetHardwareAutoCenter(true); } catch { /* optional */ }
+
+        var cts = new CancellationTokenSource();
+        _testAutoCenterCts = cts;
+        _testAutoCenterTask = Task.Run(() => RunTestAutoCenterLoop(cts.Token), cts.Token);
+
+        // Immediate kick so the rim moves before the first loop sleep.
+        if (TryGetPhysicalSteering(out var rim))
+            ApplyTorque(-rim * _testAutoCenterGain, fromTest: true);
+        else
+            ApplyTorque(0, fromTest: true);
     }
 
     public void ClearTestOverride()
     {
-        lock (_gate) _testOverride = false;
+        StopTestAutoCenterLoop();
+        lock (_gate)
+        {
+            _testOverride = false;
+            _testAutoCenter = false;
+        }
+        try { SetHardwareAutoCenter(false); } catch { /* ignore */ }
         ApplyTorque(0, fromTest: true);
+    }
+
+    private void StopTestAutoCenterLoop()
+    {
+        var cts = _testAutoCenterCts;
+        _testAutoCenterCts = null;
+        var task = _testAutoCenterTask;
+        _testAutoCenterTask = null;
+        if (cts is null && task is null) return;
+        try { cts?.Cancel(); } catch { /* ignore */ }
+        try { task?.Wait(200); } catch { /* ignore */ }
+        try { cts?.Dispose(); } catch { /* ignore */ }
+    }
+
+    private void RunTestAutoCenterLoop(CancellationToken token)
+    {
+        while (!token.IsCancellationRequested)
+        {
+            bool active;
+            float gain;
+            lock (_gate)
+            {
+                active = _testAutoCenter && _testOverride;
+                gain = _testAutoCenterGain;
+            }
+            if (!active) break;
+
+            if (TryGetPhysicalSteering(out var rim))
+            {
+                // Same sense as DI Spring: force opposite rim offset → return to center.
+                ApplyTorque(-rim * gain, fromTest: true);
+            }
+
+            try { Thread.Sleep(2); }
+            catch { break; }
+        }
     }
 
     public void NoteIncoming(float torque)
@@ -308,26 +592,60 @@ public sealed class FfbBridge : IDisposable
 
         var magnitude = (int)Math.Clamp(Math.Round(-torque * 10000), -10000, 10000);
 
-        if (!TrySetMagnitude(effect, magnitude, out var setError))
+        // Optional feel: skip tiny DI chatter (Fanatec grind). Always allow return-to-zero.
+        var eps = MagnitudeEpsilon;
+        if (!fromTest && eps > 0 &&
+            _lastAppliedMagnitude != int.MinValue &&
+            Math.Abs(magnitude - _lastAppliedMagnitude) < eps &&
+            !(magnitude == 0 && _lastAppliedMagnitude != 0))
         {
-            string? recreateError = null;
-            if (joy is not null && TryRecreateEffect(joy, magnitude, out var recreated, out recreateError))
+            lock (_gate)
             {
-                lock (_gate)
-                {
-                    try { _constantEffect?.Dispose(); } catch { /* ignore */ }
-                    _constantEffect = recreated;
-                }
+                _lastCommandTorque = torque;
+                _lastMagnitude = _lastAppliedMagnitude;
             }
-            else
+            return;
+        }
+
+        // Unchanged magnitude: skip the USB round-trip, but refresh periodically so
+        // bases that drop idle effects keep it allocated and playing.
+        lock (_gate)
+        {
+            if (magnitude == _lastMagnitude && _lastApplyUtc is { } lastApply &&
+                (DateTime.UtcNow - lastApply).TotalMilliseconds < 100)
             {
-                lock (_gate)
-                {
-                    _lastError = string.IsNullOrEmpty(recreateError)
-                        ? $"Apply failed: {setError}"
-                        : $"Apply failed: {setError} | recreate: {recreateError}";
-                }
                 return;
+            }
+        }
+
+        lock (_diGate)
+        {
+            // Sample rim before the USB SetParameters round-trip so the input thread
+            // can keep serving a fresh axis cache while this apply runs.
+            if (joy is not null)
+                TryReadPhysicalJoystickStateUnlocked(out _);
+
+            if (!TrySetMagnitude(effect, magnitude, out var setError))
+            {
+                string? recreateError = null;
+                if (joy is not null && TryRecreateEffect(joy, magnitude, out var recreated, out recreateError))
+                {
+                    lock (_gate)
+                    {
+                        try { _constantEffect?.Dispose(); } catch { /* ignore */ }
+                        _constantEffect = recreated;
+                    }
+                }
+                else
+                {
+                    lock (_gate)
+                    {
+                        _lastError = string.IsNullOrEmpty(recreateError)
+                            ? $"Apply failed: {setError}"
+                            : $"Apply failed: {setError} | recreate: {recreateError}";
+                    }
+                    return;
+                }
             }
         }
 
@@ -335,6 +653,7 @@ public sealed class FfbBridge : IDisposable
         {
             _lastCommandTorque = torque;
             _lastMagnitude = magnitude;
+            _lastAppliedMagnitude = magnitude;
             _lastApplyUtc = DateTime.UtcNow;
             _applyCount++;
             _lastError = null;
@@ -591,6 +910,7 @@ public sealed class FfbBridge : IDisposable
                 LastError = _lastError,
                 Status = _status,
                 TestOverrideActive = _testOverride,
+                TestAutoCenterActive = _testAutoCenter,
                 IncomingUpdateCount = _incomingCount,
                 ApplyCount = _applyCount,
             };
@@ -599,6 +919,7 @@ public sealed class FfbBridge : IDisposable
 
     public void Detach()
     {
+        StopTestAutoCenterLoop();
         DetachEffectsOnly();
         lock (_gate)
         {
@@ -606,6 +927,7 @@ public sealed class FfbBridge : IDisposable
             _deviceName = null;
             _status = "FFB: not attached.";
             _testOverride = false;
+            _testAutoCenter = false;
             _vendor = WheelVendor.Generic;
         }
     }
@@ -626,26 +948,34 @@ public sealed class FfbBridge : IDisposable
             _ownedFallback = null;
             shared = _joystick;
             _joystick = null;
+            _cachedAxes01 = null;
+            _cachedAxesTick = 0;
             id = _deviceId;
             hub = _hub;
             hwnd = _hwnd;
         }
 
-        try { effect?.Stop(); } catch { /* ignore */ }
-        try { effect?.Unload(); } catch { /* ignore */ }
-        effect?.Dispose();
+        lock (_diGate)
+        {
+            try { effect?.Stop(); } catch { /* ignore */ }
+            try { effect?.Unload(); } catch { /* ignore */ }
+            effect?.Dispose();
 
-        if (owned is not null)
-        {
-            try { owned.SendForceFeedbackCommand(ForceFeedbackCommand.SetActuatorsOff); } catch { /* ignore */ }
-            try { owned.Unacquire(); } catch { /* ignore */ }
-            owned.Dispose();
+            if (owned is not null)
+            {
+                try { owned.SendForceFeedbackCommand(ForceFeedbackCommand.SetActuatorsOff); } catch { /* ignore */ }
+                try { owned.Unacquire(); } catch { /* ignore */ }
+                owned.Dispose();
+            }
+            else if (shared is not null)
+            {
+                try { shared.SendForceFeedbackCommand(ForceFeedbackCommand.SetActuatorsOff); } catch { /* ignore */ }
+            }
         }
-        else if (shared is not null)
-        {
-            try { shared.SendForceFeedbackCommand(ForceFeedbackCommand.SetActuatorsOff); } catch { /* ignore */ }
+
+        // Restore input acquire outside _diGate — RestoreNonExclusive takes InputHub's lock.
+        if (owned is null && shared is not null)
             hub?.RestoreNonExclusive(id, hwnd);
-        }
     }
 
     public void Dispose()
@@ -737,7 +1067,8 @@ public sealed class FfbBridge : IDisposable
             return (int)objects[0].ObjectId;
         }
 
-        throw new InvalidOperationException("Could not find an FFB axis on the selected device.");
+        name = "";
+        return -1;
     }
 
     [DllImport("user32.dll")]

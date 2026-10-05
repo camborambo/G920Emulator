@@ -1,4 +1,5 @@
 using System.Text.Json;
+using G920Emulator.Core.Ffb;
 using G920Emulator.Core.Models;
 
 namespace G920Emulator.Core.Profiles;
@@ -12,11 +13,12 @@ public sealed class ProfileStore
     };
 
     public string ProfilesDirectory { get; }
+    public string FfbProfilesDirectory { get; }
     public string SettingsPath { get; }
 
     /// <summary>
-    /// True when profiles/settings live next to the exe; false when falling back to AppData
-    /// (e.g. install directory is not writable).
+    /// True when profiles/settings live next to the exe (opt-in via <c>portable.txt</c>).
+    /// Default is AppData so unzipping an update cannot wipe user bindings.
     /// </summary>
     public bool UsesPortableStorage { get; }
 
@@ -26,21 +28,32 @@ public sealed class ProfileStore
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "G920Emulator");
 
-        var portableRoot = AppContext.BaseDirectory.TrimEnd(
+        var exeRoot = AppContext.BaseDirectory.TrimEnd(
             Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        UsesPortableStorage = TryEnsureWritableProfilesDir(portableRoot);
 
-        var root = UsesPortableStorage ? portableRoot : appDataRoot;
+        // Opt-in portable mode only — default AppData survives "unzip over install" updates.
+        var portableMarker = Path.Combine(exeRoot, "portable.txt");
+        UsesPortableStorage = File.Exists(portableMarker) && TryEnsureWritableProfilesDir(exeRoot);
+
+        var root = UsesPortableStorage ? exeRoot : appDataRoot;
         ProfilesDirectory = Path.Combine(root, "profiles");
+        FfbProfilesDirectory = Path.Combine(root, "ffb-profiles");
         SettingsPath = Path.Combine(root, "settings.json");
         Directory.CreateDirectory(ProfilesDirectory);
+        Directory.CreateDirectory(FfbProfilesDirectory);
 
-        // Prefer local folder; pull older AppData / N4Sunbound saves in without overwriting.
-        if (UsesPortableStorage)
-            MigrateFolder(appDataRoot, root);
-        MigrateFolder(Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "N4Sunbound"), root);
+        if (!UsesPortableStorage)
+        {
+            // One-time pull from older next-to-exe / N4Sunbound layouts.
+            MigrateFolder(exeRoot, appDataRoot);
+            MigrateFolder(Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "N4Sunbound"), appDataRoot);
+        }
+
+        EnsureDefaultProfile();
+        EnsureRawFfbProfile();
+        RemoveLegacySeededFfbProfiles();
     }
 
     private static bool TryEnsureWritableProfilesDir(string root)
@@ -60,6 +73,63 @@ public sealed class ProfileStore
         }
     }
 
+    /// <summary>Create an empty Default profile in AppData (or portable root) if none exists.</summary>
+    private void EnsureDefaultProfile()
+    {
+        try
+        {
+            if (Exists("default") || Exists("Default"))
+                return;
+
+            var profile = MappingProfile.CreateDefault();
+            profile.Name = "Default";
+            profile.FfbProfileName = "Raw";
+            profile.Save(GetPath("Default"));
+        }
+        catch
+        {
+            // Best-effort seed only.
+        }
+    }
+
+    private void EnsureRawFfbProfile()
+    {
+        try
+        {
+            if (FfbExists("Raw"))
+                return;
+            FfbProfile.CreateRaw().Save(GetFfbPath("Raw"));
+        }
+        catch
+        {
+            // Best-effort seed only.
+        }
+    }
+
+    /// <summary>
+    /// Earlier builds seeded an "NFS Unbound" FFB preset (CF 200% / Spring 40% / Damper 150%).
+    /// Raw is the only built-in now; remove that file only while it still has the seeded gains
+    /// so a user's own profile with the same name is kept.
+    /// </summary>
+    private void RemoveLegacySeededFfbProfiles()
+    {
+        try
+        {
+            var path = GetFfbPath("NFS Unbound");
+            if (!File.Exists(path))
+                return;
+            var g = FfbProfile.Load(path).EffectGains;
+            if (Math.Abs(g.ConstantForce - 2.0) < 0.001 &&
+                Math.Abs(g.SpringForce - 0.4) < 0.001 &&
+                Math.Abs(g.DamperForce - 1.5) < 0.001)
+                File.Delete(path);
+        }
+        catch
+        {
+            // Best-effort cleanup only.
+        }
+    }
+
     private static void MigrateFolder(string legacyRoot, string newRoot)
     {
         try
@@ -74,6 +144,7 @@ public sealed class ProfileStore
             {
                 foreach (var file in Directory.EnumerateFiles(legacyProfiles, "*.json"))
                 {
+                    // Never overwrite an existing AppData profile with a leftover install copy.
                     var dest = Path.Combine(newProfiles, Path.GetFileName(file));
                     if (!File.Exists(dest))
                         File.Copy(file, dest);
@@ -106,14 +177,22 @@ public sealed class ProfileStore
 
     public bool Exists(string profileName) => File.Exists(GetPath(profileName));
 
-    public MappingProfile Load(string profileName) => MappingProfile.Load(GetPath(profileName));
+    public MappingProfile Load(string profileName)
+    {
+        var profile = MappingProfile.Load(GetPath(profileName));
+        ApplyLinkedFfbProfile(profile);
+        return profile;
+    }
 
     public void Save(MappingProfile profile, string profileName)
     {
         profile.Name = profileName.Trim();
+        if (string.IsNullOrWhiteSpace(profile.FfbProfileName))
+            profile.FfbProfileName = "Raw";
         profile.Save(GetPath(profileName));
         var settings = LoadSettings();
         settings.LastProfileName = profile.Name;
+        settings.LastFfbProfileName = profile.FfbProfileName;
         SaveSettings(settings);
     }
 
@@ -122,6 +201,110 @@ public sealed class ProfileStore
         var path = GetPath(profileName);
         if (File.Exists(path))
             File.Delete(path);
+    }
+
+    public IReadOnlyList<string> ListFfbProfiles()
+    {
+        EnsureRawFfbProfile();
+        return Directory.EnumerateFiles(FfbProfilesDirectory, "*.json")
+            .Select(Path.GetFileNameWithoutExtension)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .Cast<string>()
+            .ToList();
+    }
+
+    public string GetFfbPath(string profileName) =>
+        Path.Combine(FfbProfilesDirectory, Sanitize(profileName) + ".json");
+
+    public bool FfbExists(string profileName) => File.Exists(GetFfbPath(profileName));
+
+    public FfbProfile LoadFfb(string profileName) => FfbProfile.Load(GetFfbPath(profileName));
+
+    public void SaveFfb(FfbProfile profile, string profileName)
+    {
+        profile.Name = profileName.Trim();
+        profile.Save(GetFfbPath(profileName));
+        var settings = LoadSettings();
+        settings.LastFfbProfileName = profile.Name;
+        SaveSettings(settings);
+    }
+
+    public void DeleteFfb(string profileName)
+    {
+        if (profileName.Equals("Raw", StringComparison.OrdinalIgnoreCase))
+            return; // always keep the raw preset
+        var path = GetFfbPath(profileName);
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
+    /// <summary>
+    /// Load the linked FFB profile into the mapping profile's working FFB fields.
+    /// Migrates legacy inline FFB settings into a new FFB profile when needed.
+    /// </summary>
+    public void ApplyLinkedFfbProfile(MappingProfile mapping)
+    {
+        mapping.NormalizeBindings();
+
+        if (string.IsNullOrWhiteSpace(mapping.FfbProfileName))
+        {
+            // Legacy: FFB lived only on the mapping profile. Keep Raw for defaults;
+            // otherwise snapshot into an FFB profile named after the mapping.
+            if (IsDefaultFfbInline(mapping))
+            {
+                mapping.FfbProfileName = "Raw";
+            }
+            else
+            {
+                var name = string.IsNullOrWhiteSpace(mapping.Name) ? "Custom" : mapping.Name + " FFB";
+                if (!FfbExists(name))
+                {
+                    var migrated = FfbProfile.FromMappingInline(
+                        name, mapping.FfbGain, mapping.FfbInvert,
+                        mapping.FfbEffectGains, mapping.FfbOutputFeel);
+                    SaveFfb(migrated, name);
+                }
+                mapping.FfbProfileName = name;
+            }
+        }
+
+        if (!FfbExists(mapping.FfbProfileName))
+            mapping.FfbProfileName = "Raw";
+
+        var ffb = LoadFfb(mapping.FfbProfileName);
+        mapping.ApplyFfbProfile(ffb);
+    }
+
+    private static bool IsDefaultFfbInline(MappingProfile m)
+    {
+        if (Math.Abs(m.FfbGain - 1.0) > 0.001 || m.FfbInvert)
+            return false;
+        var g = m.FfbEffectGains ?? FfbEffectGains.CreateDefault();
+        var f = m.FfbOutputFeel ?? FfbOutputFeel.CreateDefault();
+        return Math.Abs(g.ConstantForce - 1) < 0.001 &&
+               Math.Abs(g.SpringForce - 1) < 0.001 &&
+               Math.Abs(g.DamperForce - 1) < 0.001 &&
+               Math.Abs(g.FrictionForce - 1) < 0.001 &&
+               Math.Abs(g.InertiaForce - 1) < 0.001 &&
+               Math.Abs(g.Periodic - 1) < 0.001 &&
+               Math.Abs(g.RampForce - 1) < 0.001 &&
+               f.SmoothingMs <= 0.001 &&
+               f.PeakSoftStart >= 0.999 &&
+               f.SoftStartMs <= 0.001 &&
+               f.Deadband <= 0.0005 &&
+               f.MaxSlewPerSecond <= 0.5 &&
+               f.MaxSpikeStep >= 0.999 &&
+               f.MagnitudeEpsilon <= 0.5 &&
+               !f.ForceCenterSpring;
+    }
+
+    public FfbProfile CaptureFfbFromMapping(MappingProfile mapping)
+    {
+        var name = string.IsNullOrWhiteSpace(mapping.FfbProfileName) ? "Raw" : mapping.FfbProfileName;
+        return FfbProfile.FromMappingInline(
+            name, mapping.FfbGain, mapping.FfbInvert,
+            mapping.FfbEffectGains, mapping.FfbOutputFeel);
     }
 
     public AppSettings LoadSettings()
@@ -154,7 +337,10 @@ public sealed class ProfileStore
         if (first is not null)
             return Load(first);
 
-        return MappingProfile.CreateDefault();
+        var created = MappingProfile.CreateDefault();
+        created.FfbProfileName = "Raw";
+        ApplyLinkedFfbProfile(created);
+        return created;
     }
 
     private static string Sanitize(string name)
@@ -167,6 +353,7 @@ public sealed class ProfileStore
 public sealed class AppSettings
 {
     public string? LastProfileName { get; set; }
+    public string? LastFfbProfileName { get; set; }
 
     /// <summary>Device instance IDs hidden from the Detected devices list until the next Refresh devices.</summary>
     public List<string> HiddenDeviceIds { get; set; } = [];

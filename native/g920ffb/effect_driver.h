@@ -45,6 +45,8 @@ public:
 	UINT32 DownloadCount;
 	UINT32 LastEffectType;
 	UINT32 LastFlags;
+	DWORD LastReportedState;
+	DWORD LastUnknownStatusLogTick;
 
 private:
 	LONG ReferenceCount;

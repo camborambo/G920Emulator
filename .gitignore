@@ -20,4 +20,9 @@ artifacts/lghub-probe/driver_*/
 artifacts/lghub-probe/*.log
 artifacts/lghub-probe/*.out.txt
 artifacts/lghub-probe/*-bind.log
+artifacts/lghub-probe/probe-*.txt
 CHAT_HANDOFF.md
+
+# Local diagnostic staging / one-off scratch tools (not product source)
+_diag_work/
+tools/_*/

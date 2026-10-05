@@ -14,13 +14,27 @@ CEffect::CEffect()
 	PlayCount = 0;
 	StartTime = 0;
 	DirectionSign = 1;
+	HasEnvelope = FALSE;
+	DiEffect.dwGain = 10000;
+	LastLogTick = 0;
+	LastLoggedExtra = 0;
+	LastReportedStatus = 0xFFFFFFFF;
 }
 
 LONG CEffect::EvalCondition(const DICONDITION& Cond, LONG Metric)
 {
 	// Standard DirectInput condition evaluation (Wine / PID-FF style).
 	const LONG x = Metric - Cond.lOffset;
-	const LONG dead = Cond.lDeadBand;
+	// NFS Unbound (and some Logitech SDK titles) download Spring with
+	// lDeadBand=10000. DI units are 0..10000, so that disables the entire
+	// axis range and the spring never produces force. Treat a full-scale
+	// deadband as "no deadband" when the game also set a coefficient.
+	LONG dead = Cond.lDeadBand;
+	if (dead >= 10000 &&
+		(Cond.lPositiveCoefficient != 0 || Cond.lNegativeCoefficient != 0))
+	{
+		dead = 0;
+	}
 
 	LONG coeff = 0;
 	LONG sat = 10000;
@@ -53,61 +67,74 @@ LONG CEffect::EvalCondition(const DICONDITION& Cond, LONG Metric)
 
 VOID CEffect::CalcTorque(LONG* Torque, LONG AxisPos, LONG AxisVel)
 {
-	ULONG Duration = max(1UL, DiEffect.dwDuration / 1000);
-	ULONG BeginTime = StartTime + (DiEffect.dwStartDelay / 1000);
-	ULONG EndTime = 0xFFFFFFFF;
-	if (PlayCount != (DWORD)-1)
-		EndTime = BeginTime + Duration * PlayCount;
-	ULONG CurrentTime = GetTickCount();
+	// Condition effects (arcade Spring etc.) stay alive while PLAYING even when the
+	// game downloaded a finite duration; other effects honor duration x PlayCount.
+	const bool isCondition =
+		Type == SPRING || Type == DAMPER || Type == INERTIA || Type == FRICTION;
+	const bool infinite =
+		DiEffect.dwDuration == 0 ||
+		DiEffect.dwDuration == INFINITE;
 
-	if (Status != DIEGES_PLAYING || CurrentTime < BeginTime || CurrentTime > EndTime)
+	if (Status != DIEGES_PLAYING)
 		return;
 
-	LONG NormalRate, AttackLevel, FadeLevel;
-	CalcEnvelope(Duration, (CurrentTime - BeginTime) % Duration, &NormalRate, &AttackLevel, &FadeLevel);
+	const ULONG BeginTime = StartTime + (DiEffect.dwStartDelay / 1000);
+	const ULONG CurrentTime = GetTickCount();
+	if ((LONG)(CurrentTime - BeginTime) < 0)
+		return;
+	const ULONG Elapsed = CurrentTime - BeginTime;
+
+	// Duration 0 = infinite; periodic phase then runs off elapsed time.
+	ULONG Duration = 0;
+	ULONG CurrentPos = Elapsed;
+	if (!infinite)
+	{
+		Duration = max(1UL, DiEffect.dwDuration / 1000);
+		const bool loops = PlayCount == 0 || PlayCount == (DWORD)-1;
+		if (!isCondition && !loops && (ULONGLONG)Elapsed >= (ULONGLONG)Duration * PlayCount)
+			return;
+		CurrentPos = Elapsed % Duration;
+	}
 
 	LONG NormalLevel = 0;
-	CalcForce(Duration, (CurrentTime - BeginTime) % Duration, NormalRate, AttackLevel, FadeLevel,
-		AxisPos, AxisVel, &NormalLevel);
+	CalcForce(Duration, CurrentPos, AxisPos, AxisVel, &NormalLevel);
 
-	// Per-effect gain (DIEFFECT.dwGain, 0..10000) ? game-authored, not an emulator tweak.
-	LONG effectGain = DiEffect.dwGain;
-	if (effectGain <= 0 || effectGain > 10000)
-		effectGain = 10000;
+	// Per-effect gain (DIEFFECT.dwGain, 0..10000) — game-authored, not an emulator tweak.
+	LONG effectGain = (LONG)min(DiEffect.dwGain, (DWORD)10000);
 	NormalLevel = (LONG)(((LONGLONG)NormalLevel * effectGain) / 10000);
 
+	// Original mix: direction applies to all effect types, including Spring.
 	*Torque += NormalLevel * DirectionSign;
 }
 
-VOID CEffect::CalcEnvelope(ULONG Duration, ULONG CurrentPos, LONG* NormalRate, LONG* AttackLevel, LONG* FadeLevel)
+LONG CEffect::ApplyEnvelope(LONG Magnitude, ULONG Duration, ULONG CurrentPos) const
 {
-	if ((DiEffect.dwFlags & DIEP_ENVELOPE) && DiEffect.lpEnvelope != NULL)
-	{
-		LONG AttackRate = 0;
-		ULONG AttackTime = max(1UL, DiEnvelope.dwAttackTime / 1000);
-		if (CurrentPos < AttackTime)
-			AttackRate = (LONG)((AttackTime - CurrentPos) * 100 / AttackTime);
+	if (!HasEnvelope)
+		return Magnitude;
 
-		LONG FadeRate = 0;
-		ULONG FadeTime = max(1UL, DiEnvelope.dwFadeTime / 1000);
-		ULONG FadePos = Duration - FadeTime;
-		if (FadePos < CurrentPos)
-			FadeRate = (LONG)((CurrentPos - FadePos) * 100 / FadeTime);
+	// DirectInput envelopes scale the absolute magnitude; the sign is preserved.
+	const LONG sign = Magnitude < 0 ? -1 : 1;
+	LONG level = Magnitude * sign;
 
-		*NormalRate = 100 - AttackRate - FadeRate;
-		*AttackLevel = DiEnvelope.dwAttackLevel * AttackRate;
-		*FadeLevel = DiEnvelope.dwFadeLevel * FadeRate;
-	}
-	else
+	const ULONG AttackTime = DiEnvelope.dwAttackTime / 1000;
+	const ULONG FadeTime = DiEnvelope.dwFadeTime / 1000;
+
+	if (AttackTime > 0 && CurrentPos < AttackTime)
 	{
-		*NormalRate = 100;
-		*AttackLevel = 0;
-		*FadeLevel = 0;
+		const LONG from = (LONG)min(DiEnvelope.dwAttackLevel, (DWORD)10000);
+		level = from + (LONG)(((LONGLONG)(level - from) * CurrentPos) / AttackTime);
 	}
+	else if (Duration > 0 && FadeTime > 0 && CurrentPos + FadeTime > Duration)
+	{
+		const LONG to = (LONG)min(DiEnvelope.dwFadeLevel, (DWORD)10000);
+		const ULONG intoFade = CurrentPos + FadeTime - Duration;
+		level = level + (LONG)(((LONGLONG)(to - level) * intoFade) / FadeTime);
+	}
+
+	return level * sign;
 }
 
-VOID CEffect::CalcForce(ULONG Duration, ULONG CurrentPos, LONG NormalRate, LONG AttackLevel, LONG FadeLevel,
-	LONG AxisPos, LONG AxisVel, LONG* NormalLevel)
+VOID CEffect::CalcForce(ULONG Duration, ULONG CurrentPos, LONG AxisPos, LONG AxisVel, LONG* NormalLevel)
 {
 	LONG Magnitude = 0;
 	LONG Period;
@@ -117,42 +144,41 @@ VOID CEffect::CalcForce(ULONG Duration, ULONG CurrentPos, LONG NormalRate, LONG 
 	{
 	case SPRING:
 		Magnitude = EvalCondition(DiCondition, AxisPos);
-		Magnitude = (Magnitude * NormalRate + AttackLevel + FadeLevel) / 100;
 		break;
 
 	case DAMPER:
 		Magnitude = EvalCondition(DiCondition, AxisVel);
-		Magnitude = (Magnitude * NormalRate + AttackLevel + FadeLevel) / 100;
 		break;
 
 	case INERTIA:
 		// Approximate accel with velocity metric when accel is unavailable.
 		Magnitude = EvalCondition(DiCondition, AxisVel);
-		Magnitude = (Magnitude * NormalRate + AttackLevel + FadeLevel) / 100;
 		break;
 
 	case FRICTION:
 	{
-		// Friction opposes motion: sign(velocity) * coefficient (via condition deadband=0).
+		// Friction opposes motion: sign(velocity) * coefficient. The deadband keeps
+		// sensor noise at rest from flipping the force back and forth.
+		const LONG kFrictionDeadband = 100;
 		LONG metric = 0;
-		if (AxisVel > 0) metric = 10000;
-		else if (AxisVel < 0) metric = -10000;
+		if (AxisVel > kFrictionDeadband) metric = 10000;
+		else if (AxisVel < -kFrictionDeadband) metric = -10000;
 		Magnitude = EvalCondition(DiCondition, metric);
-		Magnitude = (Magnitude * NormalRate + AttackLevel + FadeLevel) / 100;
 		break;
 	}
 
 	case CONSTANT_FORCE:
-		Magnitude = DiConstantForce.lMagnitude;
-		Magnitude = (Magnitude * NormalRate + AttackLevel + FadeLevel) / 100;
+		Magnitude = ApplyEnvelope(DiConstantForce.lMagnitude, Duration, CurrentPos);
 		break;
 
 	case RAMP_FORCE:
 	{
 		LONG begin = DiRampforce.lStart;
 		LONG end = DiRampforce.lEnd;
-		Magnitude = begin + (end - begin) * (LONG)CurrentPos / (LONG)Duration;
-		Magnitude = (Magnitude * NormalRate + AttackLevel + FadeLevel) / 100;
+		Magnitude = Duration > 0
+			? begin + (LONG)(((LONGLONG)(end - begin) * CurrentPos) / Duration)
+			: begin;
+		Magnitude = ApplyEnvelope(Magnitude, Duration, CurrentPos);
 		break;
 	}
 
@@ -163,8 +189,7 @@ VOID CEffect::CalcForce(ULONG Duration, ULONG CurrentPos, LONG NormalRate, LONG 
 		Period = max(1L, (LONG)(DiPeriodic.dwPeriod / 1000));
 		R = ((LONG)CurrentPos % Period) * 360 / Period;
 		R = (R + (LONG)(DiPeriodic.dwPhase / 100)) % 360;
-		Magnitude = (LONG)DiPeriodic.dwMagnitude;
-		Magnitude = (Magnitude * NormalRate + AttackLevel + FadeLevel) / 100;
+		Magnitude = ApplyEnvelope((LONG)DiPeriodic.dwMagnitude, Duration, CurrentPos);
 		if (180 <= R) Magnitude = -Magnitude;
 		Magnitude += DiPeriodic.lOffset;
 		break;
@@ -173,8 +198,7 @@ VOID CEffect::CalcForce(ULONG Duration, ULONG CurrentPos, LONG NormalRate, LONG 
 		Period = max(1L, (LONG)(DiPeriodic.dwPeriod / 1000));
 		R = ((LONG)CurrentPos % Period) * 360 / Period;
 		R = (R + (LONG)(DiPeriodic.dwPhase / 100)) % 360;
-		Magnitude = (LONG)DiPeriodic.dwMagnitude;
-		Magnitude = (Magnitude * NormalRate + AttackLevel + FadeLevel) / 100;
+		Magnitude = ApplyEnvelope((LONG)DiPeriodic.dwMagnitude, Duration, CurrentPos);
 		Magnitude = (LONG)(Magnitude * sin(R * 3.14159265 / 180.0));
 		Magnitude += DiPeriodic.lOffset;
 		break;
@@ -185,8 +209,7 @@ VOID CEffect::CalcForce(ULONG Duration, ULONG CurrentPos, LONG NormalRate, LONG 
 		Period = max(1L, (LONG)(DiPeriodic.dwPeriod / 1000));
 		R = ((LONG)CurrentPos % Period) * 360 / Period;
 		R = (R + (LONG)(DiPeriodic.dwPhase / 100)) % 360;
-		Magnitude = (LONG)DiPeriodic.dwMagnitude;
-		Magnitude = (Magnitude * NormalRate + AttackLevel + FadeLevel) / 100;
+		Magnitude = ApplyEnvelope((LONG)DiPeriodic.dwMagnitude, Duration, CurrentPos);
 		if (Type == SAWTOOTH_UP)
 			Magnitude = -Magnitude + (Magnitude * 2 * R / 360);
 		else if (Type == SAWTOOTH_DOWN)

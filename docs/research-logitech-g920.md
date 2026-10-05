@@ -26,7 +26,7 @@ When Col01 is owned by **`logi_joy_hid_filter`**, Logitech’s HID++ FFB COM ser
 
 Logitech’s `hidpp_forcefeedback` may still load but does not deliver usable WriteReports to WinUHid (`HidD_SetOutputReport` → `ERROR_NOT_SUPPORTED`).
 
-**FFB path now:** OEMForceFeedback CLSID → `g920ffb.dll` (`IDirectInputEffectDriver`) → shared memory `Local\G920Emulator.FfbTorque` → bridge → physical base.
+**FFB path now:** OEMForceFeedback CLSID → `g920ffb.dll` (`IDirectInputEffectDriver`) → shared memory `Local\G920Emulator.FfbTorque.v6` → bridge → physical base.
 
 | Change | Purpose |
 |--------|---------|
@@ -56,20 +56,24 @@ G920 Emulator defaults to **19**. For Unbound, open **Gear R** binding and set *
 
 ## Effect probe
 
-`g920ffb.dll` publishes shared-memory v3 fields `TypesSeen` / `TypesPlaying` (bitmasks of DI effect type IDs). The emulator **FFB debug** UI shows human names. Full log: `%TEMP%\g920ffb-effects.log`.
+`g920ffb.dll` publishes shared-memory v3 fields `TypesSeen` / `TypesPlaying` (bitmasks of DI effect type IDs). The emulator **FFB debug** UI shows human names. Full OEM log (`%TEMP%\g920ffb-effects.log`) is written only while the status-bar **Debug** session is active.
 
 ### NFS Unbound (2026-10-04)
 
-At menu/load Unbound downloaded:
+**Confirmed:** Accessibility → Controls → **Controller Vibration** must be **On**. With it Off, Unbound still creates CF / Damper / Triangle and enters the race FFB path, but every streamed magnitude stays **0** — only the centering Spring updates. That looks like “emulator/base not forwarding rumble” when the game simply never sent it. Fanatec vs Simucube captures matched once Vibration was on.
 
-| Type | Handles | Notes |
-|------|---------|--------|
-| **ConstantForce** | 1 | mag=5000 at download |
-| **Sine** | 2, 6 | rumble; handle 6 mag=10000 |
-| **Damper** | 3 | coeff=0 at download |
-| **Spring** | 4, 5 | centering; handle 5 coeff=10000 |
+Unbound streams these DirectInput OEM types (all must stay in the mix — do not mute/disable any):
 
-Unbound is not spring+rumble only — it also allocates ConstantForce and Damper. Universal native mixing of all DI types is the correct approach.
+| Type | Role |
+|------|------|
+| **ConstantForce** | Road / steering forces (mag often 0 when idle, then signed updates) |
+| **Spring** | Arcade return-to-center (static ~10000 + dynamic slot) |
+| **Damper** | Damping while driving (often coeff ~2500) |
+| **Sine** | Rumble / impacts |
+| **Triangle** | Continuous surface / vibration stream |
+| **Square** | Impacts / collisions |
+
+Universal native mixing of **all** DI effect types is required. Hardware `DIPROP_AUTOCENTER` must not be toggled during gameplay (it fights the OEM mix on Fanatec); use FFB debug **Center** only for a manual return-to-center test.
 
 ## Related
 

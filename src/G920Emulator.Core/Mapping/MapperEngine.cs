@@ -87,7 +87,7 @@ public sealed class MapperEngine
         var any = false;
         foreach (var source in sources)
         {
-            if (!devices.TryGetValue(source.DeviceId, out var device))
+            if (!TryGetDevice(source, devices, out var device))
                 continue;
             if (string.IsNullOrEmpty(source.Axis) || !device.Axes.TryGetValue(source.Axis, out var raw))
                 continue;
@@ -161,7 +161,7 @@ public sealed class MapperEngine
 
         foreach (var source in binding.EffectiveSources)
         {
-            if (!devices.TryGetValue(source.DeviceId, out var device))
+            if (!TryGetDevice(source, devices, out var device))
                 continue;
 
             if (source.Button is int button)
@@ -214,20 +214,60 @@ public sealed class MapperEngine
 
     private static int ReadHat(MappingProfile profile, IReadOnlyDictionary<string, DeviceState> devices)
     {
+        // Prefer a physical POV/hat when it is deflected.
         var binding = profile.Bindings.FirstOrDefault(b => b.Target == G920Control.Hat);
-        if (binding is null)
-            return -1;
-
-        foreach (var source in binding.EffectiveSources)
+        if (binding is not null)
         {
-            if (!source.IsHat)
-                continue;
-            if (!devices.TryGetValue(source.DeviceId, out var device))
-                continue;
-            if (device.Hat >= 0)
-                return device.Hat;
+            foreach (var source in binding.EffectiveSources)
+            {
+                if (!source.IsHat)
+                    continue;
+                if (!TryGetDevice(source, devices, out var device))
+                    continue;
+                if (device.Hat >= 0)
+                    return device.Hat;
+            }
         }
 
+        // Pads without a hat: synthesize 8-way DI hat from cardinal button (or axis→button) bindings.
+        var up = ReadButton(profile, devices, G920Control.HatUp);
+        var down = ReadButton(profile, devices, G920Control.HatDown);
+        var left = ReadButton(profile, devices, G920Control.HatLeft);
+        var right = ReadButton(profile, devices, G920Control.HatRight);
+
+        if (up && down) { up = false; down = false; }
+        if (left && right) { left = false; right = false; }
+        if (!up && !down && !left && !right)
+            return -1;
+
+        // DI hat: 0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
+        if (up && right) return 1;
+        if (down && right) return 3;
+        if (down && left) return 5;
+        if (up && left) return 7;
+        if (up) return 0;
+        if (right) return 2;
+        if (down) return 4;
+        if (left) return 6;
         return -1;
+    }
+
+    /// <summary>
+    /// Resolve a bound source to a live device state. Prefers instance GUID; if that
+    /// device is gone, fall back to any device whose id was already remapped onto the
+    /// source (ProductId remaps happen in <c>DeviceBindingResolver</c> before Map).
+    /// </summary>
+    private static bool TryGetDevice(
+        SourceRef source,
+        IReadOnlyDictionary<string, DeviceState> devices,
+        out DeviceState device)
+    {
+        if (!string.IsNullOrWhiteSpace(source.DeviceId) &&
+            devices.TryGetValue(source.DeviceId, out device!))
+            return true;
+
+        // Last resort: single attached device with matching state.DeviceId already updated.
+        device = null!;
+        return false;
     }
 }

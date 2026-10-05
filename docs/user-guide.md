@@ -22,8 +22,8 @@ Approve UAC when prompted (WinUHid requires elevation to open the device).
 
 1. Open **Dependencies** (banner **Manage dependencies…** or **Fix dependencies…**).
 2. **Install WinUHid** → Recheck until installed/ready.
-3. Install HidHide if missing → **Configure HidHide** (whitelists this app, cloaks, hides pads/wheels; keeps virtual G920 visible).
-4. Create a profile name → **Save** (stored in the `profiles\` folder next to the exe).
+3. Install HidHide if missing → configure it yourself in **HidHide Client** (or optional **Configure HidHide** in Dependencies). The app does **not** change HidHide when you Start bridge.
+4. Create a profile name → **Save** (stored in `%AppData%\G920Emulator\profiles`, so updates do not wipe binds).
 
 Details and troubleshooting: [driver-install.md](driver-install.md).
 
@@ -42,7 +42,8 @@ Click a G920 control in **G920 bindings** to open the capture dialog.
 |-------------|---------|
 | Axis (Steering, Throttle, Brake, Clutch) | Move an axis → shown as `(axis)` |
 | Button | Press a button, or deflect an axis → `(axis→btn)` / `(axis→btn·center)` with threshold |
-| Hat | Move a POV hat |
+| Directional pad (hat) | Move a POV hat / D-pad |
+| D-pad Up / Down / Left / Right | Press a button (or axis→button) — for pads with no POV hat; diagonals work when two directions are held |
 
 Tips:
 
@@ -71,12 +72,19 @@ If reverse works in Heat but not Unbound (or the reverse), change this setting �
 
 ## Force feedback
 
-1. Select **FFB output device** (your physical base).
-2. Adjust **Gain** / **Invert FFB** if needed.
-3. **Start bridge** attaches FFB automatically.
-4. Optional: enable **FFB debug** for test pulses and OEM effect diagnostics.
+1. Select **FFB output device** (your physical base — not DualSense).
+2. Pick an **FFB profile** in the dropdown (default **Raw** = exact game mix, the only built-in). Use **Save As…** to make your own per-game presets.
+3. Adjust sliders as needed, then **Save** / **Save As…** / **Delete** on the button row under the profile name (FFB profiles are separate from input bindings):
+   - **Master** + **Invert FFB**
+   - **Effect gains** — Constant, Spring, Damper, Friction, Inertia, Periodic, Ramp (0% mutes that DI type)
+   - **Output feel** — Smoothing (ms), Peak soft, Soft start (all off on Raw)
+   - **Torque shaping** — Deadband, Slew, Spike cap, DI epsilon (all off on Raw; optional ShapeGameTorque path)
+   - **Centering** — **Force center spring** checkbox plus Strength / Range / Deadzone, for games that never center the wheel (off on Raw)
+   - Hover any FFB row (label, slider or value) for a tooltip explaining what it does and what 0% / off means.
+4. **Start bridge** attaches FFB automatically.
+5. Optional: enable **FFB debug** for test pulses and live OEM counters. Use status-bar **Debug** when you need file logs / **Export log…**.
 
-See [force-feedback.md](force-feedback.md).
+Slider ranges and probing tips: [force-feedback.md](force-feedback.md).
 
 ## Start bridge
 
@@ -87,21 +95,40 @@ See [force-feedback.md](force-feedback.md).
 
 You can change bindings (and tweak deadzone/invert) while the bridge is running; they take effect immediately. Restart the bridge only when you change something that attaches at Start (for example the **FFB output device**) or after driver/dependency changes.
 
+If **joy.cpl still lists the G920 but buttons stop updating** in-game, the virtual node can be orphaned or a physical pad may have changed instance id. The bridge re-enumerates input every ~1.5s, remaps by product id, and recreates the WinUHid device only after about 1 s of hard submit failures (recreating it drops the game's force feedback effects). `ERROR_NOT_READY` from WinUHid just means Windows hasn't asked for the next report yet; it is normal and not counted as a failure. Prefer **Stop → Start** if the status bar shows a recover failure.
+
+If the **app itself freezes** while alt-tabbing or dragging FFB sliders, use a build that keeps DirectInput work off the UI thread (device refresh, FFB reattach, and FFB debug no longer poll the exclusive wheel on the UI). Stop → Start recovers a stuck session.
+
 Stop ends the virtual device and FFB apply loop.
 
 ## Profiles
 
-Saved profiles live in the **`profiles\`** folder next to `G920Emulator.exe` (same place as the shipped `default.json`). Settings are stored as `settings.json` beside the exe.
+Input bindings and force-feedback presets are stored **separately**, both outside the install folder so updates never overwrite them:
 
-If that folder cannot be written (uncommon), the app uses `%AppData%\G920Emulator\profiles` instead and will copy older AppData profiles into the local folder when possible.
+```
+%AppData%\G920Emulator\profiles\Default.json        (input bindings — Save / Save As)
+%AppData%\G920Emulator\ffb-profiles\Raw.json        (exact game mix — cannot delete)
+%AppData%\G920Emulator\settings.json
+```
+
+There is **no** `profiles\` or `ffb-profiles\` directory next to `G920Emulator.exe` in the zip. On first run the app creates AppData, seeds an empty **Default** input profile, and seeds the built-in **Raw** FFB profile. Older installs that kept JSON next to the exe are migrated into AppData once (existing AppData files are never overwritten).
+
+Each input profile links to an FFB profile name. Saving an input profile also saves the linked FFB preset’s current master / effect gains / feel / torque shaping.
+
+Bindings store both the DirectInput instance GUID and a stable **product** GUID. If Windows reassigns the instance id after a replug, Refresh devices remaps the profile to the same hardware when possible.
+
+For USB-stick installs, create an empty `portable.txt` beside the exe to keep saves next to the app instead (created at runtime; not shipped).
 
 | Action | Behavior |
 |--------|----------|
-| Save | Write current profile under `profiles\` next to the exe |
-| Save As… | New name in the same folder |
-| Delete | Remove that profile JSON |
-| Export / Import | JSON file exchange (Import also saves a copy under `profiles\`) |
-| Saved dropdown | Switch among profiles in that folder |
+| Save (input) | Write bindings under `profiles\` and quiet-save the linked FFB profile |
+| Save As… (input) | New input profile name in `profiles\` (also quiet-saves linked FFB) |
+| Delete (input) | Remove that input profile JSON |
+| FFB Save / Save As… | Write master / effect gains / feel / torque shaping under `ffb-profiles\` (Raw cannot be deleted) |
+| Export / Import | JSON file exchange for input profiles (Import also saves a copy under that folder) |
+| Saved dropdowns | Switch among input or FFB profiles in their folders |
+
+The status bar shows the active profiles folder after **Refresh** devices.
 
 ## Logitech G HUB
 
@@ -113,17 +140,28 @@ If Heat shows a **controller / D-pad** layout or ghost presses:
 
 1. Confirm the status line says the virtual G920 is active (not a Col01 warning).
 2. On Start, the app strips Windows’ `hidgamepad` filter from the **virtual G920 only** (DualSense keeps it).
-3. Steam → Heat → Properties → Controller → **Disable Steam Input** (Steam can inject DualSense into the game even when HidHide cloaks it for DirectInput).
+3. Steam → Heat / Unbound → Properties → Controller → **Disable Steam Input** (Steam can inject pads and also open the virtual G920 for FFB; OEM torque is accepted only from the game process, so Steam Input must be off for walls/rumble).
 4. Fully quit Heat, keep the bridge running, launch Heat again.
 5. Use **Dependencies → Repair G HUB leftovers** if OEM still points at Logitech.
 
 ## Getting help / diagnostics
 
-1. Reproduce the issue (Install WinUHid, Start bridge, launch the game, etc.).
-2. Open **About** (bottom-right) → **Export diagnostics…**
-3. Save the zip, then email it to **obert@stachenscale.com** with a short description (wheel, game, what failed).
+1. Click **Debug** (status bar, bottom-right) — this turns on OEM / HID++ file logging.
+2. Reproduce the issue (Start bridge, launch the game, hit a wall, etc.).
+3. Click **Stop debug**, then **Export log…**, save the zip, and attach it to a [GitHub issue](https://github.com/camborambo/G920Emulator/issues) with a short description (wheel, game, what failed).
 
-The zip includes a summary (version, OS, dependencies), temp logs when present, and your profile JSON.
+The zip includes:
+
+- `summary.txt` — machine name, deps, running wheel/SimHub/Steam processes, `g920ffb.dll` stamp, live bridge/FFB attach
+- `devices.txt` — every DirectInput game device (including virtual G920 and FFB flag)
+- `ffb-snapshot.txt` — OEM shared-memory mix + active gains at export time
+- `hidhide.txt` — cloak / app whitelist / hidden devices via HidHideCLI
+- `oem-registry.txt` — G920 OEMForceFeedback CLSID path
+- `game-ffb-analysis.txt` — Unbound race signature / Vibration hint from the OEM log
+- `logs\g920ffb-effects.log` — game OEM calls (`SESSION` / `CALL` / `EFFECT` / `MIX`)
+- input `profiles\` and `ffb-profiles\`
+
+Both **Fanatec** and **Simucube** are validated FFB targets. For comparisons: **Debug** → race briefly with wall hits → **Stop debug** → **Export log…** on each PC with the same build.
 
 ## Validation checklist
 

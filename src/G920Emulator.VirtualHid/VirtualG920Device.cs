@@ -10,12 +10,20 @@ namespace G920Emulator.VirtualHid;
 /// </summary>
 public sealed class VirtualG920Device : IVirtualG920Device
 {
+    /// <summary>
+    /// When true, each host HID++ write is appended to %TEMP%\g920-hidpp-ingress.log.
+    /// Off by default — enabled while the app status-bar Debug session is active.
+    /// </summary>
+    public static bool LogHostIngress { get; set; }
+
     // Include REV so COL01 is HID\VID_046D&PID_C262&REV_9601&Col01 — that does NOT match
     // G HUB logi_joy_hid.inf (exact HID\…&Col01). The Logitech filter as function driver
     // swallows HID++ FFB and never forwards WriteReport to VHF (writes stay 0).
     // DirectInput still keys OEMForceFeedback off VID/PID from the HID descriptor.
     private static readonly string HardwareIdsMultiSz =
         $"HID\\VID_046D&PID_C262&REV_{G920HidDescriptor.VersionNumber:X4}\0\0";
+
+    private const int ErrorNotReady = 21;
 
     private readonly object _gate = new();
     private IntPtr _device = IntPtr.Zero;
@@ -34,6 +42,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
     private bool _previewMode;
     private bool _running;
     private bool _disposed;
+    private Task? _nativeTeardown;
     private int _hostWriteCount;
     private byte _lastHostReportId;
     private string _lastHostWriteHex = "";
@@ -46,6 +55,9 @@ public sealed class VirtualG920Device : IVirtualG920Device
 
     public float SampleFfbTorque(float steeringCentered) =>
         _hidppFfb.ComputeTorque(steeringCentered);
+
+    public void SetFfbEffectGains(float constant, float spring, float damper, float friction, float inertia, float periodic) =>
+        _hidppFfb.SetEffectGains(constant, spring, damper, friction, inertia, periodic);
 
     public VirtualFfbIngressStats GetFfbIngressStats()
     {
@@ -73,6 +85,10 @@ public sealed class VirtualG920Device : IVirtualG920Device
     public bool Start(Func<byte[]> latestReportProvider, Action<FfbCommand>? onFfb = null)
     {
         Stop();
+        // If a previous Stop abandoned a slow WinUHidStopDevice, wait briefly so we
+        // do not CreateDevice while the old instance is still tearing down.
+        try { _nativeTeardown?.Wait(2000); } catch { /* ignore */ }
+        _nativeTeardown = null;
         _reportProvider = latestReportProvider;
         _onFfb = onFfb;
         _hidppFfb.Reset();
@@ -139,9 +155,22 @@ public sealed class VirtualG920Device : IVirtualG920Device
             _device = WinUHidNative.WinUHidCreateDevice(ref config);
             if (_device == IntPtr.Zero)
             {
-                LastError = $"WinUHidCreateDevice failed ({Marshal.GetLastWin32Error()}). Is the driver installed?";
-                FreePins();
-                return false;
+                // Leftover Disconnected VHF/Col01 from a previous Stop/crash often keeps
+                // InstanceID "G920Emulator" reserved — purge orphans and retry once.
+                var firstErr = Marshal.GetLastWin32Error();
+                _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes();
+                Thread.Sleep(250);
+                _device = WinUHidNative.WinUHidCreateDevice(ref config);
+                if (_device == IntPtr.Zero)
+                {
+                    LastError =
+                        $"WinUHidCreateDevice failed (err={Marshal.GetLastWin32Error()}, first={firstErr}). " +
+                        "Quit the game if it still has the old G920 open, then Start again. " +
+                        "Is the WinUHid driver installed?";
+                    WriteStartFailure(LastError);
+                    FreePins();
+                    return false;
+                }
             }
 
             _callback = OnEvent;
@@ -211,20 +240,41 @@ public sealed class VirtualG920Device : IVirtualG920Device
         catch (Exception ex)
         {
             LastError = ex.Message;
+            WriteStartFailure(LastError);
             DestroyNative();
             return false;
         }
     }
 
-    public void SubmitReport(byte[] report)
+    public bool SubmitReport(byte[] report)
     {
         lock (_gate)
         {
             _lastReport = report;
-            if (!_running || _previewMode || _device == IntPtr.Zero)
-                return;
-            WinUHidNative.WinUHidSubmitInputReport(_device, report, (uint)report.Length);
+            if (!_running || _previewMode)
+                return true;
+            if (_device == IntPtr.Zero)
+                return false;
+
+            if (WinUHidNative.WinUHidSubmitInputReport(_device, report, (uint)report.Length))
+                return true;
+
+            // In ReadReport mode WinUHid returns ERROR_NOT_READY when no HID read is pending
+            // (throttle window / host reading slower than us). _lastReport is served by the
+            // ReadReport callback instead, so this is not a failure.
+            var err = Marshal.GetLastWin32Error();
+            if (err == ErrorNotReady)
+                return true;
+
+            LastError = $"WinUHidSubmitInputReport failed ({err}).";
+            return false;
         }
+    }
+
+    public bool TryRecover(Func<byte[]> latestReportProvider, Action<FfbCommand>? onFfb = null)
+    {
+        // Full Start() already tears down and recreates; reuse it so Col01 comes back live.
+        return Start(latestReportProvider, onFfb);
     }
 
     public void Stop()
@@ -303,6 +353,8 @@ public sealed class VirtualG920Device : IVirtualG920Device
         _lastHostReportId = reportId;
         var n = Math.Min(data.Length, 16);
         _lastHostWriteHex = $"{reportId:X2}: {Convert.ToHexString(data.AsSpan(0, n))}";
+        if (!LogHostIngress)
+            return;
         try
         {
             var line = $"{DateTime.Now:HH:mm:ss.fff} write#{_hostWriteCount} id={reportId:X2} len={data.Length} {_lastHostWriteHex}{Environment.NewLine}";
@@ -354,20 +406,67 @@ public sealed class VirtualG920Device : IVirtualG920Device
 
     private void DestroyNative()
     {
-        // Synchronous teardown (last-known-good). Abandoning WinUHidStopDevice left
-        // Disconnected Col01 orphans — Heat then falls back to DualSense / pad layout.
-        // OnEvent completes reads while !_running so StopDevice should return.
+        // OnEvent completes reads while !_running so StopDevice should return. If the
+        // game still holds the device open, WinUHidStopDevice can block for a long time
+        // — never wait forever on the Stop-bridge path (UI shows "Stopping…" forever).
         if (_device != IntPtr.Zero)
         {
-            try { WinUHidNative.WinUHidStopDevice(_device); } catch { /* ignore */ }
-            try { WinUHidNative.WinUHidDestroyDevice(_device); } catch { /* ignore */ }
+            var device = _device;
             _device = IntPtr.Zero;
+            var callbackHandle = _callbackHandle;
+            _callbackHandle = default;
+            var callback = _callback;
+            _callback = null;
+            // Capture pin handles; free them only after DestroyDevice (see FreePins).
+            var descriptor = _descriptorHandle;
+            var hardwareIds = _hardwareIdsHandle;
+            var instanceId = _instanceIdHandle;
+            _descriptorHandle = default;
+            _hardwareIdsHandle = default;
+            _instanceIdHandle = default;
+
+            var teardown = Task.Run(() =>
+            {
+                try { WinUHidNative.WinUHidStopDevice(device); } catch { /* ignore */ }
+                try { WinUHidNative.WinUHidDestroyDevice(device); } catch { /* ignore */ }
+                try
+                {
+                    if (callbackHandle.IsAllocated)
+                        callbackHandle.Free();
+                }
+                catch { /* ignore */ }
+                GC.KeepAlive(callback);
+                try { if (descriptor.IsAllocated) descriptor.Free(); } catch { /* ignore */ }
+                try { if (hardwareIds.IsAllocated) hardwareIds.Free(); } catch { /* ignore */ }
+                try { if (instanceId.IsAllocated) instanceId.Free(); } catch { /* ignore */ }
+                // Orphan cleanup can run pnputil for seconds — always after Destroy.
+                try { _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes(); } catch { /* ignore */ }
+            });
+            _nativeTeardown = teardown;
+
+            if (!teardown.Wait(1500))
+            {
+                // Stop returns; native teardown + Col01 cleanup finish in the background.
+                _ = teardown.ContinueWith(_ => { /* observe */ }, TaskScheduler.Default);
+            }
+
+            return;
         }
 
         if (_callbackHandle.IsAllocated)
             _callbackHandle.Free();
         FreePins();
         _callback = null;
+    }
+
+    private static void WriteStartFailure(string? message)
+    {
+        try
+        {
+            var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} START_FAIL {message}{Environment.NewLine}";
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "g920emulator-start.log"), line);
+        }
+        catch { /* ignore */ }
     }
 
     private void FreePins()

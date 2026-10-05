@@ -202,13 +202,16 @@ public static class GHubConflictRepair
                      System.Text.RegularExpressions.RegexOptions.IgnoreCase))
         {
             var id = m.Groups[1].Value.Trim();
-            // Only remove when not currently Started — avoid killing a live bridge device.
             var blockMatch = System.Text.RegularExpressions.Regex.Match(
                 output,
                 System.Text.RegularExpressions.Regex.Escape(id) + @".{0,400}?Status:\s*(\w+)",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
             var status = blockMatch.Success ? blockMatch.Groups[1].Value : "";
-            if (status.Equals("Started", StringComparison.OrdinalIgnoreCase))
+
+            // Only remove clearly dead nodes. Never touch Started / OK — some Windows
+            // builds report live WinUHid children as OK, and deleting those makes the
+            // next WinUHidCreateDevice fail (InstanceID G920Emulator still reserved).
+            if (!IsRemovableOrphanStatus(status))
                 continue;
 
             RunPnPUtil($"/remove-device \"{id}\"");
@@ -219,6 +222,12 @@ public static class GHubConflictRepair
             ? "No orphan virtual C262 nodes to remove."
             : $"Removed {removed} orphan virtual C262 node(s).";
     }
+
+    private static bool IsRemovableOrphanStatus(string status) =>
+        status.Equals("Disconnected", StringComparison.OrdinalIgnoreCase) ||
+        status.Equals("Error", StringComparison.OrdinalIgnoreCase) ||
+        status.Equals("Unknown", StringComparison.OrdinalIgnoreCase) ||
+        status.Equals("Disabled", StringComparison.OrdinalIgnoreCase);
 
     private static List<string> FindPublishedDriverNames(params string[] originalNameContains)
     {

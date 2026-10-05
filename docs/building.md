@@ -35,9 +35,10 @@ This:
 
 1. Builds `native\g920ffb\bin\g920ffb.dll` via `tools\build-g920ffb.ps1`
 2. `dotnet publish`s the app self-contained for `win-x64` into `dist\G920Emulator\`
-3. Copies WinUHid package files and `g920ffb.dll` beside the EXE
-4. Creates `dist\G920Emulator-win-x64.zip` with a single top-level folder:
-   `G920Emulator-win-x64.zip` → `G920Emulator\` → app files
+3. Copies WinUHid package files, Logitech SDK runtimes, and `g920ffb.dll` beside the EXE
+4. Removes any leftover `profiles\`, `ffb-profiles\`, and `settings.json` from `dist\` (user data is AppData-only at runtime)
+5. Creates `dist\G920Emulator-win-x64.zip` with a single top-level folder:
+   `G920Emulator-win-x64.zip` → `G920Emulator\` → app files (no user profiles)
 
 Run:
 

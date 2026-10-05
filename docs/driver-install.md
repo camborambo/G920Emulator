@@ -40,15 +40,15 @@ The bundled driver is **test-signed**. If `bcdedit` reports that the value is pr
 
 Games may read both your real pad/wheel and the virtual G920. HidHide is **required** so the game only sees the emulated G920.
 
-1. In G920 Emulator open **Dependencies…**
-2. If needed, click **Download HidHide…**, install the MSI, reboot if prompted, then **Recheck**
-3. Click **Configure HidHide** (one button). This only **adds** what the app needs — it does not remove your existing HidHide apps or hidden devices:
-   - Turns **inverse off** (normal whitelist mode)
-   - Enables **cloak**
-   - Whitelists `G920Emulator.exe`
-   - Hides newly detected pads **and wheel bases** so games do not get double input (keeps the virtual G920 visible; skips devices already hidden). The emulator stays whitelisted so it can still read them for binding/FFB.
-4. Accept UAC if prompted, and relaunch if the app asks
-5. Optional: open **HidHide Client** to hide extra devices or review the list
+**G920 Emulator does not change HidHide on launch or Start bridge.** You configure it.
+
+1. Install HidHide ([releases](https://github.com/nefarius/HidHide/releases/latest)), reboot if prompted
+2. Open **HidHide Client** (or Dependencies → **Open HidHide Client** / optional **Configure HidHide** helper) and set up what you want, typically:
+   - **Inverse** off (normal whitelist mode)
+   - **Cloak** on
+   - Whitelist `G920Emulator.exe` so this app can still see your pad for binding/FFB
+   - Hide your physical pad / wheel from games; keep the virtual G920 visible
+3. Recheck in Dependencies if you use that window
 
 ## Logitech Steering Wheel SDK (required)
 
@@ -68,7 +68,7 @@ G HUB's installer rewrites the DirectInput OEM entry for `VID_046D` / `PID_C262`
 
 1. Quit G HUB completely (if present)
 2. Dependencies → **Repair G HUB leftovers**
-3. **Configure HidHide** (DualSense hidden; virtual G920 visible)
+3. Check **HidHide** yourself if games still see your pad (app does not change it automatically)
 4. **Start bridge**, confirm device name looks like a G920 / wheel in `joy.cpl`, then launch the game
 5. Reboot once if Device Manager still shows Logitech-bound G920 nodes
 
@@ -78,7 +78,7 @@ You do not need G HUB for this app.
 
 - Select your physical FFB wheel under **Force feedback → FFB output device**
 - Games drive FFB through DirectInput OEM into **`g920ffb.dll`**, which publishes torque over shared memory; the bridge applies it to your base (not Logitech HID++ WriteReports)
-- **Start bridge** registers the OEM driver and attaches FFB; use **FFB debug** only when testing or probing effect types
+- **Start bridge** registers the OEM driver and attaches FFB; use status-bar **Debug** to capture OEM logs, and **FFB debug** for on-screen test controls
 - Full detail: [force-feedback.md](force-feedback.md)
 - Exclusive cooperative level may require running G920 Emulator elevated on some setups
 

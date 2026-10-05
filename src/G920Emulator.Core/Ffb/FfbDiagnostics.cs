@@ -16,6 +16,7 @@ public sealed class FfbDiagnostics
     public string? LastError { get; init; }
     public string Status { get; init; } = "";
     public bool TestOverrideActive { get; init; }
+    public bool TestAutoCenterActive { get; init; }
     public int IncomingUpdateCount { get; init; }
     public int ApplyCount { get; init; }
 
@@ -42,4 +43,10 @@ public sealed class FfbDiagnostics
     public string OemFfbTypesSeen { get; set; } = "";
     public string OemFfbTypesPlaying { get; set; } = "";
     public uint OemFfbDownloadCount { get; set; }
+
+    /// <summary>Physical FFB rim angle fed into spring/damper (-1..1).</summary>
+    public float FfbRimSteer { get; set; }
+
+    /// <summary>Hardware DIPROP_AUTOCENTER currently requested on the FFB base.</summary>
+    public bool? HardwareAutoCenter { get; set; }
 }

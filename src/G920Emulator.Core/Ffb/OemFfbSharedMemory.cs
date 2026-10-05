@@ -1,17 +1,21 @@
+using System.Diagnostics;
 using System.IO.MemoryMappedFiles;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace G920Emulator.Core.Ffb;
 
 /// <summary>
 /// Bidirectional shared memory with native <c>g920ffb.dll</c>.
+/// Game OEM mix owns <see cref="Snapshot.Torque"/>; Steam/overlay may layer
+/// <see cref="Snapshot.AuxTorque"/> so every effect on the virtual G920 reaches the base.
 /// </summary>
 public static class OemFfbSharedMemory
 {
-    public const string MapName = "Local\\G920Emulator.FfbTorque";
+    // v6: AuxTorque layer; isolated map name from v5.
+    public const string MapName = "Local\\G920Emulator.FfbTorque.v6";
     public const uint Magic = 0x46463947; // 'G9FF'
-    public const uint Version = 3;
+    public const uint Version = 6;
+    public const int TypeGainCount = 16;
 
     private static readonly string[] TypeNames =
     [
@@ -24,16 +28,50 @@ public static class OemFfbSharedMemory
     private static readonly object Gate = new();
     private static float _lastSteering;
     private static long _lastSteerTick;
+    private static float _steeringVel;
+
+    /// <summary>Rim travel (centered units, -1..1 span = 2) per second that maps to full DI velocity.</summary>
+    private const double FullScaleVelocity = 3.0;
+    private const double VelocitySmoothingSec = 0.015;
 
     public readonly record struct Snapshot(
         float Torque,
+        float AuxTorque,
         uint Sequence,
         bool Playing,
+        bool AuxPlaying,
         uint TypesSeen,
         uint TypesPlaying,
+        uint AuxTypesPlaying,
         uint DownloadCount,
         uint LastEffectType,
-        uint LastFlags);
+        uint LastFlags,
+        ulong TickMs,
+        ulong AuxTickMs)
+    {
+        /// <summary>Combined torque for the physical base (game + aux rumble layer).</summary>
+        public float CombinedTorque
+        {
+            get
+            {
+                var t = Torque;
+                if (AuxPlaying && !IsAuxStale())
+                    t += AuxTorque;
+                return Math.Clamp(t, -1f, 1f);
+            }
+        }
+
+        /// <summary>Types from game and fresh aux layer.</summary>
+        public uint CombinedTypesPlaying =>
+            TypesPlaying | (AuxPlaying && !IsAuxStale() ? AuxTypesPlaying : 0u);
+
+        /// <summary>The driver thread stopped publishing (game exited or crashed).</summary>
+        public bool IsStale(long maxAgeMs = 250) =>
+            Environment.TickCount64 - (long)TickMs > maxAgeMs && IsAuxStale(maxAgeMs);
+
+        public bool IsAuxStale(long maxAgeMs = 250) =>
+            AuxTickMs == 0 || Environment.TickCount64 - (long)AuxTickMs > maxAgeMs;
+    }
 
     public static bool TryRead(out Snapshot snap, out string? error)
     {
@@ -57,13 +95,18 @@ public static class OemFfbSharedMemory
 
             snap = new Snapshot(
                 Torque: _view.ReadSingle(Offset.Torque),
+                AuxTorque: _view.ReadSingle(Offset.AuxTorque),
                 Sequence: _view.ReadUInt32(Offset.Sequence),
                 Playing: _view.ReadUInt32(Offset.Playing) != 0,
+                AuxPlaying: _view.ReadUInt32(Offset.AuxPlaying) != 0,
                 TypesSeen: _view.ReadUInt32(Offset.TypesSeen),
                 TypesPlaying: _view.ReadUInt32(Offset.TypesPlaying),
+                AuxTypesPlaying: _view.ReadUInt32(Offset.AuxTypesPlaying),
                 DownloadCount: _view.ReadUInt32(Offset.DownloadCount),
                 LastEffectType: _view.ReadUInt32(Offset.LastEffectType),
-                LastFlags: _view.ReadUInt32(Offset.LastFlags));
+                LastFlags: _view.ReadUInt32(Offset.LastFlags),
+                TickMs: _view.ReadUInt64(Offset.TickMs),
+                AuxTickMs: _view.ReadUInt64(Offset.AuxTickMs));
             return true;
         }
         catch (FileNotFoundException)
@@ -91,9 +134,9 @@ public static class OemFfbSharedMemory
             return false;
         }
 
-        torque = snap.Torque;
+        torque = snap.CombinedTorque;
         sequence = snap.Sequence;
-        playing = snap.Playing;
+        playing = snap.Playing || (snap.AuxPlaying && !snap.IsAuxStale());
         return true;
     }
 
@@ -105,12 +148,28 @@ public static class OemFfbSharedMemory
             if (_view is null) return;
 
             steeringCentered = Math.Clamp(steeringCentered, -1f, 1f);
-            var now = Environment.TickCount64;
-            var dtMs = Math.Max(1, now - _lastSteerTick);
-            var vel = Math.Clamp((steeringCentered - _lastSteering) / dtMs, -1f, 1f);
+            var now = Stopwatch.GetTimestamp();
+            var dtSec = (now - _lastSteerTick) / (double)Stopwatch.Frequency;
+
+            if (dtSec > 0.1)
+            {
+                _steeringVel = 0f;
+            }
+            else if (dtSec >= 0.0005)
+            {
+                // DI velocity metric: ±1 (±10000) = FullScaleVelocity rim units per second.
+                var raw = Math.Clamp((float)((steeringCentered - _lastSteering) / dtSec / FullScaleVelocity), -1f, 1f);
+                var alpha = (float)(1.0 - Math.Exp(-dtSec / VelocitySmoothingSec));
+                _steeringVel += (raw - _steeringVel) * alpha;
+            }
+            else
+            {
+                _view.Write(Offset.Steering, steeringCentered);
+                return;
+            }
 
             _view.Write(Offset.Steering, steeringCentered);
-            _view.Write(Offset.SteeringVel, vel);
+            _view.Write(Offset.SteeringVel, _steeringVel);
 
             _lastSteering = steeringCentered;
             _lastSteerTick = now;
@@ -118,6 +177,28 @@ public static class OemFfbSharedMemory
         catch (FileNotFoundException) { Close(); }
         catch { Close(); }
     }
+
+    /// <summary>
+    /// Writes per DI effect-type gains (UINT16 0..20000, 10000 = 100%).
+    /// Applied by <c>g920ffb.dll</c> before effects are mixed.
+    /// </summary>
+    public static void WriteTypeGains(ReadOnlySpan<ushort> gains)
+    {
+        try
+        {
+            EnsureOpen();
+            if (_view is null) return;
+
+            var count = Math.Min(TypeGainCount, gains.Length);
+            for (var i = 0; i < count; i++)
+                _view.Write(Offset.TypeGain + i * sizeof(ushort), gains[i]);
+        }
+        catch (FileNotFoundException) { Close(); }
+        catch { Close(); }
+    }
+
+    public static void WriteTypeGains(FfbEffectGains gains) =>
+        WriteTypeGains(gains.ToSharedMemoryGains());
 
     public static string FormatTypeMask(uint mask)
     {
@@ -145,8 +226,9 @@ public static class OemFfbSharedMemory
         {
             if (_view is not null) return;
             _mmf = MemoryMappedFile.OpenExisting(MapName, MemoryMappedFileRights.ReadWrite);
-            _view = _mmf.CreateViewAccessor(0, Marshal.SizeOf<G920FfbSharedState>(), MemoryMappedFileAccess.ReadWrite);
-            _lastSteerTick = Environment.TickCount64;
+            _view = _mmf.CreateViewAccessor(0, Offset.Size, MemoryMappedFileAccess.ReadWrite);
+            _lastSteerTick = Stopwatch.GetTimestamp();
+            _steeringVel = 0f;
         }
     }
 
@@ -176,23 +258,11 @@ public static class OemFfbSharedMemory
         public const int DownloadCount = 44;
         public const int LastEffectType = 48;
         public const int LastFlags = 52;
-    }
-
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    private struct G920FfbSharedState
-    {
-        public uint Magic;
-        public uint Version;
-        public uint Sequence;
-        public float Torque;
-        public uint Playing;
-        public ulong TickMs;
-        public float Steering;
-        public float SteeringVel;
-        public uint TypesSeen;
-        public uint TypesPlaying;
-        public uint DownloadCount;
-        public uint LastEffectType;
-        public uint LastFlags;
+        public const int TypeGain = 56; // UINT16[16] → ends 88
+        public const int AuxTorque = 88;
+        public const int AuxPlaying = 92;
+        public const int AuxTypesPlaying = 96;
+        public const int AuxTickMs = 100;
+        public const int Size = 108;
     }
 }

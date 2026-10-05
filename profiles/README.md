@@ -1,12 +1,14 @@
-# Profiles
+# Profiles (repo only — not shipped)
 
-Saved mappings live in this folder (next to `G920Emulator.exe`).
+This folder is kept in the repo for reference. **It is not copied into `dist\`, the release zip, or the install folder.**
 
-| File | Role |
-|------|------|
-| `default.json` | Starter profile shipped with the app; Save updates it (or create new names) |
-| `*.json` you save | Your profiles from **Save** / **Save As** / **Import** |
+At runtime the app creates user data here:
 
-App settings (`settings.json`) sit one level up, next to the exe.
+```
+%AppData%\G920Emulator\profiles\
+%AppData%\G920Emulator\settings.json
+```
 
-If this folder is not writable (rare — e.g. Program Files without permission), the app falls back to `%AppData%\G920Emulator\profiles` and migrates older AppData saves here when it can.
+and seeds an empty **Default** profile if none exists. See the [user guide](../docs/user-guide.md#profiles) and [GitHub README](../README.md#profiles-where-your-binds-live).
+
+Optional: create `portable.txt` beside `G920Emulator.exe` to store profiles next to the exe instead (created on first run; still not shipped in the zip).

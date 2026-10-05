@@ -10,15 +10,16 @@ Update this page when you validate a new setup.
 |--------|------|--------|
 | DualSense (PS5) | Steering / buttons / axes source | Bound into virtual G920; no DualSense-side FFB |
 | Fanatec Podium Wheel Base DD2 | FFB output (+ can be used as DI input) | Constant-force apply via shared InputHub acquire |
+| Simucube | FFB output (+ can be used as DI input) | Validated with NFS Unbound (spring + race CF / Triangle / Damper). DI apply runs on a side thread so slower `SetParameters` does not stall input. |
 
-## Wheel bases expected to work (FFB output)
+## Wheel bases (FFB output)
 
-These use the same DirectInput constant-force path as the DD2. Listed as **designed for**, not yet logged as fully validated in this table:
+Same DirectInput constant-force path for all of these:
 
 | Device family | Status |
 |---------------|--------|
-| Fanatec (Podium / DD) | Tested (Podium Wheel Base DD2) |
-| Simucube | Designed for (DI FFConst-style updates) |
+| Fanatec (Podium / DD) | **Tested** (Podium Wheel Base DD2) |
+| Simucube | **Tested** (NFS Unbound) |
 | Simagic | Designed for |
 | Moza | Designed for |
 | Thrustmaster / Logitech / generic DI FFB | Designed for |
@@ -28,7 +29,7 @@ These use the same DirectInput constant-force path as the DD2. Listed as **desig
 | Game | Status | Input | FFB | Notes |
 |------|--------|-------|-----|--------|
 | Need for Speed Heat | **Tested** | Virtual G920 | OEM path used | Gears 1–6 = buttons 13–18. **Reverse: default button 19** (LGS / Driving Force Shifter). |
-| Need for Speed Unbound | **Tested** | Virtual G920 | OEM effects probed | ConstantForce, Spring, Sine, Damper. Gears 1–6 = 13–18. **Reverse: Bind Gear R → button 12**. Centering spring needs physical rim angle. |
+| Need for Speed Unbound | **Tested** | Virtual G920 | OEM path (multi-instance mixer + SHM v6) on Fanatec DD2 and Simucube | ConstantForce, Spring, Sine, Damper, Triangle. Gears 1–6 = 13–18. **Reverse: Bind Gear R → button 12**. Centering spring needs physical rim angle. **Controller Vibration must be On** (Accessibility → Controls) or race rumble magnitudes stay 0. |
 
 ### Gear R quick reference
 
@@ -54,6 +55,6 @@ When you test something new, note:
 1. Physical input device(s) and FFB base
 2. Game + whether the virtual G920 appeared
 3. Whether FFB moved the base
-4. Optional: enable **FFB debug** and record OEM effects seen, or attach `%TEMP%\g920ffb-effects.log`
+4. Optional: click **Debug**, reproduce, **Stop debug** → **Export log…** (or enable **FFB debug** for live counters)
 
 See [force-feedback.md](force-feedback.md) and [user-guide.md](user-guide.md).

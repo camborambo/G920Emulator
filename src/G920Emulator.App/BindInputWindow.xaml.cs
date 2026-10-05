@@ -13,6 +13,7 @@ public partial class BindInputWindow : Window
     private readonly Func<IReadOnlyDictionary<string, DeviceState>> _poll;
     private readonly Action _refreshDevices;
     private readonly Func<string?, string> _resolveName;
+    private readonly Func<string?, string?> _resolveProductId;
     private readonly DispatcherTimer _listenTimer;
     private readonly bool _wantsAxis;
     private readonly bool _wantsHat;
@@ -30,7 +31,8 @@ public partial class BindInputWindow : Window
         MappingProfile profile,
         Func<IReadOnlyDictionary<string, DeviceState>> poll,
         Action refreshDevices,
-        Func<string?, string> resolveName)
+        Func<string?, string> resolveName,
+        Func<string?, string?>? resolveProductId = null)
     {
         InitializeComponent();
         _target = target;
@@ -39,6 +41,7 @@ public partial class BindInputWindow : Window
         _poll = poll;
         _refreshDevices = refreshDevices;
         _resolveName = resolveName;
+        _resolveProductId = resolveProductId ?? (_ => null);
         _wantsAxis = G920ControlInfo.IsAxis(target);
         _wantsHat = target == G920Control.Hat;
         _wantsButton = !_wantsAxis && !_wantsHat;
@@ -58,7 +61,7 @@ public partial class BindInputWindow : Window
         HintText.Text = _wantsAxis
             ? "Move a stick, trigger, wheel, or pedal to add a source…"
             : _wantsHat
-                ? "Move a hat / D-pad to add a source…"
+                ? "Move a POV hat / D-pad to bind it. No hat on your pad? Use the D-pad Up/Down/Left/Right rows instead."
                 : "Press a button or move an axis to add a source (axis→button supported)…";
         UpdateListeningText();
         UpdateInvertLabel();
@@ -229,6 +232,8 @@ public partial class BindInputWindow : Window
 
     private void AcceptCapture(SourceRef source, float? restValue = null)
     {
+        source.ProductId ??= _resolveProductId(source.DeviceId);
+
         if (_sources.Any(s => SameSource(s.Source, source)))
         {
             _baseline = _poll().ToDictionary(kv => kv.Key, kv => CloneState(kv.Value));
@@ -337,6 +342,7 @@ public partial class BindInputWindow : Window
         return new SourceRef
         {
             DeviceId = source.DeviceId,
+            ProductId = source.ProductId,
             Axis = source.Axis,
             Button = source.Button,
             IsHat = source.IsHat,

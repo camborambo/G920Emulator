@@ -44,10 +44,16 @@ public:
 	DWORD StartTime;
 
 	LONG DirectionSign;
+	BOOL HasEnvelope;
+
+	// Per-handle log rate limiting (DownloadEffect stream lines).
+	DWORD LastLogTick;
+	LONG LastLoggedExtra;
+	DWORD LastReportedStatus;
 
 private:
-	VOID CalcEnvelope(ULONG Duration, ULONG CurrentPos, LONG* NormalRate, LONG* AttackLevel, LONG* FadeLevel);
-	VOID CalcForce(ULONG Duration, ULONG CurrentPos, LONG NormalRate, LONG AttackLevel, LONG FadeLevel,
-		LONG AxisPos, LONG AxisVel, LONG* NormalLevel);
+	// Duration 0 = infinite. CurrentPos = ms into the current iteration.
+	LONG ApplyEnvelope(LONG Magnitude, ULONG Duration, ULONG CurrentPos) const;
+	VOID CalcForce(ULONG Duration, ULONG CurrentPos, LONG AxisPos, LONG AxisVel, LONG* NormalLevel);
 	static LONG EvalCondition(const DICONDITION& Cond, LONG Metric);
 };

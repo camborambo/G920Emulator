@@ -54,6 +54,14 @@ public sealed class HidppFfbEmulator
     private int _playCount;
     private string _lastFn = "";
 
+    // Emulator per-type gains (0..2), mapped from DI-style profile gains.
+    private float _gainConstant = 1f;
+    private float _gainSpring = 1f;
+    private float _gainDamper = 1f;
+    private float _gainFriction = 1f;
+    private float _gainInertia = 1f;
+    private float _gainPeriodic = 1f;
+
     public float CurrentTorque
     {
         get { lock (_gate) return _currentTorque; }
@@ -71,6 +79,23 @@ public sealed class HidppFfbEmulator
                 _lastFn,
                 _slots.Count(s => s.InUse),
                 _slots.Count(s => s.InUse && s.Playing));
+        }
+    }
+
+    /// <summary>
+    /// Applies profile per-type gains (0..2). HID++ types are mapped to the closest DI groups.
+    /// </summary>
+    public void SetEffectGains(float constant, float spring, float damper, float friction, float inertia, float periodic)
+    {
+        lock (_gate)
+        {
+            _gainConstant = ClampGain(constant);
+            _gainSpring = ClampGain(spring);
+            _gainDamper = ClampGain(damper);
+            _gainFriction = ClampGain(friction);
+            _gainInertia = ClampGain(inertia);
+            _gainPeriodic = ClampGain(periodic);
+            RecomputeTorqueUnlocked();
         }
     }
 
@@ -408,7 +433,7 @@ public sealed class HidppFfbEmulator
 
             if (s.Type == EffectConstant)
             {
-                sum += s.Force / 32767f;
+                sum += (s.Force / 32767f) * _gainConstant;
                 continue;
             }
 
@@ -420,11 +445,18 @@ public sealed class HidppFfbEmulator
                 var coeff = error >= 0 ? s.RightCoeff : s.LeftCoeff;
                 // Damper/friction approx: oppose position (no velocity available here).
                 var scale = s.Type == EffectSpring ? 1.0f : 0.35f;
-                sum += -((coeff / 32767f) * error * scale);
+                var typeGain = s.Type switch
+                {
+                    EffectSpring => _gainSpring,
+                    EffectDamper => _gainDamper,
+                    EffectFriction => _gainFriction,
+                    _ => _gainInertia,
+                };
+                sum += -((coeff / 32767f) * error * scale) * typeGain;
             }
             else
             {
-                sum += (s.Force / 32767f) * 0.35f;
+                sum += (s.Force / 32767f) * 0.35f * _gainPeriodic;
             }
         }
 
@@ -445,6 +477,8 @@ public sealed class HidppFfbEmulator
             _pending11.Enqueue(response);
         }
     }
+
+    private static float ClampGain(float v) => Math.Clamp(v, 0f, 2f);
 
     private static byte[] BuildResponse(byte reportId, byte deviceIndex, byte featureIndex, byte funcSw, ReadOnlySpan<byte> parameters)
     {

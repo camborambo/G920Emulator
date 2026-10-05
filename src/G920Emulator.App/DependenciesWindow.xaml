@@ -110,7 +110,7 @@
           <WrapPanel Margin="0,14,0,-8">
             <Button Style="{StaticResource PrimaryWrapButton}" Click="ConfigureHidHide_Click"
                     Content="Configure HidHide"
-                    ToolTip="Adds what this app needs (whitelist, inverse off, cloak, hide pads/wheels). Keeps the virtual G920 visible. Does not remove your existing HidHide entries."/>
+                    ToolTip="Optional helper: whitelist this app, inverse off, cloak on, hide pads/wheels. Not run automatically — only when you click. Does not remove your existing HidHide entries. Or use Open HidHide Client."/>
             <Button Style="{StaticResource AccentWrapButton}" Content="Download HidHide…"
                     Click="DownloadHidHide_Click"/>
             <Button Style="{StaticResource WrapButton}" Content="Open HidHide Client" Click="OpenHidHideClient_Click"/>

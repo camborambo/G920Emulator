@@ -99,6 +99,24 @@ $oldDist = Join-Path $root "dist\Launch G920Emulator.bat"
 if (Test-Path $oldRoot) { Remove-Item $oldRoot -Force }
 if (Test-Path $oldDist) { Remove-Item $oldDist -Force }
 
+# Profiles are created at runtime in %AppData%\G920Emulator — never ship profiles\,
+# ffb-profiles\, or settings.json (publishing from a used dist\ used to bake personal
+# binds into the zip and overwrite users on "unzip over install" updates).
+$profilesOut = Join-Path $outDir "profiles"
+if (Test-Path $profilesOut) { Remove-Item $profilesOut -Recurse -Force }
+$ffbProfilesOut = Join-Path $outDir "ffb-profiles"
+if (Test-Path $ffbProfilesOut) { Remove-Item $ffbProfilesOut -Recurse -Force }
+Remove-Item (Join-Path $outDir "settings.json") -Force -ErrorAction SilentlyContinue
+Remove-Item (Join-Path $outDir "portable.txt") -Force -ErrorAction SilentlyContinue
+
+# Ship version notes next to the exe
+foreach ($doc in @("CHANGELOG.md", "README.md")) {
+    $srcDoc = Join-Path $root $doc
+    if (Test-Path $srcDoc) {
+        Copy-Item $srcDoc $outDir -Force
+    }
+}
+
 # Zip with a single top-level folder: G920Emulator-win-x64.zip → G920Emulator\...
 $zipPath = Join-Path $root "dist\G920Emulator-win-x64.zip"
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }

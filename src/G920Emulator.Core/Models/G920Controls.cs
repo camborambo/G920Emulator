@@ -8,6 +8,11 @@ public enum G920Control
     Brake,
     Clutch,
     Hat,
+    /// <summary>Button-sourced D-pad up (synthesized into virtual hat when no POV is bound/active).</summary>
+    HatUp,
+    HatDown,
+    HatLeft,
+    HatRight,
     ButtonA,
     ButtonB,
     ButtonX,
@@ -51,8 +56,18 @@ public static class G920ControlInfo
         G920Control.Gear6,
     ];
 
+    /// <summary>Cardinal D-pad bindings for pads without a POV hat.</summary>
+    public static readonly G920Control[] HatDirectionControls =
+    [
+        G920Control.HatUp,
+        G920Control.HatDown,
+        G920Control.HatLeft,
+        G920Control.HatRight,
+    ];
+
     public static readonly G920Control[] ButtonControls =
     [
+        ..HatDirectionControls,
         G920Control.ButtonA,
         G920Control.ButtonB,
         G920Control.ButtonX,
@@ -66,7 +81,7 @@ public static class G920ControlInfo
         ..GearControls,
     ];
 
-    /// <summary>Binding list order (axes, hat, face buttons, gears R→6).</summary>
+    /// <summary>Binding list order (axes, hat / D-pad directions, face buttons, gears R→6).</summary>
     public static readonly G920Control[] UiOrder =
     [
         G920Control.Steering,
@@ -74,6 +89,7 @@ public static class G920ControlInfo
         G920Control.Brake,
         G920Control.Clutch,
         G920Control.Hat,
+        ..HatDirectionControls,
         G920Control.ButtonA,
         G920Control.ButtonB,
         G920Control.ButtonX,
@@ -89,7 +105,9 @@ public static class G920ControlInfo
 
     public static bool IsAxis(G920Control control) => AxisControls.Contains(control);
     public static bool IsGear(G920Control control) => GearControls.Contains(control);
-    public static bool IsButton(G920Control control) => ButtonControls.Contains(control) || control == G920Control.Hat;
+    public static bool IsHatDirection(G920Control control) => HatDirectionControls.Contains(control);
+    public static bool IsButton(G920Control control) =>
+        ButtonControls.Contains(control) || control == G920Control.Hat;
 
     public static string DisplayName(G920Control control) => control switch
     {
@@ -98,7 +116,11 @@ public static class G920ControlInfo
         G920Control.Brake => "Brake",
         G920Control.Clutch => "Clutch",
         // Face controls — names match Logitech G920 Driving Force user guide.
-        G920Control.Hat => "Directional pad",
+        G920Control.Hat => "Directional pad (hat)",
+        G920Control.HatUp => "D-pad Up",
+        G920Control.HatDown => "D-pad Down",
+        G920Control.HatLeft => "D-pad Left",
+        G920Control.HatRight => "D-pad Right",
         G920Control.ButtonA => "A",
         G920Control.ButtonB => "B",
         G920Control.ButtonX => "X",

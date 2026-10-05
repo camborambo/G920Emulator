@@ -2,7 +2,12 @@ namespace G920Emulator.Core.Models;
 
 public sealed class InputDeviceInfo
 {
+    /// <summary>DirectInput instance GUID (session / plug identity).</summary>
     public required string Id { get; init; }
+
+    /// <summary>DirectInput product GUID (stable across replugs for the same hardware).</summary>
+    public required string ProductId { get; init; }
+
     public required string Name { get; init; }
     public required string ProductName { get; init; }
     public bool SupportsForceFeedback { get; init; }

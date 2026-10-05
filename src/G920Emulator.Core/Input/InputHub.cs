@@ -5,12 +5,111 @@ using SharpDX.DirectInput;
 
 namespace G920Emulator.Core.Input;
 
+/// <summary>One DirectInput game-control device as seen at diagnostics export time.</summary>
+public sealed record DiagnosticDeviceRow(
+    string InstanceId,
+    string ProductId,
+    string Name,
+    string ProductName,
+    bool SupportsForceFeedback,
+    int AxisCount,
+    int ButtonCount,
+    int HatCount,
+    bool IsVirtualG920,
+    string? OpenError);
+
 public sealed class InputHub : IDisposable
 {
     private readonly DirectInput _directInput = new();
     private readonly object _gate = new();
     private readonly Dictionary<string, JoystickSession> _sessions = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, DeviceState> _lastStates = new(StringComparer.OrdinalIgnoreCase);
+    private string? _pinnedFfbDeviceId;
     private bool _disposed;
+
+    /// <summary>
+    /// Keep this device's joystick session alive while FFB shares it. Transient Poll
+    /// failures during exclusive attach must not Dispose the handle under FfbBridge.
+    /// While pinned, <see cref="Poll"/> does not touch that joystick (FfbBridge reads it);
+    /// other devices keep polling so pedals/buttons never stall on the FFB base.
+    /// </summary>
+    public void PinFfbDevice(string? deviceId)
+    {
+        lock (_gate)
+            _pinnedFfbDeviceId = string.IsNullOrWhiteSpace(deviceId) ? null : deviceId;
+    }
+
+    /// <summary>
+    /// One non-exclusive poll into the cache before FFB exclusive attach, so the bridge
+    /// has a last-known state if rim reads fail briefly after pin.
+    /// </summary>
+    public void CapturePinnedBaseline(string? deviceId)
+    {
+        if (string.IsNullOrWhiteSpace(deviceId))
+            return;
+        lock (_gate)
+        {
+            if (!_sessions.TryGetValue(deviceId, out var session))
+                return;
+            try
+            {
+                var state = session.Poll();
+                if (!session.PollFailed)
+                    _lastStates[deviceId] = state;
+            }
+            catch { /* best-effort */ }
+        }
+    }
+
+    /// <summary>
+    /// All attached game controllers as DirectInput sees them, including the virtual G920.
+    /// For diagnostics only — do not use as a bind source list.
+    /// </summary>
+    public static IReadOnlyList<DiagnosticDeviceRow> EnumerateAllAttachedForDiagnostics()
+    {
+        using var di = new DirectInput();
+        var rows = new List<DiagnosticDeviceRow>();
+        foreach (var instance in di.GetDevices(DeviceClass.GameControl, DeviceEnumerationFlags.AttachedOnly))
+        {
+            var virtualG920 = IsEmulatedG920(instance);
+            var ffb = false;
+            var axes = 0;
+            var buttons = 0;
+            var hats = 0;
+            string? openError = null;
+            try
+            {
+                using var joy = new Joystick(di, instance.InstanceGuid);
+                var caps = joy.Capabilities;
+                ffb = caps.Flags.HasFlag(DeviceFlags.ForceFeedback);
+                axes = Math.Max(caps.AxeCount, 0);
+                buttons = caps.ButtonCount;
+                hats = caps.PovCount;
+            }
+            catch (Exception ex)
+            {
+                openError = ex.Message;
+            }
+
+            rows.Add(new DiagnosticDeviceRow(
+                instance.InstanceGuid.ToString("D"),
+                instance.ProductGuid.ToString("D"),
+                instance.InstanceName ?? "",
+                instance.ProductName ?? "",
+                ffb,
+                axes,
+                buttons,
+                hats,
+                virtualG920,
+                openError));
+        }
+
+        return rows
+            .OrderByDescending(r => r.IsVirtualG920)
+            .ThenByDescending(r => r.SupportsForceFeedback)
+            .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
 
     public IReadOnlyList<InputDeviceInfo> RefreshDevices()
     {
@@ -47,6 +146,9 @@ public sealed class InputHub : IDisposable
 
             foreach (var orphan in _sessions.Keys.Where(k => !seen.Contains(k)).ToList())
             {
+                if (_pinnedFfbDeviceId is not null &&
+                    string.Equals(orphan, _pinnedFfbDeviceId, StringComparison.OrdinalIgnoreCase))
+                    continue;
                 _sessions[orphan].Dispose();
                 _sessions.Remove(orphan);
             }
@@ -60,22 +162,87 @@ public sealed class InputHub : IDisposable
 
     public IReadOnlyDictionary<string, DeviceState> Poll()
     {
+        var needsRescan = false;
+        Dictionary<string, DeviceState> states;
         lock (_gate)
         {
-            var states = new Dictionary<string, DeviceState>(StringComparer.OrdinalIgnoreCase);
+            states = new Dictionary<string, DeviceState>(StringComparer.OrdinalIgnoreCase);
+            var dead = new List<string>();
             foreach (var (id, session) in _sessions)
             {
+                // Never Poll the exclusive FFB joystick here — that can block the whole
+                // bridge loop (all bindings freeze). Bridge overlays live axes from FfbBridge.
+                if (_pinnedFfbDeviceId is not null &&
+                    string.Equals(id, _pinnedFfbDeviceId, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (_lastStates.TryGetValue(id, out var cached))
+                        states[id] = cached;
+                    continue;
+                }
+
                 try
                 {
-                    states[id] = session.Poll();
+                    var state = session.Poll();
+                    states[id] = state;
+                    _lastStates[id] = state;
+                    if (session.PollFailed)
+                        dead.Add(id);
                 }
                 catch
                 {
-                    // Device may have been unplugged mid-frame.
+                    dead.Add(id);
                 }
             }
-            return states;
+
+            // Drop dead sessions so RefreshDevices can reopen (possibly new instance GUID).
+            // Never dispose the pinned FFB source — Unacquire during attach looks like a
+            // failed poll and disposing it freezes input + breaks the shared FFB handle.
+            foreach (var id in dead)
+            {
+                if (_pinnedFfbDeviceId is not null &&
+                    string.Equals(id, _pinnedFfbDeviceId, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (_sessions.Remove(id, out var session))
+                    session.Dispose();
+                states.Remove(id);
+                needsRescan = true;
+            }
         }
+
+        if (needsRescan)
+        {
+            foreach (var _ in RefreshDevices())
+            {
+                // RefreshDevices already opened sessions; re-poll once for this frame.
+            }
+
+            lock (_gate)
+            {
+                states = new Dictionary<string, DeviceState>(StringComparer.OrdinalIgnoreCase);
+                foreach (var (id, session) in _sessions)
+                {
+                    // Still skip pinned — never block the loop on the exclusive FFB base.
+                    if (_pinnedFfbDeviceId is not null &&
+                        string.Equals(id, _pinnedFfbDeviceId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (_lastStates.TryGetValue(id, out var cached))
+                            states[id] = cached;
+                        continue;
+                    }
+
+                    try
+                    {
+                        var state = session.Poll();
+                        states[id] = state;
+                        _lastStates[id] = state;
+                    }
+                    catch { /* ignore */ }
+                }
+            }
+        }
+
+        return states;
     }
 
     public InputDeviceInfo? FindDevice(string? deviceId)
@@ -98,14 +265,21 @@ public sealed class InputHub : IDisposable
 
         lock (_gate)
         {
-            if (!_sessions.TryGetValue(deviceId, out var session))
+            if (_sessions.TryGetValue(deviceId, out var session))
             {
-                // Ensure sessions exist.
-                RefreshDevices();
-                if (!_sessions.TryGetValue(deviceId, out session))
-                    return false;
+                joystick = session.Joystick;
+                deviceName = session.Info.Name;
+                return true;
             }
+        }
 
+        // Refresh outside the first lock so we never nest DI work under a held wait
+        // that the bridge poll thread also needs (avoids UI↔bridge deadlocks).
+        RefreshDevices();
+        lock (_gate)
+        {
+            if (!_sessions.TryGetValue(deviceId, out var session))
+                return false;
             joystick = session.Joystick;
             deviceName = session.Info.Name;
             return true;
@@ -172,6 +346,21 @@ public sealed class InputHub : IDisposable
             if (hwnd == IntPtr.Zero)
                 hwnd = GetDesktopWindow();
             joy.SetCooperativeLevel(hwnd, CooperativeLevel.NonExclusive | CooperativeLevel.Background);
+            try
+            {
+                foreach (var obj in joy.GetObjects(DeviceObjectTypeFlags.AbsoluteAxis))
+                {
+                    var n = obj.Name ?? "";
+                    if (n.Contains("X", StringComparison.OrdinalIgnoreCase) ||
+                        n.Contains("Wheel", StringComparison.OrdinalIgnoreCase) ||
+                        n.Contains("Steer", StringComparison.OrdinalIgnoreCase))
+                    {
+                        joy.GetObjectPropertiesById(obj.ObjectId).Range = new InputRange(0, 65535);
+                        break;
+                    }
+                }
+            }
+            catch { /* range optional */ }
             joy.Acquire();
 
             var caps = joy.Capabilities;
@@ -183,6 +372,7 @@ public sealed class InputHub : IDisposable
             var info = new InputDeviceInfo
             {
                 Id = instance.InstanceGuid.ToString("D"),
+                ProductId = instance.ProductGuid.ToString("D"),
                 Name = instance.InstanceName,
                 ProductName = instance.ProductName,
                 SupportsForceFeedback = ffb,
@@ -211,6 +401,8 @@ public sealed class InputHub : IDisposable
             }
         }
 
+        public bool PollFailed { get; private set; }
+
         public DeviceState Poll()
         {
             JoystickState state;
@@ -218,6 +410,7 @@ public sealed class InputHub : IDisposable
             {
                 _joystick.Poll();
                 state = _joystick.GetCurrentState();
+                PollFailed = false;
             }
             catch
             {
@@ -226,9 +419,11 @@ public sealed class InputHub : IDisposable
                     _joystick.Acquire();
                     _joystick.Poll();
                     state = _joystick.GetCurrentState();
+                    PollFailed = false;
                 }
                 catch
                 {
+                    PollFailed = true;
                     return new DeviceState
                     {
                         DeviceId = Info.Id,
@@ -270,8 +465,9 @@ public sealed class InputHub : IDisposable
 
         private static float NormalizeAxis(int value)
         {
-            // DirectInput typically reports 0..65535 for absolute axes.
-            if (value < 0) value = 0;
+            // Prefer unsigned 0..65535. Signed -32768..32767 (center 0) is remapped.
+            if (value < 0)
+                return Math.Clamp((value + 32768) / 65535f, 0f, 1f);
             if (value > 65535) value = 65535;
             return value / 65535f;
         }

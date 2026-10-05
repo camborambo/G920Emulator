@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using G920Emulator.Core.Ffb;
 
 namespace G920Emulator.Core.Models;
 
@@ -13,9 +14,36 @@ public sealed class MappingProfile
 {
     public string Name { get; set; } = "My Rig → G920";
     public string? FfbSourceDeviceId { get; set; }
+
+    /// <summary>
+    /// Stable DirectInput ProductGuid for the FFB device. Used to reattach when
+    /// <see cref="FfbSourceDeviceId"/> (instance GUID) changes after an update/replug.
+    /// </summary>
+    public string? FfbSourceProductId { get; set; }
+
     public ShifterMode ShifterMode { get; set; } = ShifterMode.ExclusiveHPattern;
+    /// <summary>Linked force-feedback profile name (see <c>ffb-profiles\</c>). Default "Raw".</summary>
+    public string? FfbProfileName { get; set; } = "Raw";
+
+    /// <summary>Working copy of FFB settings (loaded from / saved to <see cref="FfbProfileName"/>).</summary>
     public double FfbGain { get; set; } = 1.0;
     public bool FfbInvert { get; set; }
+
+    /// <summary>Per DirectInput effect-type gains (Constant, Spring, Damper, …).</summary>
+    public FfbEffectGains FfbEffectGains { get; set; } = FfbEffectGains.CreateDefault();
+
+    /// <summary>Optional output feel (smoothing / peaks). Defaults leave game mix unchanged.</summary>
+    public FfbOutputFeel FfbOutputFeel { get; set; } = FfbOutputFeel.CreateDefault();
+
+    public void ApplyFfbProfile(FfbProfile ffb)
+    {
+        ffb.Normalize();
+        FfbProfileName = ffb.Name;
+        FfbGain = ffb.FfbGain;
+        FfbInvert = ffb.FfbInvert;
+        FfbEffectGains = ffb.EffectGains;
+        FfbOutputFeel = ffb.OutputFeel;
+    }
 
     /// <summary>
     /// Virtual G920 DI button asserted for Gear R (1–19).
@@ -36,6 +64,7 @@ public sealed class MappingProfile
     public static MappingProfile CreateDefault() => new()
     {
         Name = "Default",
+        FfbProfileName = "Raw",
         Bindings = G920ControlInfo.UiOrder.Select(t => new Binding { Target = t }).ToList(),
     };
 
@@ -73,6 +102,11 @@ public sealed class MappingProfile
     public void NormalizeBindings()
     {
         GearReverseOutputButton = Math.Clamp(GearReverseOutputButton <= 0 ? 19 : GearReverseOutputButton, 1, 19);
+        FfbGain = Math.Clamp(FfbGain, 0, 2);
+        FfbEffectGains ??= FfbEffectGains.CreateDefault();
+        FfbEffectGains.Clamp();
+        FfbOutputFeel ??= FfbOutputFeel.CreateDefault();
+        FfbOutputFeel.Clamp();
         foreach (var binding in Bindings)
             binding.Normalize();
 
@@ -111,6 +145,7 @@ public sealed class MappingProfile
     private static SourceRef CloneSource(SourceRef s) => new()
     {
         DeviceId = s.DeviceId,
+        ProductId = s.ProductId,
         Axis = s.Axis,
         Button = s.Button,
         IsHat = s.IsHat,
@@ -176,7 +211,12 @@ public sealed class Binding
 
 public sealed class SourceRef
 {
+    /// <summary>DirectInput instance GUID (can change across replugs / Windows resets).</summary>
     public string DeviceId { get; set; } = "";
+
+    /// <summary>DirectInput product GUID — stable identity used to remap <see cref="DeviceId"/>.</summary>
+    public string? ProductId { get; set; }
+
     public string? Axis { get; set; }
     public int? Button { get; set; }
     public bool IsHat { get; set; }

@@ -36,9 +36,9 @@ public partial class DependenciesWindow : Window
         GHubGuardDetail.Text = $"Repairs since launch: {GHubGuard.AppWatchRestoreCount}";
 
         FooterText.Text = report.ReadyForGames
-            ? "Ready for games. Use Configure HidHide if you have not yet, then Start bridge."
+            ? "Ready for games. Configure HidHide yourself if needed, then Start bridge."
             : $"{string.Join(", ", report.MissingRequiredNames)} required and missing. Install before playing games.";
-    }
+        }
 
     private void InstallLogiSdk_Click(object sender, RoutedEventArgs e)
     {
@@ -83,13 +83,12 @@ public partial class DependenciesWindow : Window
         {
             FooterText.Text = "Repairing G HUB leftovers…";
             var summary = GHubConflictRepair.Repair();
-            // Also unhide virtual G920 if HidHide cloaked it after G HUB churn.
-            var hid = DependencyChecker.EnsureHidHideAppWhitelist();
             FooterText.Text = "G HUB repair finished. Start bridge, then launch the game.";
             MessageBox.Show(
                 this,
-                summary + (string.IsNullOrWhiteSpace(hid) ? "" : "\n\n" + hid) +
-                "\n\nNext: Start bridge, confirm the G920 in joy.cpl, then launch the game.",
+                summary +
+                "\n\nHidHide was not changed — configure it yourself if games still see your pad.\n\n" +
+                "Next: Start bridge, confirm the G920 in joy.cpl, then launch the game.",
                 "Repair G HUB leftovers",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
