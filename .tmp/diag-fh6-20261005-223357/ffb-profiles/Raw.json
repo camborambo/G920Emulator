@@ -1,0 +1,25 @@
+{
+  "name": "Raw",
+  "ffbGain": 1,
+  "ffbInvert": false,
+  "effectGains": {
+    "constantForce": 1,
+    "rampForce": 1,
+    "periodic": 1,
+    "springForce": 1,
+    "damperForce": 1,
+    "inertiaForce": 1,
+    "frictionForce": 1,
+    "customForce": 1
+  },
+  "outputFeel": {
+    "smoothingMs": 0,
+    "peakSoftStart": 1,
+    "softStartMs": 0,
+    "deadband": 0,
+    "maxSlewPerSecond": 0,
+    "maxSpikeStep": 1,
+    "magnitudeEpsilon": 0,
+    "hasTorqueShaping": false
+  }
+}

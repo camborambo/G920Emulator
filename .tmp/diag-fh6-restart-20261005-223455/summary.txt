@@ -1,0 +1,70 @@
+﻿G920 Emulator diagnostics
+Generated (local): 2026-10-05T22:34:57.7111947-05:00
+Machine: OB-RACING
+User: OB Racing Rig
+App version: 0.2.4
+OS: Microsoft Windows NT 10.0.26200.0
+64-bit OS: True
+64-bit process: True
+User interactive: True
+App directory: C:\Users\OB Racing Rig\Desktop\G920Emulator\
+g920ffb.dll: 30720 bytes, written 2026-10-05T22:07:32.7511910-05:00
+WinUHid.dll: 115200 bytes, written 2026-10-05T22:07:34.9052668-05:00
+
+WinUHid setup
+  Test signing: OFF
+  WinUHid.dll: present
+  Elevated (this process): yes
+
+Dependencies
+  Windows test signing: Off (OK)
+    Test signing OFF. Secure Boot may be re-enabled if you disabled it for install.
+  WinUHid: Installed
+    WinUHid.dll present · device node present · WinUHid driver interface v1
+  HidHide: Installed
+    HidHide service registered
+  Ready for games: True
+
+Profiles storage
+  Portable: False
+  Directory: C:\Users\OB Racing Rig\AppData\Roaming\G920Emulator\profiles
+  FFB directory: C:\Users\OB Racing Rig\AppData\Roaming\G920Emulator\ffb-profiles
+  Settings: C:\Users\OB Racing Rig\AppData\Roaming\G920Emulator\settings.json
+  Input profiles (2): Default, N4S Heat
+  FFB profiles (2): Need For Speed Unbound / Heat, Raw
+  Last input profile: N4S Heat
+  Last FFB profile: Raw
+  Hidden devices (UI list): 0
+
+Bridge / FFB (at export)
+  Bridge running: False
+  Link status: OK
+  Virtual preview: False
+  Virtual Col01 present: False
+  Virtual error: (none)
+  Host path hint: Microsoft HID path · virtual Col01 present · G HUB guard: OK (Col01 present)
+  Input profile: N4S Heat
+  FFB profile: Raw
+  FFB source id: a0a9f0d0-8bb4-11ee-8001-444553540000
+  FFB source name: FANATEC Podium Wheel Base DD2
+  Master gain: 1  Invert: False
+  FFB attached: False
+  FFB vendor: Fanatec
+  FFB device: FANATEC Podium Wheel Base DD2
+  FFB coop: Background|Exclusive (shared input handle)
+  FFB status: FFB: attached to FANATEC Podium Wheel Base DD2
+  OEM playing: True  torque=+0.12  dl=813818
+  OEM types seen: Constant,Sine,Spring,Damper
+  OEM types playing: Constant,Sine,Spring,Damper
+  OEM status: OEM FFB: playing seq=631674 dl=813818 rim=+1.00
+  Rim (spring): +1.00
+  Apply count: 47381  last mag: 0
+  Host writes: 0  last: 
+
+Environment
+  Relevant processes running: HidHideWatchdog, SimHub.Subprocess.X86, SimHubWPF, steam, steamservice, steamwebhelper
+  Logitech G HUB: not found
+  Logitech Gaming Software: not found
+  Simucube True Drive: not found
+  Fanatec driver: installed (C:\Program Files\Fanatec)
+  SimHub: installed (C:\Program Files (x86)\SimHub)
