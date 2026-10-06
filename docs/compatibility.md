@@ -61,6 +61,6 @@ When you test something new, note:
 1. Physical input device(s) and FFB base
 2. Game + whether the virtual G920 appeared
 3. Whether FFB moved the base
-4. Optional: click **Debug**, reproduce briefly, **Stop debug** → **Export log…** (or enable **FFB debug** for live counters). Leave Debug off for normal play.
+4. Optional: click **Debug**, reproduce briefly, **Stop debug** → **Export log…** (or expand **FFB debug** for live counters). Leave Debug off for normal play.
 
 See [force-feedback.md](force-feedback.md) and [user-guide.md](user-guide.md).

@@ -114,6 +114,7 @@ public static class DiagnosticsExporter
         var setup = new WinUHidSetupService();
         sb.AppendLine("WinUHid setup");
         sb.AppendLine("  Test signing: " + (setup.IsTestSigningEnabled() ? "ON" : "OFF"));
+        sb.AppendLine("  Secure Boot: " + DependencyChecker.QuerySecureBoot());
         sb.AppendLine("  WinUHid.dll: " + (File.Exists(setup.LocalDllPath) ? "present" : "missing"));
         sb.AppendLine("  Elevated (this process): " + (WinUHidSetupService.IsAdministrator() ? "yes" : "no"));
         sb.AppendLine();

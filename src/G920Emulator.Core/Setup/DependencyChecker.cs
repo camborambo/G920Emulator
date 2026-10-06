@@ -12,6 +12,16 @@ public enum DependencyRequirement
     Recommended,
 }
 
+/// <summary>UEFI Secure Boot state from the Windows Secure Boot registry key.</summary>
+public enum SecureBootStatus
+{
+    On,
+    Off,
+    /// <summary>Legacy BIOS / key missing — Secure Boot is not in effect.</summary>
+    Unavailable,
+    Unknown,
+}
+
 public sealed class DependencyInfo
 {
     public required string Id { get; init; }
@@ -27,6 +37,7 @@ public sealed class DependencyInfo
 public sealed class DependencyReport
 {
     public required IReadOnlyList<DependencyInfo> Items { get; init; }
+    public SecureBootStatus SecureBoot { get; init; }
 
     public bool AllRequiredInstalled => Items
         .Where(i => i.Requirement == DependencyRequirement.Required)
@@ -54,12 +65,14 @@ public static class DependencyChecker
     /// <param name="probeWinUHid">Returns (installed, detailMessage).</param>
     public static DependencyReport CheckAll(Func<(bool Installed, string Detail)> probeWinUHid)
     {
+        var secureBoot = QuerySecureBoot();
         var winUHid = CheckWinUHid(probeWinUHid);
         return new DependencyReport
         {
+            SecureBoot = secureBoot,
             Items =
             [
-                CheckTestSigning(winUHidReady: winUHid.IsInstalled),
+                CheckTestSigning(winUHidReady: winUHid.IsInstalled, secureBoot),
                 winUHid,
                 CheckHidHide(),
             ],
@@ -67,14 +80,40 @@ public static class DependencyChecker
     }
 
     /// <summary>
+    /// Reads <c>HKLM\SYSTEM\CurrentControlSet\Control\SecureBoot\State\UEFISecureBootEnabled</c>.
+    /// No elevation required. Legacy BIOS machines typically have no key → <see cref="SecureBootStatus.Unavailable"/>.
+    /// </summary>
+    public static SecureBootStatus QuerySecureBoot()
+    {
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Control\SecureBoot\State");
+            if (key is null)
+                return SecureBootStatus.Unavailable;
+
+            var value = key.GetValue("UEFISecureBootEnabled");
+            if (value is null)
+                return SecureBootStatus.Unavailable;
+
+            var enabled = Convert.ToInt32(value) != 0;
+            return enabled ? SecureBootStatus.On : SecureBootStatus.Off;
+        }
+        catch
+        {
+            return SecureBootStatus.Unknown;
+        }
+    }
+
+    /// <summary>
     /// Test signing is only required to *install* the test-signed WinUHid package.
     /// After install it can stay off — WinUHid (UMDF) usually keeps working and Forza can launch.
     /// </summary>
-    public static DependencyInfo CheckTestSigning(bool winUHidReady = false)
+    public static DependencyInfo CheckTestSigning(bool winUHidReady = false, SecureBootStatus? secureBoot = null)
     {
         var setup = new WinUHidSetupService();
         var (live, bcd) = setup.QueryTestSigningDetail();
         var pendingInstall = BundledWinUHidInstaller.HasPendingInstall;
+        var sb = secureBoot ?? QuerySecureBoot();
 
         string statusLabel;
         string hint;
@@ -87,46 +126,43 @@ public static class DependencyChecker
             // Ideal Forza-friendly state after Install finishes and disables test signing.
             ready = true;
             statusLabel = "Off (OK)";
-            hint = "Best state: WinUHid installed, test signing off — Forza and the emulator can both work. You can re-enable Secure Boot in UEFI/BIOS.";
-            detail = bcd == true
-                ? "Current boot OFF · BCD still Yes (reboot once to finish leaving test mode)."
-                : "Test signing OFF. Secure Boot may be re-enabled if you disabled it for install.";
+            hint = sb == SecureBootStatus.On
+                ? "WinUHid is installed. Secure Boot can stay on."
+                : "WinUHid is installed. You can turn Secure Boot back on in UEFI/BIOS.";
+            detail = "";
         }
         else if (winUHidReady && live)
         {
             ready = true; // emulator works; warn that Forza will not
             statusLabel = "Enabled";
-            hint = "WinUHid is already installed — Disable test signing and reboot so Forza can launch. The emulator usually keeps working with test signing off.";
-            detail = "Windows is in test mode. Forza Horizon 6 will not launch until you disable and reboot.";
+            hint = "Disable test signing and reboot so Forza can launch.";
+            detail = "";
         }
         else if (live)
         {
             ready = true;
             statusLabel = "Enabled";
             hint = pendingInstall
-                ? "Test mode is on. Click Install WinUHid once — it will install the driver and turn test signing back off."
-                : "Ready for Install WinUHid. Install turns test signing back off afterwards (Forza-safe).";
-            detail = "Windows is running in test mode (testsigning ON).";
+                ? "Test mode is on. Click Install WinUHid to finish."
+                : "Ready to Install WinUHid.";
+            detail = "";
         }
         else if (bcd == true || pendingInstall)
         {
             ready = false;
             statusLabel = "Reboot required";
-            hint = pendingInstall
-                ? "Test signing was staged for WinUHid install. Reboot, then click Install WinUHid once more (installs driver + turns test signing off)."
-                : "Test signing is staged in BCD but not active yet. Reboot once, then Install WinUHid.";
-            detail = pendingInstall
-                ? "Pending WinUHid install after reboot."
-                : "bcdedit testsigning=Yes · current boot still OFF.";
+            hint = "Reboot, then Install WinUHid.";
+            detail = "";
         }
         else
         {
             ready = false;
             statusLabel = "Disabled";
-            hint = "Needed only to install WinUHid. Secure Boot must be off in UEFI/BIOS for that step (you can turn Secure Boot back on afterward). Install WinUHid enables test signing temporarily, then turns it off again.";
-            detail = bcd == false
-                ? "Test signing OFF (current boot and BCD)."
-                : "Test signing OFF (current boot).";
+            if (sb == SecureBootStatus.On)
+                hint = "Turn Secure Boot off in UEFI/BIOS to Enable test signing.";
+            else
+                hint = "Needed only to install WinUHid.";
+            detail = "";
         }
 
         return new DependencyInfo

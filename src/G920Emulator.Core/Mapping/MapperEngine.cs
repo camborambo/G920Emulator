@@ -36,11 +36,16 @@ public sealed class MapperEngine
                 profile.GearReverseOutputButton <= 0 ? 19 : profile.GearReverseOutputButton, 1, 19),
         };
 
-        if (profile.ShifterMode == ShifterMode.ExclusiveHPattern)
-            ApplyExclusiveGears(result);
-
+        ApplyExclusiveGears(result);
         return result;
     }
+
+    /// <summary>True when a bound button (or axis-as-button) for <paramref name="target"/> is pressed.</summary>
+    public static bool IsPressed(
+        MappingProfile profile,
+        IReadOnlyDictionary<string, DeviceState> devices,
+        G920Control target) =>
+        ReadButton(profile, devices, target);
 
     private static void ApplyExclusiveGears(MappedG920State state)
     {

@@ -10,6 +10,7 @@ public partial class AboutWindow : Window
     public AboutWindow()
     {
         InitializeComponent();
+        DarkTitleBar.Apply(this);
         var version = Assembly.GetExecutingAssembly().GetName().Version;
         VersionText.Text = "Version " + (version is null
             ? "unknown"

@@ -43,20 +43,21 @@
             <Border x:Name="TestSigningStatusBadge" CornerRadius="3" Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
               <TextBlock x:Name="TestSigningStatusText" FontSize="12" FontWeight="SemiBold"/>
             </Border>
+            <Border x:Name="SecureBootBadge" CornerRadius="3" Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
+              <TextBlock x:Name="SecureBootBadgeText" FontSize="12" FontWeight="SemiBold"/>
+            </Border>
           </StackPanel>
-          <TextBlock x:Name="TestSigningHint" Margin="0,10,0,0" TextWrapping="Wrap"/>
-          <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Foreground="#E8B45A"
-                     Text="Needed only while installing WinUHid. Secure Boot must be off in UEFI/BIOS for that install step (or Enable / Install will fail). After WinUHid is installed and test signing is off, you can turn Secure Boot back on — Forza and the emulator keep working."/>
-          <TextBlock x:Name="TestSigningDetail" Margin="0,6,0,0" Opacity="0.65" TextWrapping="Wrap"/>
+          <TextBlock x:Name="TestSigningHint" Margin="0,10,0,0" TextWrapping="Wrap" Opacity="0.85"/>
+          <TextBlock x:Name="TestSigningDetail" Visibility="Collapsed"/>
           <WrapPanel Margin="0,14,0,-8">
             <Button x:Name="EnableTestSigningButton" Style="{StaticResource PrimaryWrapButton}"
                     Click="EnableTestSigning_Click"
                     Content="Enable test signing"
-                    ToolTip="Turns on Windows testsigning (bcdedit). Secure Boot must be off. Usually handled automatically by Install WinUHid."/>
+                    ToolTip="Turns on Windows test signing. Secure Boot must be off."/>
             <Button x:Name="DisableTestSigningButton" Style="{StaticResource AccentWrapButton}"
                     Click="DisableTestSigning_Click"
                     Content="Disable test signing"
-                    ToolTip="Turns off Windows testsigning. Install WinUHid does this automatically after the driver is installed."/>
+                    ToolTip="Turns off Windows test signing. Reboot required."/>
           </WrapPanel>
         </StackPanel>
       </Border>
@@ -75,10 +76,10 @@
           <TextBlock x:Name="WinUHidHint" Margin="0,10,0,0" TextWrapping="Wrap"/>
           <TextBlock x:Name="WinUHidDetail" Margin="0,6,0,0" Opacity="0.65" TextWrapping="Wrap"/>
           <WrapPanel Margin="0,14,0,-8">
-            <Button Style="{StaticResource PrimaryWrapButton}" Click="SetupWinUHid_Click"
+            <Button x:Name="InstallWinUHidButton" Style="{StaticResource PrimaryWrapButton}" Click="SetupWinUHid_Click"
                     Content="Install WinUHid"
                     ToolTip="Install bundled WinUHid: enable test signing if needed, install driver, then turn test signing off (Forza-friendly)"/>
-            <Button Style="{StaticResource AccentWrapButton}" Click="UninstallWinUHid_Click"
+            <Button x:Name="UninstallWinUHidButton" Style="{StaticResource AccentWrapButton}" Click="UninstallWinUHid_Click"
                     Content="Uninstall WinUHid"
                     ToolTip="Remove WinUHid and turn off Windows test signing"/>
           </WrapPanel>

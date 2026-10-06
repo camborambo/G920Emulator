@@ -4,12 +4,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using MahApps.Metro.IconPacks;
 using Microsoft.Win32;
 using G920Emulator.Core.Bridge;
+using G920Emulator.Core.Mapping;
 using G920Emulator.Core.Models;
 using G920Emulator.Core.Profiles;
 using G920Emulator.Core.Ffb;
@@ -34,6 +37,8 @@ public partial class MainWindow : Window
     private bool _bindingDialogOpen;
     private bool _ffbTestSliderSilent;
     private bool _effectGainSliderSilent;
+    private readonly bool[] _ffbNudgePressed = new bool[G920ControlInfo.FfbNudgeControls.Length];
+    private readonly long[] _ffbNudgeLastFire = new long[G920ControlInfo.FfbNudgeControls.Length];
     private TextBox? _ffbValueEditBox;
     private TextBlock? _ffbValueEditLabel;
     private string? _shownLinkStatus;
@@ -43,6 +48,9 @@ public partial class MainWindow : Window
     /// <summary>True while Start/Stop/exit tears down DI — UI must not Poll InputHub.</summary>
     private volatile bool _bridgeBusy;
     private int _livePreviewPollInFlight;
+    private bool _minimizeToTray;
+    private WindowState _restoreWindowState = WindowState.Normal;
+    private TrayIcon? _trayIcon;
 
     public MainWindow()
     {
@@ -55,6 +63,7 @@ public partial class MainWindow : Window
         };
 
         InitializeComponent();
+        DarkTitleBar.Apply(this);
         DeviceList.ItemsSource = _devices;
         BindingList.ItemsSource = _bindings;
         FfbDeviceCombo.ItemsSource = _devices;
@@ -64,6 +73,7 @@ public partial class MainWindow : Window
         LoadProfileIntoUi(_profile);
         RefreshSavedProfilesCombo(_profile.Name);
         RefreshFfbProfilesCombo(_profile.FfbProfileName);
+        ApplyAppSettings(_profiles.LoadSettings());
 
         // 16 ms so live axis meters track the ~500 Hz bridge without looking lagged.
         _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
@@ -73,11 +83,11 @@ public partial class MainWindow : Window
         Loaded += (_, _) =>
         {
             var hwnd = new WindowInteropHelper(this).Handle;
+            DarkTitleBar.TryApply(hwnd);
             _bridge.BindFfbWindow(hwnd);
             try { OemRegistrationSession.RecoverIfDirty(); } catch { /* ignore */ }
             _ = RefreshDevicesAsync(restoreHidden: false);
             UpdateDependencyUi();
-            ApplyFfbDebugVisibility();
             RefreshDebugSessionUi();
         };
         Activated += (_, _) =>
@@ -88,6 +98,7 @@ public partial class MainWindow : Window
                 _bridge.BindFfbWindow(hwnd);
         };
         Closing += OnClosing;
+        StateChanged += OnWindowStateChanged;
     }
 
     private static readonly Brush OkChipBrush = new SolidColorBrush(Color.FromRgb(0x1F, 0x6F, 0x4A));
@@ -109,6 +120,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        DisposeTrayIcon();
         e.Cancel = true;
         _exitTeardownStarted = true;
         _bridgeBusy = true;
@@ -119,8 +131,9 @@ public partial class MainWindow : Window
         try
         {
             SyncProfileFromUi();
-            if (!string.IsNullOrWhiteSpace(ProfileNameBox.Text))
-                _profiles.Save(_profile, ProfileNameBox.Text.Trim());
+            var closeName = CurrentInputProfileName();
+            if (!string.IsNullOrWhiteSpace(closeName))
+                _profiles.Save(_profile, closeName);
         }
         catch { /* ignore autosave failures on close */ }
 
@@ -170,6 +183,14 @@ public partial class MainWindow : Window
             return (ok, msg);
         });
 
+    private void MainTab_Checked(object sender, RoutedEventArgs e)
+    {
+        if (InputPanel is null || FfbPanel is null) return;
+        var input = InputTabRadio.IsChecked == true;
+        InputPanel.Visibility = input ? Visibility.Visible : Visibility.Collapsed;
+        FfbPanel.Visibility = input ? Visibility.Collapsed : Visibility.Visible;
+    }
+
     private void UpdateDependencyUi()
     {
         var report = ProbeDependencies();
@@ -200,34 +221,187 @@ public partial class MainWindow : Window
                 : win.StatusLabel.Equals("Reboot required", StringComparison.OrdinalIgnoreCase) ? SoftChipBrush
                 : BadChipBrush;
             WinUHidChipText.Text = winReady
-                ? "WinUHid · Installed (required)"
+                ? "WinUHid · Installed"
                 : $"WinUHid · {win.StatusLabel} (required)";
         }
 
         if (hide is not null)
         {
             HidHideChip.Background = hide.IsInstalled ? OkChipBrush : BadChipBrush;
-            HidHideChipText.Text = hide.IsInstalled ? "HidHide · Installed (required)" : "HidHide · Missing (required)";
+            HidHideChipText.Text = hide.IsInstalled ? "HidHide · Installed" : "HidHide · Missing (required)";
         }
 
         DependenciesBanner.Background = report.ReadyForGames ? OkBannerBrush : WarnBannerBrush;
         DependenciesBanner.BorderBrush = report.ReadyForGames ? OkBorderBrush : WarnBorderBrush;
-        DependenciesActionButton.Content = report.ReadyForGames ? "Manage dependencies…" : "Fix dependencies…";
+        DependenciesBanner.Visibility = report.ReadyForGames ? Visibility.Collapsed : Visibility.Visible;
+        DependenciesActionButton.Content = "Fix";
+        DependenciesActionButton.ToolTip = "Fix missing dependencies…";
 
         if (report.ReadyForGames)
         {
-            DependenciesSummaryText.Text =
-                "WinUHid and HidHide ready. Test signing can stay off after WinUHid install (Forza-friendly); Secure Boot can be re-enabled too. Configure HidHide if needed, then Start bridge.";
             if (!_bridgeBusy && !_exitTeardownStarted && StatusText.Text.StartsWith("Dependencies", StringComparison.Ordinal))
                 StatusText.Text = "Dependencies OK. Map controls, then Start bridge.";
         }
         else
         {
             var missing = report.MissingRequiredNames;
-            DependenciesSummaryText.Text =
-                $"{string.Join(", ", missing)} required and missing. Mapping preview still works, but finish setup before playing.";
             StatusText.Text = $"{string.Join(" + ", missing)} missing — open Dependencies…";
         }
+    }
+
+    private void SettingsButton_Click(object sender, RoutedEventArgs e) =>
+        OpenSettingsMenu(fromTray: false);
+
+    private void OpenSettingsMenu(bool fromTray)
+    {
+        if (SettingsMenu is null) return;
+        ApplyAppSettings(_profiles.LoadSettings());
+        var restore = fromTray ? Visibility.Visible : Visibility.Collapsed;
+        if (RestoreMenuItem is not null)
+            RestoreMenuItem.Visibility = restore;
+        if (RestoreMenuSeparator is not null)
+            RestoreMenuSeparator.Visibility = restore;
+
+        SettingsMenu.IsOpen = false;
+        if (fromTray)
+        {
+            SettingsMenu.PlacementTarget = this;
+            SettingsMenu.Placement = PlacementMode.MousePoint;
+            SettingsMenu.HorizontalOffset = 0;
+            SettingsMenu.VerticalOffset = 0;
+        }
+        else
+        {
+            SettingsMenu.PlacementTarget = SettingsButton;
+            SettingsMenu.Placement = PlacementMode.Bottom;
+            SettingsMenu.HorizontalOffset = 0;
+            SettingsMenu.VerticalOffset = 0;
+        }
+
+        SettingsMenu.IsOpen = true;
+    }
+
+    private void RestoreFromTrayMenu_Click(object sender, RoutedEventArgs e) =>
+        RestoreFromTray(keepMinimized: false);
+
+    private void ExitApp_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void ApplyAppSettings(AppSettings settings)
+    {
+        _minimizeToTray = settings.MinimizeToSystemTray;
+        if (MinimizeToTrayMenuItem is not null)
+            MinimizeToTrayMenuItem.IsChecked = _minimizeToTray;
+    }
+
+    private AppSettings UpdateAppSettings(Action<AppSettings> mutate)
+    {
+        var settings = _profiles.LoadSettings();
+        mutate(settings);
+        _profiles.SaveSettings(settings);
+        ApplyAppSettings(settings);
+        return settings;
+    }
+
+    private void MinimizeToTrayMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var enabled = MinimizeToTrayMenuItem?.IsChecked == true;
+        UpdateAppSettings(s => s.MinimizeToSystemTray = enabled);
+        if (enabled && WindowState == WindowState.Minimized)
+            HideToTray();
+        else if (!enabled)
+            RestoreFromTray(keepMinimized: WindowState == WindowState.Minimized);
+        StatusText.Text = enabled
+            ? "Minimize to system tray on."
+            : "Minimize to system tray off.";
+    }
+
+    private void OnWindowStateChanged(object? sender, EventArgs e)
+    {
+        if (WindowState == WindowState.Minimized)
+        {
+            if (_minimizeToTray)
+                HideToTray();
+            return;
+        }
+
+        _restoreWindowState = WindowState;
+        if (_trayIcon?.Visible == true)
+            RestoreFromTray(keepMinimized: false);
+        else
+            ShowInTaskbar = true;
+    }
+
+    private void HideToTray()
+    {
+        EnsureTrayIcon();
+        if (_trayIcon is null) return;
+        ShowInTaskbar = false;
+        _trayIcon.Visible = true;
+    }
+
+    private void RestoreFromTray(bool keepMinimized)
+    {
+        ShowInTaskbar = true;
+        if (_trayIcon is not null)
+            _trayIcon.Visible = false;
+        if (keepMinimized)
+            return;
+        if (!IsVisible)
+            Show();
+        if (WindowState == WindowState.Minimized)
+            WindowState = _restoreWindowState == WindowState.Minimized
+                ? WindowState.Normal
+                : _restoreWindowState;
+        Activate();
+    }
+
+    public void BringToForeground()
+    {
+        RestoreFromTray(keepMinimized: false);
+        if (!IsVisible)
+            Show();
+        if (WindowState == WindowState.Minimized)
+            WindowState = WindowState.Normal;
+        ShowInTaskbar = true;
+        Activate();
+        try
+        {
+            Topmost = true;
+            Topmost = false;
+        }
+        catch { /* ignore */ }
+    }
+
+    private void TrayIcon_Clicked() => RestoreFromTray(keepMinimized: false);
+
+    private void TrayIcon_RightClicked() => OpenSettingsMenu(fromTray: true);
+
+    private void EnsureTrayIcon()
+    {
+        if (_trayIcon is not null) return;
+        try
+        {
+            _trayIcon = new TrayIcon(this, "G920 Emulator");
+            _trayIcon.Clicked += TrayIcon_Clicked;
+            _trayIcon.RightClicked += TrayIcon_RightClicked;
+        }
+        catch
+        {
+            _trayIcon = null;
+        }
+    }
+
+    private void DisposeTrayIcon()
+    {
+        if (_trayIcon is null) return;
+        try
+        {
+            _trayIcon.Clicked -= TrayIcon_Clicked;
+            _trayIcon.RightClicked -= TrayIcon_RightClicked;
+            _trayIcon.Dispose();
+        }
+        catch { /* ignore */ }
+        _trayIcon = null;
     }
 
     private void DependenciesButton_Click(object sender, RoutedEventArgs e)
@@ -448,23 +622,22 @@ public partial class MainWindow : Window
         var settings = _profiles.LoadSettings();
         if (settings.HiddenDeviceIds is null || settings.HiddenDeviceIds.Count == 0)
             return;
-        settings.HiddenDeviceIds = [];
-        _profiles.SaveSettings(settings);
+        UpdateAppSettings(s => s.HiddenDeviceIds = []);
     }
 
     private void RemoveDevice_Click(object sender, RoutedEventArgs e)
     {
-        if (DeviceList.SelectedItem is not DeviceRow row)
-        {
-            StatusText.Text = "Select a device to remove from the list.";
+        if ((sender as FrameworkElement)?.DataContext is not DeviceRow row)
             return;
-        }
 
-        var settings = _profiles.LoadSettings();
-        settings.HiddenDeviceIds ??= [];
-        if (!settings.HiddenDeviceIds.Contains(row.Id, StringComparer.OrdinalIgnoreCase))
-            settings.HiddenDeviceIds.Add(row.Id);
-        _profiles.SaveSettings(settings);
+        e.Handled = true;
+
+        UpdateAppSettings(s =>
+        {
+            s.HiddenDeviceIds ??= [];
+            if (!s.HiddenDeviceIds.Contains(row.Id, StringComparer.OrdinalIgnoreCase))
+                s.HiddenDeviceIds.Add(row.Id);
+        });
 
         var wasFfb = FfbDeviceCombo.SelectedItem is DeviceRow ffb && ffb.Id == row.Id;
         _devices.Remove(row);
@@ -491,24 +664,17 @@ public partial class MainWindow : Window
         if (_devices.Count > 0)
             DeviceBindingResolver.RemapProfile(_profile, _devices.Select(d => d.Info).ToList());
         _bridge.Profile = _profile;
-        ProfileNameBox.Text = string.IsNullOrWhiteSpace(_profile.Name) ? "My Rig" : _profile.Name;
         GainSlider.Value = _profile.FfbGain;
         InvertFfbCheck.IsChecked = _profile.FfbInvert;
         LoadEffectGainsIntoUi(_profile.FfbEffectGains);
         LoadFeelIntoUi(_profile.FfbOutputFeel);
         RefreshFfbProfilesCombo(_profile.FfbProfileName);
-        foreach (ComboBoxItem item in ShifterModeCombo.Items)
-        {
-            if (Equals(item.Tag?.ToString(), _profile.ShifterMode.ToString()))
-            {
-                ShifterModeCombo.SelectedItem = item;
-                break;
-            }
-        }
+        _profile.ShifterMode = ShifterMode.ExclusiveHPattern;
         if (!string.IsNullOrEmpty(_profile.FfbSourceDeviceId))
             FfbDeviceCombo.SelectedItem = _devices.FirstOrDefault(d => d.Id == _profile.FfbSourceDeviceId)
                 ?? FfbDeviceCombo.SelectedItem;
         RebuildBindingRows();
+        RefreshFfbBindButtons();
     }
 
     private void RefreshSavedProfilesCombo(string? selectName)
@@ -722,6 +888,8 @@ public partial class MainWindow : Window
 
         foreach (var binding in _profile.Bindings)
         {
+            if (G920ControlInfo.IsFfbNudge(binding.Target))
+                continue;
             binding.ClearSources();
             binding.Invert = false;
             binding.Deadzone = 0;
@@ -765,6 +933,7 @@ public partial class MainWindow : Window
         }
 
         ApplyLive(_bridge.LatestState);
+        ProcessFfbEffectNudges(_bridge.LatestDevices);
         var link = _bridge.LinkStatus;
         if (!string.IsNullOrWhiteSpace(link) && StatusText is not null &&
             !StatusText.Text.StartsWith("FFB ", StringComparison.Ordinal) &&
@@ -800,11 +969,14 @@ public partial class MainWindow : Window
                     return;
                 // PollForUi overlays pinned FFB (e.g. FFB debug Attach without bridge Start).
                 var devices = _bridge.PollForUi();
-                var mapped = new Core.Mapping.MapperEngine().Map(profile, devices);
+                var mapped = new MapperEngine().Map(profile, devices);
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     if (!_bridgeBusy && !_bridge.IsRunning)
+                    {
                         ApplyLive(mapped);
+                        ProcessFfbEffectNudges(devices);
+                    }
                 }));
             }
             catch
@@ -825,20 +997,16 @@ public partial class MainWindow : Window
         _ffbProfilePushTimer.Start();
     }
 
-    private void FfbDebugCheck_Changed(object sender, RoutedEventArgs e) => ApplyFfbDebugVisibility();
-
-    private void ApplyFfbDebugVisibility()
+    private void FfbDebugExpander_ExpandedChanged(object sender, RoutedEventArgs e)
     {
-        var on = FfbDebugCheck?.IsChecked == true;
-        if (FfbDebugPanel is not null)
-            FfbDebugPanel.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
-        if (on) RefreshFfbDiagnostics();
+        if (FfbDebugExpander?.IsExpanded == true)
+            RefreshFfbDiagnostics();
     }
 
     private void RefreshFfbDiagnostics()
     {
         if (FfbDiagText is null) return;
-        if (FfbDebugCheck?.IsChecked != true)
+        if (FfbDebugExpander?.IsExpanded != true)
             return;
 
         // Cap UI DI/diagnostics work — was every 50ms and also polled the FFB joystick
@@ -1007,6 +1175,16 @@ public partial class MainWindow : Window
         ClutchText.Text = $"Clutch: {s.Clutch:P0}";
         ClutchBar.Value = s.Clutch;
 
+        if (StripGearText is not null) StripGearText.Text = $"GEAR {s.ActiveGearLabel}";
+        if (StripSteerText is not null) StripSteerText.Text = $"Steering: {s.Steering:F2}";
+        if (StripSteerBar is not null) StripSteerBar.Value = s.Steering;
+        if (StripThrottleText is not null) StripThrottleText.Text = $"Throttle: {s.Throttle:P0}";
+        if (StripThrottleBar is not null) StripThrottleBar.Value = s.Throttle;
+        if (StripBrakeText is not null) StripBrakeText.Text = $"Brake: {s.Brake:P0}";
+        if (StripBrakeBar is not null) StripBrakeBar.Value = s.Brake;
+        if (StripClutchText is not null) StripClutchText.Text = $"Clutch: {s.Clutch:P0}";
+        if (StripClutchBar is not null) StripClutchBar.Value = s.Clutch;
+
         var pressed = new List<string>();
         if (s.ButtonA) pressed.Add("A");
         if (s.ButtonB) pressed.Add("B");
@@ -1026,6 +1204,31 @@ public partial class MainWindow : Window
     }
 
     private void RefreshButton_Click(object sender, RoutedEventArgs e) => RefreshDevices(restoreHidden: true);
+
+    private void SetBridgeControls(bool running, bool busy)
+    {
+        StartButton.IsEnabled = !busy;
+        BridgeGlyph.Kind = running ? PackIconMaterialKind.Stop : PackIconMaterialKind.Play;
+        if (busy)
+        {
+            BridgeLabel.Text = running ? "Stopping…" : "Starting…";
+            StartButton.ToolTip = running ? "Stopping the virtual G920…" : "Starting the virtual G920…";
+            return;
+        }
+
+        BridgeLabel.Text = running ? "Stop" : "Start";
+        StartButton.Style = (Style)FindResource(running ? "BridgeToggleStop" : "BridgeToggleStart");
+        StartButton.ToolTip = running ? "Stop the virtual G920" : "Start the virtual G920";
+    }
+
+    private void BridgeToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_bridgeBusy) return;
+        if (_bridge.IsRunning)
+            StopButton_Click(sender, e);
+        else
+            StartButton_Click(sender, e);
+    }
 
     private async void StartButton_Click(object sender, RoutedEventArgs e)
     {
@@ -1068,8 +1271,7 @@ public partial class MainWindow : Window
                 }
             }
 
-            StartButton.IsEnabled = false;
-            StopButton.IsEnabled = false;
+            SetBridgeControls(running: false, busy: true);
             StatusText.Text = "Starting bridge…";
             _bridgeBusy = true;
 
@@ -1107,7 +1309,7 @@ public partial class MainWindow : Window
             try { RefreshDevices(restoreHidden: false); } catch { /* ignore */ }
             try { UpdateDependencyUi(); } catch { /* ignore */ }
 
-            StopButton.IsEnabled = true;
+            SetBridgeControls(running: true, busy: false);
 
             // Sync combo if Start auto-selected an FFB device.
             if (!string.IsNullOrEmpty(_profile.FfbSourceDeviceId))
@@ -1135,7 +1337,7 @@ public partial class MainWindow : Window
                 ? _virtual.LastError
                 : _bridge.Ffb.IsReady
                     ? "Virtual G920 started."
-                    : "Virtual G920 started. Pick an FFB-capable device under Force feedback if you want force feedback.";
+                    : "Virtual G920 started. Pick an FFB-capable device under Force Feedback if you want force feedback.";
             if (col01Missing)
             {
                 MessageBox.Show(
@@ -1151,8 +1353,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             _bridgeBusy = false;
-            StartButton.IsEnabled = true;
-            StopButton.IsEnabled = false;
+            SetBridgeControls(running: false, busy: false);
             MessageBox.Show(ex.Message, "G920 Emulator", MessageBoxButton.OK, MessageBoxImage.Warning);
             StatusText.Text = ex.Message;
         }
@@ -1160,8 +1361,7 @@ public partial class MainWindow : Window
 
     private async void StopButton_Click(object sender, RoutedEventArgs e)
     {
-        StopButton.IsEnabled = false;
-        StartButton.IsEnabled = false;
+        SetBridgeControls(running: true, busy: true);
         StatusText.Text = "Stopping bridge…";
         _bridgeBusy = true;
         try
@@ -1195,8 +1395,7 @@ public partial class MainWindow : Window
             _bridgeBusy = false;
         }
 
-        StartButton.IsEnabled = true;
-        StopButton.IsEnabled = false;
+        SetBridgeControls(running: false, busy: false);
         StatusText.Text = "Bridge stopped. OEM/SDK restored (Forza-safe).";
         try { UpdateDependencyUi(); } catch { /* ignore */ }
         try { RefreshDevices(restoreHidden: false); } catch { /* ignore */ }
@@ -1220,12 +1419,47 @@ public partial class MainWindow : Window
         }
     }
 
+    private void RenameProfileButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            SyncProfileFromUi();
+            var current = CurrentInputProfileName();
+            if (string.IsNullOrWhiteSpace(current) || !_profiles.Exists(current))
+            {
+                MessageBox.Show("Select a saved profile to rename.", "Rename profile");
+                return;
+            }
+
+            var name = PromptForName("Rename profile", current);
+            if (name is null || name.Equals(current, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (_profiles.Exists(name))
+            {
+                MessageBox.Show($"A profile named '{name}' already exists.", "Rename profile",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            SaveCurrentFfbProfile(quiet: true);
+            _profiles.Save(_profile, name);
+            _profiles.Delete(current);
+            RefreshSavedProfilesCombo(name);
+            StatusText.Text = $"Renamed '{current}' → '{name}'";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Rename profile", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
     private void SaveAsButton_Click(object sender, RoutedEventArgs e)
     {
         try
         {
             SyncProfileFromUi();
-            var suggested = string.IsNullOrWhiteSpace(ProfileNameBox.Text) ? "My Rig" : ProfileNameBox.Text.Trim();
+            var suggested = CurrentInputProfileName();
             var name = PromptForName("Save profile as", suggested);
             if (name is null) return;
 
@@ -1240,7 +1474,6 @@ public partial class MainWindow : Window
                     return;
             }
 
-            ProfileNameBox.Text = name;
             // Keep the linked FFB profile in sync with current sliders (same as Save).
             SaveCurrentFfbProfile(quiet: true);
             _profiles.Save(_profile, name);
@@ -1255,7 +1488,7 @@ public partial class MainWindow : Window
 
     private void DeleteProfileButton_Click(object sender, RoutedEventArgs e)
     {
-        var name = SavedProfilesCombo.SelectedItem as string ?? ProfileNameBox.Text.Trim();
+        var name = CurrentInputProfileName();
         if (string.IsNullOrWhiteSpace(name) || !_profiles.Exists(name))
         {
             MessageBox.Show("Select a saved profile to delete.", "Delete profile");
@@ -1304,7 +1537,6 @@ public partial class MainWindow : Window
 
         LoadProfileIntoUi(imported);
         var name = PromptForName("Import profile — save as", imported.Name) ?? imported.Name;
-        ProfileNameBox.Text = name;
         _profiles.Save(_profile, name);
         RefreshSavedProfilesCombo(name);
         StatusText.Text = $"Imported and saved '{name}'";
@@ -1321,10 +1553,11 @@ public partial class MainWindow : Window
             // Load + LoadProfileIntoUi both ApplyLinkedFfbProfile (linked FFB gains/feel).
             var loaded = _profiles.Load(name);
             LoadProfileIntoUi(loaded);
-            var settings = _profiles.LoadSettings();
-            settings.LastProfileName = name;
-            settings.LastFfbProfileName = loaded.FfbProfileName;
-            _profiles.SaveSettings(settings);
+            UpdateAppSettings(s =>
+            {
+                s.LastProfileName = name;
+                s.LastFfbProfileName = loaded.FfbProfileName;
+            });
             StatusText.Text = $"Loaded profile '{name}' (FFB '{loaded.FfbProfileName}')";
         }
         catch (Exception ex)
@@ -1335,25 +1568,31 @@ public partial class MainWindow : Window
 
     private void AutoSaveCurrent()
     {
-        var name = ProfileNameBox.Text.Trim();
-        if (string.IsNullOrWhiteSpace(name))
-            name = "My Rig";
-        ProfileNameBox.Text = name;
+        var name = CurrentInputProfileName();
         _profiles.Save(_profile, name);
         RefreshSavedProfilesCombo(name);
     }
 
+    private string CurrentInputProfileName()
+    {
+        if (SavedProfilesCombo.SelectedItem is string selected && !string.IsNullOrWhiteSpace(selected))
+            return selected.Trim();
+        if (!string.IsNullOrWhiteSpace(_profile.Name))
+            return _profile.Name.Trim();
+        return "My Rig";
+    }
+
     private string RequireProfileName()
     {
-        var name = ProfileNameBox.Text.Trim();
+        var name = CurrentInputProfileName();
         if (string.IsNullOrWhiteSpace(name))
-            throw new InvalidOperationException("Enter a profile name first.");
+            throw new InvalidOperationException("Choose a profile in the dropdown, or use Save As….");
         return name;
     }
 
     private string RequireProfileNameSafe()
     {
-        var name = ProfileNameBox.Text.Trim();
+        var name = CurrentInputProfileName();
         return string.IsNullOrWhiteSpace(name) ? "profile" : name;
     }
 
@@ -1365,16 +1604,14 @@ public partial class MainWindow : Window
 
     private void SyncProfileFromUi()
     {
-        _profile.Name = string.IsNullOrWhiteSpace(ProfileNameBox.Text) ? _profile.Name : ProfileNameBox.Text.Trim();
+        _profile.Name = CurrentInputProfileName();
         _profile.FfbGain = GainSlider.Value;
         _profile.FfbInvert = InvertFfbCheck.IsChecked == true;
         SyncEffectGainsFromUi();
         SyncFeelFromUi();
         if (FfbDeviceCombo.SelectedItem is DeviceRow row)
             SetFfbSource(row);
-        if (ShifterModeCombo.SelectedItem is ComboBoxItem modeItem &&
-            Enum.TryParse<ShifterMode>(modeItem.Tag?.ToString(), out var mode))
-            _profile.ShifterMode = mode;
+        _profile.ShifterMode = ShifterMode.ExclusiveHPattern;
         _bridge.Profile = _profile;
     }
 
@@ -1410,7 +1647,7 @@ public partial class MainWindow : Window
         return null;
     }
 
-    private void OpenBindDialog(G920Control target)
+    private bool OpenBindDialog(G920Control target, Window? owner = null)
     {
         var binding = _profile.GetOrCreate(target);
         _bindingDialogOpen = true;
@@ -1427,28 +1664,141 @@ public partial class MainWindow : Window
                 ResolveDeviceName,
                 ResolveProductId)
             {
-                Owner = this,
+                Owner = owner ?? this,
             };
 
-            if (dlg.ShowDialog() == true && dlg.Applied)
+            if (dlg.ShowDialog() != true || !dlg.Applied)
+                return false;
+
+            if (G920ControlInfo.IsFfbNudge(target))
+                RefreshFfbBindButtons();
+            else
             {
                 RebuildBindingRows();
                 BindingList.SelectedItem = _bindings.FirstOrDefault(b => b.Target == target);
-                var sources = binding.EffectiveSources;
-                var label = G920ControlInfo.DisplayName(target);
-                StatusText.Text = sources.Count == 0
-                    ? $"{label} cleared."
-                    : sources.Count == 1
-                        ? $"Bound {label} ← {FormatSource(sources[0], ResolveDeviceName, G920ControlInfo.IsAxis(target))}"
-                        : $"Bound {label} ← {sources.Count} sources";
-                _bridge.Profile = _profile;
             }
+            var sources = binding.EffectiveSources;
+            var label = G920ControlInfo.DisplayName(target);
+            StatusText.Text = sources.Count == 0
+                ? $"{label} cleared."
+                : sources.Count == 1
+                    ? $"Bound {label} ← {FormatSource(sources[0], ResolveDeviceName, G920ControlInfo.IsAxis(target))}"
+                    : $"Bound {label} ← {sources.Count} sources";
+            _bridge.Profile = _profile;
+            return true;
         }
         finally
         {
             _bindingDialogOpen = false;
         }
     }
+
+    private void FfbEffectBind_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.Tag is not string effect)
+            return;
+        if (!G920ControlInfo.TryGetFfbEffectNudgePair(effect, out var minus, out var plus))
+            return;
+
+        FfbEffectBindWindow? dlg = null;
+        dlg = new FfbEffectBindWindow(
+            effect,
+            minus,
+            plus,
+            _profile,
+            ResolveDeviceName,
+            target => OpenBindDialog(target, dlg))
+        {
+            Owner = this,
+        };
+        dlg.ShowDialog();
+        if (dlg.Changed)
+            RefreshFfbBindButtons();
+    }
+
+    private void RefreshFfbBindButtons()
+    {
+        if (BindFfbConstant is null) return;
+        var accent = (Brush)FindResource("AccentPrimary");
+        var subtle = (Brush)FindResource("BorderSubtle");
+        foreach (var (effect, minus, plus) in G920ControlInfo.FfbEffectNudgePairs)
+        {
+            if (FindName("BindFfb" + effect) is not Button button)
+                continue;
+
+            var minusSources = _profile.GetOrCreate(minus).EffectiveSources;
+            var plusSources = _profile.GetOrCreate(plus).EffectiveSources;
+            var bound = minusSources.Count > 0 || plusSources.Count > 0;
+            button.BorderBrush = bound ? accent : subtle;
+
+            if (!bound)
+            {
+                button.ToolTip = $"Assign hardware buttons to lower / raise {effect} while you drive.";
+                continue;
+            }
+
+            var minusLabel = minusSources.Count == 0
+                ? "− unbound"
+                : minusSources.Count == 1
+                    ? "− " + FormatSource(minusSources[0], ResolveDeviceName, axisTarget: false)
+                    : $"− {minusSources.Count} sources";
+            var plusLabel = plusSources.Count == 0
+                ? "+ unbound"
+                : plusSources.Count == 1
+                    ? "+ " + FormatSource(plusSources[0], ResolveDeviceName, axisTarget: false)
+                    : $"+ {plusSources.Count} sources";
+            button.ToolTip = $"{minusLabel}\n{plusLabel}\nClick to change.";
+        }
+    }
+
+    private void ProcessFfbEffectNudges(IReadOnlyDictionary<string, DeviceState> devices)
+    {
+        if (!AreEffectGainControlsReady() || devices.Count == 0)
+            return;
+
+        var now = Environment.TickCount64;
+        const long repeatMs = 280;
+        var controls = G920ControlInfo.FfbNudgeControls;
+        for (var i = 0; i < controls.Length; i++)
+        {
+            var target = controls[i];
+            var binding = _profile.Bindings.FirstOrDefault(b => b.Target == target);
+            if (binding is null || binding.EffectiveSources.Count == 0)
+            {
+                _ffbNudgePressed[i] = false;
+                continue;
+            }
+
+            var pressed = MapperEngine.IsPressed(_profile, devices, target);
+            var rising = pressed && !_ffbNudgePressed[i];
+            var holdRepeat = pressed && _ffbNudgePressed[i] && now - _ffbNudgeLastFire[i] >= repeatMs;
+            _ffbNudgePressed[i] = pressed;
+            if (!rising && !holdRepeat)
+                continue;
+
+            ApplyFfbEffectNudge(target);
+            _ffbNudgeLastFire[i] = now;
+        }
+    }
+
+    private void ApplyFfbEffectNudge(G920Control target)
+    {
+        var slider = EffectGainSliderFor(target);
+        if (slider is null) return;
+        slider.Value = Math.Clamp(slider.Value + G920ControlInfo.FfbNudgeDelta(target), 0, 2);
+    }
+
+    private Slider? EffectGainSliderFor(G920Control target) => target switch
+    {
+        G920Control.FfbConstantMinus or G920Control.FfbConstantPlus => GainConstantSlider,
+        G920Control.FfbSpringMinus or G920Control.FfbSpringPlus => GainSpringSlider,
+        G920Control.FfbDamperMinus or G920Control.FfbDamperPlus => GainDamperSlider,
+        G920Control.FfbFrictionMinus or G920Control.FfbFrictionPlus => GainFrictionSlider,
+        G920Control.FfbInertiaMinus or G920Control.FfbInertiaPlus => GainInertiaSlider,
+        G920Control.FfbPeriodicMinus or G920Control.FfbPeriodicPlus => GainPeriodicSlider,
+        G920Control.FfbRampMinus or G920Control.FfbRampPlus => GainRampSlider,
+        _ => null,
+    };
 
     private async void FfbDeviceCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -1846,13 +2196,6 @@ public partial class MainWindow : Window
     {
         _profile.FfbInvert = InvertFfbCheck.IsChecked == true;
         _bridge.Ffb.Invert = _profile.FfbInvert;
-    }
-
-    private void ShifterModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (ShifterModeCombo.SelectedItem is ComboBoxItem item &&
-            Enum.TryParse<ShifterMode>(item.Tag?.ToString(), out var mode))
-            _profile.ShifterMode = mode;
     }
 
     private sealed class DeviceRow(InputDeviceInfo info)

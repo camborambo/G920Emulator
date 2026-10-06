@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using G920Emulator.Core.Setup;
 using G920Emulator.VirtualHid;
@@ -15,6 +16,7 @@ public partial class DependenciesWindow : Window
     public DependenciesWindow()
     {
         InitializeComponent();
+        DarkTitleBar.Apply(this);
         Refresh();
     }
 
@@ -35,18 +37,36 @@ public partial class DependenciesWindow : Window
             "Reboot required" => WarnBrush,
             _ => BadBrush,
         };
-        TestSigningRequiredText.Text = report.WinUHid?.IsInstalled == true ? "OPTIONAL" : "FOR INSTALL";
-        TestSigningRequiredBadge.Background = report.WinUHid?.IsInstalled == true
-            ? WarnBrush
-            : new SolidColorBrush(Color.FromRgb(0x6F, 0x3A, 0x1F));
+        TestSigningRequiredText.Text = "FOR INSTALL";
+        TestSigningRequiredBadge.Background = new SolidColorBrush(Color.FromRgb(0x6F, 0x3A, 0x1F));
+
+        ApplySecureBootUi(report.SecureBoot);
 
         var testSigningLive = tsLabel.Equals("Enabled", StringComparison.OrdinalIgnoreCase);
-        EnableTestSigningButton.IsEnabled = tsLabel.Equals("Disabled", StringComparison.OrdinalIgnoreCase);
-        DisableTestSigningButton.IsEnabled = testSigningLive;
+        var showDisable = testSigningLive || tsLabel.Equals("Reboot required", StringComparison.OrdinalIgnoreCase);
+        var secureBootOn = report.SecureBoot == SecureBootStatus.On;
+        EnableTestSigningButton.Visibility = showDisable ? Visibility.Collapsed : Visibility.Visible;
+        DisableTestSigningButton.Visibility = showDisable ? Visibility.Visible : Visibility.Collapsed;
+        EnableTestSigningButton.IsEnabled = !showDisable && !secureBootOn;
+        EnableTestSigningButton.ToolTip = secureBootOn
+            ? "Secure Boot is ON. Disable it in UEFI/BIOS and reboot, then Enable test signing."
+            : "Turns on Windows test signing. Secure Boot must be off.";
+        DisableTestSigningButton.IsEnabled = showDisable;
 
         Apply(report.WinUHid, WinUHidStatusBadge, WinUHidStatusText, WinUHidHint, WinUHidDetail);
         if (report.WinUHid is { StatusLabel: "Reboot required" or "Not responding" })
             WinUHidStatusBadge.Background = WarnBrush;
+
+        var winUHidInstalled = report.WinUHid?.IsInstalled == true;
+        var showUninstall = winUHidInstalled || report.WinUHid is { StatusLabel: "Not responding" };
+        var secureBootBlocksInstall = report.SecureBoot == SecureBootStatus.On;
+        InstallWinUHidButton.Visibility = showUninstall ? Visibility.Collapsed : Visibility.Visible;
+        UninstallWinUHidButton.Visibility = showUninstall ? Visibility.Visible : Visibility.Collapsed;
+        InstallWinUHidButton.IsEnabled = !showUninstall && !secureBootBlocksInstall;
+        InstallWinUHidButton.ToolTip = secureBootBlocksInstall
+            ? "Secure Boot is ON. Disable it in UEFI/BIOS and reboot before Install WinUHid will work."
+            : "Install bundled WinUHid: enable test signing if needed, install driver, then turn test signing off (Forza-friendly)";
+        UninstallWinUHidButton.IsEnabled = showUninstall;
 
         var oemState = OemRegistrationSession.GetUiState();
         OemSdkStatusText.Text = oemState switch
@@ -84,9 +104,9 @@ public partial class DependenciesWindow : Window
                 ? "Reboot, then click Install WinUHid once more (installs driver + turns test signing off)."
                 : "Test signing staged — reboot once, then continue setup.";
         else if (testSigningLive && report.WinUHid?.IsInstalled == true)
-            FooterText.Text = "Test signing still ON — Disable and reboot for Forza. WinUHid can stay installed.";
+            FooterText.Text = "Test signing still ON — Disable test signing and reboot so Forza can launch.";
         else if (testSigningLive)
-            FooterText.Text = "Test signing ON — click Install WinUHid (it will turn test signing off afterwards).";
+            FooterText.Text = "Test signing ON — click Install WinUHid (it turns test signing off afterwards).";
         else if (oemState == OemSessionUiState.NeedsRestore)
             FooterText.Text = "OEM/SDK leftovers from a previous session — click Restore system registration.";
         else if (report.ReadyForGames)
@@ -117,18 +137,44 @@ public partial class DependenciesWindow : Window
         }
     }
 
+    private void ApplySecureBootUi(SecureBootStatus status)
+    {
+        switch (status)
+        {
+            case SecureBootStatus.On:
+                SecureBootBadge.Background = BadBrush;
+                SecureBootBadgeText.Text = "SECURE BOOT ON";
+                break;
+            case SecureBootStatus.Off:
+                SecureBootBadge.Background = OkBrush;
+                SecureBootBadgeText.Text = "SECURE BOOT OFF";
+                break;
+            case SecureBootStatus.Unavailable:
+                SecureBootBadge.Background = OkBrush;
+                SecureBootBadgeText.Text = "SECURE BOOT N/A";
+                break;
+            default:
+                SecureBootBadge.Background = WarnBrush;
+                SecureBootBadgeText.Text = "SECURE BOOT ?";
+                break;
+        }
+    }
+
     private void EnableTestSigning_Click(object sender, RoutedEventArgs e)
     {
+        if (DependencyChecker.QuerySecureBoot() == SecureBootStatus.On)
+        {
+            MessageBox.Show(this,
+                "Secure Boot is ON.\n\nDisable it in UEFI/BIOS, reboot, then Recheck.",
+                "Enable test signing",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            Refresh();
+            return;
+        }
+
         var confirm = MessageBox.Show(this,
-            "Enable Windows test signing (test mode)?\n\n" +
-            "Only needed to install WinUHid. Prefer Install WinUHid — it enables test signing, installs the driver, then turns test signing off again.\n\n" +
-            "IMPORTANT — Secure Boot:\n" +
-            "• Secure Boot must be DISABLED in UEFI/BIOS for this step\n" +
-            "• If Secure Boot is still on, Enable will fail\n" +
-            "• After WinUHid is installed and test signing is off, you can turn Secure Boot back on\n\n" +
-            "After Enable you must reboot, then Install WinUHid (which turns test signing off again).\n" +
-            "Forza Horizon 6 will not launch while test mode stays on.\n\n" +
-            "Continue?",
+            "Enable Windows test signing?\n\nNeeded to install WinUHid. Reboot after this, then Install WinUHid.\nForza will not launch while test mode stays on.\n\nContinue?",
             "Enable test signing",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
@@ -139,13 +185,11 @@ public partial class DependenciesWindow : Window
         {
             FooterText.Text = "Enabling test signing…";
             EnableTestSigningButton.IsEnabled = false;
-            var setup = new WinUHidSetupService();
-            var msg = setup.EnableTestSigningElevated();
+            var msg = new WinUHidSetupService().EnableTestSigningElevated();
             Refresh();
 
             var reboot = MessageBox.Show(this,
-                msg + "\n\nReboot now so test signing takes effect?\n\n" +
-                "After reboot: click Install WinUHid (it installs the driver and turns test signing back off).",
+                msg + "\n\nReboot now?",
                 "Reboot required",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
@@ -162,11 +206,7 @@ public partial class DependenciesWindow : Window
     private void DisableTestSigning_Click(object sender, RoutedEventArgs e)
     {
         var confirm = MessageBox.Show(this,
-            "Disable Windows test signing?\n\n" +
-            "• Needed so Forza Horizon 6 can launch\n" +
-            "• Reboot required afterwards\n" +
-            "• WinUHid will stop working until you Enable test signing again\n\n" +
-            "Continue?",
+            "Disable Windows test signing?\n\nReboot required afterwards.\n\nContinue?",
             "Disable test signing",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
@@ -206,7 +246,7 @@ public partial class DependenciesWindow : Window
 
         var confirm = MessageBox.Show(this,
             "Optional nuclear cleanup — not required for Forza Horizon 6.\n" +
-            "(For FH6 splash exit, use Disable test signing or Uninstall WinUHid instead.)\n\n" +
+            "(For FH6 splash exit, Uninstall WinUHid instead — it turns test signing off.)\n\n" +
             "This removes:\n" +
             "• App OEM / Logitech SDK leftovers and COM\n" +
             "• ProgramData SDK cache\n" +
@@ -322,6 +362,39 @@ public partial class DependenciesWindow : Window
 
     private void SetupWinUHid_Click(object sender, RoutedEventArgs e)
     {
+        var installed = DependencyChecker.CheckWinUHid(() =>
+        {
+            var ok = WinUHidNative.TryProbeDriver(out var msg);
+            return (ok, msg);
+        }).IsInstalled;
+        if (installed)
+        {
+            MessageBox.Show(this,
+                "WinUHid is already installed.\n\nUninstall first if you need to reinstall.",
+                "Install WinUHid",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            Refresh();
+            return;
+        }
+
+        if (DependencyChecker.QuerySecureBoot() == SecureBootStatus.On)
+        {
+            MessageBox.Show(this,
+                "Secure Boot is ON.\n\n" +
+                "Install WinUHid needs test signing, and Windows will not allow that while Secure Boot is enabled.\n\n" +
+                "1. Restart PC → enter UEFI/BIOS (often Del, F2, or F10 at boot)\n" +
+                "2. Disable Secure Boot (Security / Boot menu)\n" +
+                "3. Boot Windows, open Dependencies → Recheck\n" +
+                "4. Then Install WinUHid\n\n" +
+                "After WinUHid is installed and test signing is off, you can turn Secure Boot back on.",
+                "Secure Boot required off",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            Refresh();
+            return;
+        }
+
         var window = new WinUHidSetupWindow { Owner = this };
         window.ShowDialog();
         Refresh();

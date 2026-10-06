@@ -450,4 +450,7 @@ public sealed class AppSettings
 
     /// <summary>Device instance IDs hidden from the Detected devices list until the next Refresh devices.</summary>
     public List<string> HiddenDeviceIds { get; set; } = [];
+
+    /// <summary>When true, minimizing hides the window in the notification area. Close still quits.</summary>
+    public bool MinimizeToSystemTray { get; set; }
 }

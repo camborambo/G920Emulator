@@ -24,6 +24,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MahApps.Metro.IconPacks.Material" Version="5.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\G920Emulator.Core\G920Emulator.Core.csproj" />
     <ProjectReference Include="..\G920Emulator.VirtualHid\G920Emulator.VirtualHid.csproj" />
   </ItemGroup>

@@ -1,229 +1,99 @@
 <Window x:Class="G920Emulator.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         Title="G920 Emulator"
         Icon="pack://application:,,,/Assets/app.ico"
         Height="760" Width="1280"
-        MinHeight="640" MinWidth="1220"
-        Background="#121418"
-        Foreground="#E8EAED"
+        MinHeight="640" MinWidth="1000"
+        Background="{StaticResource BgApp}"
+        Foreground="{StaticResource TextPrimary}"
         FontFamily="Segoe UI">
-  <Window.Resources>
-    <ResourceDictionary>
-      <ResourceDictionary.MergedDictionaries>
-        <ResourceDictionary Source="Themes/Controls.xaml"/>
-      </ResourceDictionary.MergedDictionaries>
-
-    <Style TargetType="ListBox">
-      <Setter Property="Background" Value="#1A1F29"/>
-      <Setter Property="BorderBrush" Value="#2A3140"/>
-      <Setter Property="Foreground" Value="#E8EAED"/>
-    </Style>
-    <Style TargetType="TextBox">
-      <Setter Property="Background" Value="#1A1F29"/>
-      <Setter Property="Foreground" Value="#E8EAED"/>
-      <Setter Property="BorderBrush" Value="#2A3140"/>
-      <Setter Property="Padding" Value="6,4"/>
-      <Setter Property="CaretBrush" Value="#E8EAED"/>
-    </Style>
-    <!-- Force dark popup chrome; default ComboBox uses system Window brush (white) with our light text. -->
-    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#1A1F29"/>
-    <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#E8EAED"/>
-    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2A4554"/>
-    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#E8EAED"/>
-    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#1A1F29"/>
-    <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="#E8EAED"/>
-
-    <Style TargetType="ToolTip">
-      <Setter Property="Background" Value="#232A36"/>
-      <Setter Property="Foreground" Value="#E8EAED"/>
-      <Setter Property="BorderBrush" Value="#3A4458"/>
-      <Setter Property="Padding" Value="8,6"/>
-      <Setter Property="MaxWidth" Value="380"/>
-      <Setter Property="ContentTemplate">
-        <Setter.Value>
-          <DataTemplate>
-            <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
-          </DataTemplate>
-        </Setter.Value>
-      </Setter>
-    </Style>
-
-    <Style TargetType="ComboBoxItem">
-      <Setter Property="Background" Value="#1A1F29"/>
-      <Setter Property="Foreground" Value="#E8EAED"/>
-      <Setter Property="Padding" Value="8,4"/>
-      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="ComboBoxItem">
-            <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
-              <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                VerticalAlignment="Center"
-                                TextElement.Foreground="{TemplateBinding Foreground}"/>
-            </Border>
-            <ControlTemplate.Triggers>
-              <Trigger Property="IsHighlighted" Value="True">
-                <Setter TargetName="Bd" Property="Background" Value="#2A4554"/>
-              </Trigger>
-              <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Foreground" Value="#888888"/>
-              </Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-    </Style>
-
-    <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="ToggleButton">
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="*"/>
-          <ColumnDefinition Width="28"/>
-        </Grid.ColumnDefinitions>
-        <Border x:Name="Border" Grid.ColumnSpan="2"
-                Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" CornerRadius="2"/>
-        <Path Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
-              Data="M 0 0 L 6 6 L 12 0" Stroke="#E8EAED" StrokeThickness="1.5"/>
-      </Grid>
-      <ControlTemplate.Triggers>
-        <Trigger Property="IsMouseOver" Value="True">
-          <Setter TargetName="Border" Property="Background" Value="#222836"/>
-        </Trigger>
-        <Trigger Property="IsChecked" Value="True">
-          <Setter TargetName="Border" Property="Background" Value="#222836"/>
-        </Trigger>
-      </ControlTemplate.Triggers>
-    </ControlTemplate>
-
-    <Style TargetType="ComboBox">
-      <Setter Property="Background" Value="#1A1F29"/>
-      <Setter Property="Foreground" Value="#E8EAED"/>
-      <Setter Property="BorderBrush" Value="#2A3140"/>
-      <Setter Property="BorderThickness" Value="1"/>
-      <Setter Property="Padding" Value="8,5"/>
-      <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
-      <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="ComboBox">
-            <Grid>
-              <ToggleButton x:Name="ToggleButton"
-                            Template="{StaticResource ComboBoxToggleButton}"
-                            Focusable="False"
-                            IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                            ClickMode="Press"/>
-              <ContentPresenter x:Name="ContentSite"
-                                IsHitTestVisible="False"
-                                Margin="8,5,32,5"
-                                HorizontalAlignment="Left"
-                                VerticalAlignment="Center"
-                                Content="{TemplateBinding SelectionBoxItem}"
-                                ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
-                                TextElement.Foreground="#E8EAED"/>
-              <Popup x:Name="Popup"
-                     Placement="Bottom"
-                     IsOpen="{TemplateBinding IsDropDownOpen}"
-                     AllowsTransparency="True"
-                     Focusable="False"
-                     PopupAnimation="Slide">
-                <Grid x:Name="DropDown"
-                      MinWidth="{TemplateBinding ActualWidth}"
-                      MaxHeight="{TemplateBinding MaxDropDownHeight}"
-                      SnapsToDevicePixels="True">
-                  <Border x:Name="DropDownBorder"
-                          Background="#1A1F29"
-                          BorderBrush="#2A3140"
-                          BorderThickness="1"/>
-                  <ScrollViewer Margin="1" SnapsToDevicePixels="True">
-                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
-                  </ScrollViewer>
-                </Grid>
-              </Popup>
-            </Grid>
-            <ControlTemplate.Triggers>
-              <Trigger Property="HasItems" Value="False">
-                <Setter TargetName="DropDownBorder" Property="MinHeight" Value="40"/>
-              </Trigger>
-              <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Foreground" Value="#888888"/>
-              </Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-    </Style>
-    </ResourceDictionary>
-  </Window.Resources>
-
-  <DockPanel Margin="16">
-    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-      <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Top">
-        <Button x:Name="StartButton" Content="Start bridge" Click="StartButton_Click"
-                Style="{StaticResource PrimaryButton}"/>
-        <Button x:Name="StopButton" Content="Stop" Click="StopButton_Click" IsEnabled="False"
-                Style="{StaticResource DangerButton}" Margin="0"/>
-      </StackPanel>
-      <StackPanel>
-        <TextBlock Text="G920 Emulator" FontSize="28" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
-        <TextBlock Text="Forward any wheel, pedals, and H-shifter into a virtual Logitech G920" Opacity="0.7" Margin="0,2,0,0"/>
-      </StackPanel>
-    </DockPanel>
-
-    <!-- Profile bar -->
-    <Border DockPanel.Dock="Top" Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4" Margin="0,0,0,12">
-      <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="Auto"/>
-          <ColumnDefinition Width="180"/>
-          <ColumnDefinition Width="12"/>
-          <ColumnDefinition Width="Auto"/>
-          <ColumnDefinition Width="200"/>
-          <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-        <TextBlock Text="Input profile" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"
-                   ToolTip="Bindings / devices. Force feedback has its own profiles below."/>
-        <TextBox x:Name="ProfileNameBox" Grid.Column="1" VerticalAlignment="Center" ToolTip="Input profile name"/>
-        <TextBlock Grid.Column="3" Text="Saved" Opacity="0.7" VerticalAlignment="Center" Margin="0,0,8,0"/>
-        <ComboBox x:Name="SavedProfilesCombo" Grid.Column="4" VerticalAlignment="Center" SelectionChanged="SavedProfilesCombo_SelectionChanged"/>
-        <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right">
-          <Button Style="{StaticResource AppButton}" Content="Save" Click="SaveButton_Click" ToolTip="Save input profile to AppData"/>
-          <Button Style="{StaticResource AppButton}" Content="Save As…" Click="SaveAsButton_Click"/>
-          <Button Style="{StaticResource AppButton}" Content="Delete" Click="DeleteProfileButton_Click"/>
-          <Button Style="{StaticResource AppButton}" Content="Export…" Click="ExportButton_Click"/>
-          <Button Style="{StaticResource AppButton}" Content="Import…" Click="ImportButton_Click" Margin="0"/>
-        </StackPanel>
-      </Grid>
-    </Border>
-
-    <!-- Dependencies status -->
-    <Border x:Name="DependenciesBanner" DockPanel.Dock="Top" Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4" Margin="0,0,0,12">
-      <DockPanel>
+  <DockPanel Margin="12">
+    <!-- Tabs (left) · Start | profile (right) -->
+    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+      <DockPanel LastChildFill="False" Margin="0,0,0,10">
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Style="{StaticResource AppButton}" Content="Recheck" Click="RecheckDependencies_Click"/>
-          <Button x:Name="DependenciesActionButton" Content="Manage dependencies…" Click="DependenciesButton_Click"
-                  Style="{StaticResource AccentButton}" Margin="0"/>
+          <Button x:Name="StartButton" Click="BridgeToggle_Click"
+                  Style="{StaticResource BridgeToggleStart}" Margin="0,0,14,0"
+                  ToolTip="Start the virtual G920">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <iconPacks:PackIconMaterial x:Name="BridgeGlyph" Kind="Play" Width="14" Height="14"
+                                          Foreground="White" VerticalAlignment="Center" Margin="0,0,6,0"/>
+              <TextBlock x:Name="BridgeLabel" Text="Start" FontWeight="SemiBold" FontSize="13"
+                         Foreground="White" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+          <Border Width="1" Height="22" Background="{StaticResource BorderSubtle}"
+                  Margin="0,0,14,0" VerticalAlignment="Center"/>
+          <TextBlock Text="Profile" Opacity="0.7" VerticalAlignment="Center" Margin="0,0,8,0"
+                     ToolTip="Input profile — bindings / devices. Force Feedback has its own profiles on the Force Feedback tab."/>
+          <ComboBox x:Name="SavedProfilesCombo" Width="220" VerticalAlignment="Center" Margin="0,0,6,0"
+                    SelectionChanged="SavedProfilesCombo_SelectionChanged"
+                    ToolTip="Input profile — bindings / devices. Force Feedback has its own profiles on the Force Feedback tab."/>
+          <Button Style="{StaticResource IconButton}" Margin="0,0,4,0" Click="SaveButton_Click"
+                  ToolTip="Save">
+            <iconPacks:PackIconMaterial Kind="ContentSave" Width="14" Height="14" Foreground="#E8EAED"/>
+          </Button>
+          <Button Style="{StaticResource IconButton}" Margin="0,0,4,0" Click="SaveAsButton_Click"
+                  ToolTip="Save As…">
+            <iconPacks:PackIconMaterial Kind="ContentSavePlus" Width="14" Height="14" Foreground="#E8EAED"/>
+          </Button>
+          <Button Style="{StaticResource IconButton}" Margin="0,0,4,0" Click="RenameProfileButton_Click"
+                  ToolTip="Rename…">
+            <iconPacks:PackIconMaterial Kind="Pencil" Width="14" Height="14" Foreground="#E8EAED"/>
+          </Button>
+          <Button Style="{StaticResource IconButton}" Margin="0" Click="DeleteProfileButton_Click"
+                  ToolTip="Delete">
+            <iconPacks:PackIconMaterial Kind="DeleteOutline" Width="14" Height="14" Foreground="#E8EAED"/>
+          </Button>
+          <Border Width="1" Height="22" Background="{StaticResource BorderSubtle}"
+                  Margin="14,0,14,0" VerticalAlignment="Center"/>
+          <Button x:Name="SettingsButton" Style="{StaticResource IconButton}" Click="SettingsButton_Click"
+                  ToolTip="Settings">
+            <iconPacks:PackIconMaterial Kind="CogOutline" Width="14" Height="14" Foreground="#E8EAED"/>
+            <Button.ContextMenu>
+              <ContextMenu x:Name="SettingsMenu">
+                <MenuItem x:Name="RestoreMenuItem" Header="Restore" Click="RestoreFromTrayMenu_Click"
+                          Visibility="Collapsed"/>
+                <Separator x:Name="RestoreMenuSeparator" Visibility="Collapsed"/>
+                <MenuItem Header="Manage dependencies" Click="DependenciesButton_Click"
+                          ToolTip="Install, uninstall, or recheck WinUHid, HidHide, and test signing."/>
+                <MenuItem x:Name="MinimizeToTrayMenuItem" Header="Minimize to system tray"
+                          IsCheckable="True" Click="MinimizeToTrayMenuItem_Click"
+                          ToolTip="When on, minimizing hides the window in the notification area. The close button still quits."/>
+                <Separator/>
+                <MenuItem Header="Exit" Click="ExitApp_Click" ToolTip="Quit G920 Emulator."/>
+              </ContextMenu>
+            </Button.ContextMenu>
+          </Button>
         </StackPanel>
-        <StackPanel Margin="0,0,12,0">
-          <TextBlock Text="Dependencies" FontWeight="SemiBold" Margin="0,0,0,8"/>
+        <Border Background="#0E1116" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1"
+                CornerRadius="10" Padding="4" VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal">
-            <Border x:Name="TestSigningChip" CornerRadius="4" Padding="10,5" Margin="0,0,8,0">
-              <TextBlock x:Name="TestSigningChipText" FontWeight="SemiBold"/>
-            </Border>
-            <Border x:Name="WinUHidChip" CornerRadius="4" Padding="10,5" Margin="0,0,8,0">
-              <TextBlock x:Name="WinUHidChipText" FontWeight="SemiBold"/>
-            </Border>
-            <Border x:Name="HidHideChip" CornerRadius="4" Padding="10,5">
-              <TextBlock x:Name="HidHideChipText" FontWeight="SemiBold"/>
-            </Border>
+            <RadioButton x:Name="InputTabRadio" Style="{StaticResource MainTabRadio}"
+                         GroupName="MainTabs" IsChecked="True" Checked="MainTab_Checked">
+              <StackPanel Orientation="Horizontal">
+                <iconPacks:PackIconMaterial Kind="Equalizer" Width="14" Height="14"
+                                            VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="Input" VerticalAlignment="Center"/>
+              </StackPanel>
+            </RadioButton>
+            <RadioButton x:Name="FfbTabRadio" Style="{StaticResource MainTabRadio}" Margin="0"
+                         GroupName="MainTabs" Checked="MainTab_Checked">
+              <StackPanel Orientation="Horizontal">
+                <iconPacks:PackIconMaterial Kind="LightningBolt" Width="14" Height="14"
+                                            VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="Force Feedback" VerticalAlignment="Center"/>
+              </StackPanel>
+            </RadioButton>
           </StackPanel>
-          <TextBlock x:Name="DependenciesSummaryText" Opacity="0.7" Margin="0,8,0,0" TextWrapping="Wrap"/>
-        </StackPanel>
+        </Border>
       </DockPanel>
-    </Border>
+      <Border Height="1" Background="{StaticResource BorderSubtle}"/>
+    </StackPanel>
 
-    <StatusBar DockPanel.Dock="Bottom" Background="#0E1116" Foreground="#AAB0BB" Margin="0,12,0,0">
+    <StatusBar DockPanel.Dock="Bottom" Background="#0E1116" Foreground="#AAB0BB" Margin="0,8,0,0">
       <StatusBar.ItemsPanel>
         <ItemsPanelTemplate>
           <Grid>
@@ -258,348 +128,501 @@
       </StatusBarItem>
     </StatusBar>
 
-    <Grid>
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="1.05*"/>
-        <ColumnDefinition Width="12"/>
-        <ColumnDefinition Width="1.15*"/>
-        <ColumnDefinition Width="12"/>
-        <ColumnDefinition Width="1.05*"/>
-      </Grid.ColumnDefinitions>
-
-      <DockPanel Grid.Column="0">
-        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-          <TextBlock Text="Detected devices" FontWeight="SemiBold" VerticalAlignment="Center"/>
-          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Style="{StaticResource AppButton}" Content="Refresh" Click="RefreshButton_Click"
-                    ToolTip="Re-scan DirectInput devices and restore any you hid with Remove"/>
-            <Button Style="{StaticResource AppButton}" Content="Remove" Click="RemoveDevice_Click" Margin="0"
-                    ToolTip="Hide the selected device from this list. Refresh to show it again."/>
-          </StackPanel>
-        </DockPanel>
-        <TextBlock DockPanel.Dock="Bottom" x:Name="BindHintText"
-                   Text="Click a G920 binding to capture inputs. Buttons also accept axes (axis→button)."
-                   Opacity="0.65" TextWrapping="Wrap" Margin="0,8,0,0"/>
-        <ListBox x:Name="DeviceList" DisplayMemberPath="Display"/>
+    <!-- Dependencies — compact strip above status bar -->
+    <Border x:Name="DependenciesBanner" DockPanel.Dock="Bottom" Style="{StaticResource CardBorder}" Padding="10,8" Margin="0,8,0,0">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Style="{StaticResource AppButton}" Content="Recheck" Click="RecheckDependencies_Click" Padding="10,5"/>
+          <Button x:Name="DependenciesActionButton" Content="Fix" Click="DependenciesButton_Click"
+                  Style="{StaticResource AccentButton}" Margin="0" Padding="10,5"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock Text="System Dependencies" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0" FontSize="12"/>
+          <Border x:Name="TestSigningChip" CornerRadius="8" Padding="8,4" Margin="0,0,6,0">
+            <TextBlock x:Name="TestSigningChipText" FontWeight="SemiBold" FontSize="12"/>
+          </Border>
+          <Border x:Name="WinUHidChip" CornerRadius="8" Padding="8,4" Margin="0,0,6,0">
+            <TextBlock x:Name="WinUHidChipText" FontWeight="SemiBold" FontSize="12"/>
+          </Border>
+          <Border x:Name="HidHideChip" CornerRadius="8" Padding="8,4" Margin="0">
+            <TextBlock x:Name="HidHideChipText" FontWeight="SemiBold" FontSize="12"/>
+          </Border>
+        </StackPanel>
       </DockPanel>
+    </Border>
 
-      <DockPanel Grid.Column="2">
-        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-          <TextBlock Text="G920 bindings" FontWeight="SemiBold" VerticalAlignment="Center"/>
-          <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Clear all" Click="ClearAllBindings_Click"
-                  Margin="0" HorizontalAlignment="Right"
-                  ToolTip="Clear every G920 binding in this profile"/>
-        </DockPanel>
-        <ListBox x:Name="BindingList" MouseLeftButtonUp="BindingList_MouseLeftButtonUp">
-          <ListBox.ItemContainerStyle>
-            <Style TargetType="ListBoxItem">
-              <Setter Property="Padding" Value="8,6"/>
-              <Setter Property="Cursor" Value="Hand"/>
-              <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-            </Style>
-          </ListBox.ItemContainerStyle>
-          <ListBox.ItemTemplate>
-            <DataTemplate>
-              <StackPanel>
-                <Grid>
+    <Grid>
+      <Grid x:Name="InputPanel">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="1*"/>
+                  <ColumnDefinition Width="12"/>
+                  <ColumnDefinition Width="1.25*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: live input test + detected devices -->
+                <Grid Grid.Column="0">
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="12"/>
+                    <RowDefinition Height="*"/>
+                  </Grid.RowDefinitions>
+
+                  <Border Grid.Row="0" Style="{StaticResource CardBorder}" Padding="10">
+                    <StackPanel>
+                      <DockPanel Margin="0,0,0,10">
+                        <Border Background="#222836" CornerRadius="8" Padding="12,8" VerticalAlignment="Center">
+                          <TextBlock x:Name="StripGearText" Text="GEAR N" FontWeight="Bold" FontFamily="Bahnschrift"
+                                     FontSize="16" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock x:Name="GearText" Visibility="Collapsed" Text="Gear: N"/>
+                        <TextBlock x:Name="ButtonsText" DockPanel.Dock="Right" Text="Buttons: —" FontSize="11"
+                                   VerticalAlignment="Center" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis"
+                                   Opacity="0.9" Margin="10,0,0,0"
+                                   ToolTip="Pressed virtual G920 buttons while the bridge is running"/>
+                      </DockPanel>
+                      <TextBlock x:Name="StripSteerText" Text="Steering: 0.00" FontSize="11" Opacity="0.85"/>
+                      <ProgressBar x:Name="StripSteerBar" Height="7" Minimum="-1" Maximum="1" Value="0" Margin="0,3,0,8"
+                                   Foreground="#2A9D8F"/>
+                      <TextBlock x:Name="SteerText" Visibility="Collapsed"/>
+                      <ProgressBar x:Name="SteerBar" Visibility="Collapsed" Minimum="-1" Maximum="1"/>
+                      <TextBlock x:Name="StripThrottleText" Text="Throttle: 0%" FontSize="11" Opacity="0.85"/>
+                      <ProgressBar x:Name="StripThrottleBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,8"
+                                   Foreground="#1F6F4A"/>
+                      <TextBlock x:Name="ThrottleText" Visibility="Collapsed"/>
+                      <ProgressBar x:Name="ThrottleBar" Visibility="Collapsed" Minimum="0" Maximum="1"/>
+                      <TextBlock x:Name="StripBrakeText" Text="Brake: 0%" FontSize="11" Opacity="0.85"/>
+                      <ProgressBar x:Name="StripBrakeBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,8"
+                                   Foreground="#B33A3A"/>
+                      <TextBlock x:Name="BrakeText" Visibility="Collapsed"/>
+                      <ProgressBar x:Name="BrakeBar" Visibility="Collapsed" Minimum="0" Maximum="1"/>
+                      <TextBlock x:Name="StripClutchText" Text="Clutch: 0%" FontSize="11" Opacity="0.85"/>
+                      <ProgressBar x:Name="StripClutchBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,0"
+                                   Foreground="#C9A227"/>
+                      <TextBlock x:Name="ClutchText" Visibility="Collapsed"/>
+                      <ProgressBar x:Name="ClutchBar" Visibility="Collapsed" Minimum="0" Maximum="1"/>
+                    </StackPanel>
+                  </Border>
+
+                  <Border Grid.Row="2" Style="{StaticResource CardBorder}" Padding="10">
+                    <DockPanel>
+                      <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <TextBlock Text="Detected devices" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"/>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Refresh" Click="RefreshButton_Click"
+                                Padding="10,5" Margin="0" HorizontalAlignment="Right"
+                                ToolTip="Re-scan DirectInput devices and restore any you hid from this list"/>
+                      </DockPanel>
+                      <TextBlock DockPanel.Dock="Bottom" x:Name="BindHintText"
+                                 Text="Click a G920 binding to Assign. Buttons also accept axes (axis→button)."
+                                 Opacity="0.65" TextWrapping="Wrap" Margin="0,8,0,0" FontSize="12"/>
+                      <ListBox x:Name="DeviceList" BorderThickness="0" Background="Transparent">
+                        <ListBox.ItemContainerStyle>
+                          <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="6,4"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                          </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                          <DataTemplate>
+                            <DockPanel>
+                              <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}"
+                                      Width="26" Height="26" MinWidth="26" MinHeight="26" Padding="4"
+                                      VerticalAlignment="Center"
+                                      Click="RemoveDevice_Click"
+                                      ToolTip="Hide this device from the list. Refresh to show it again.">
+                                <iconPacks:PackIconMaterial Kind="Close" Width="12" Height="12" Foreground="#E8EAED"/>
+                              </Button>
+                              <StackPanel Margin="0,0,8,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Display}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding Id}" FontSize="11" Opacity="0.55"
+                                           TextTrimming="CharacterEllipsis" Margin="0,2,0,0"
+                                           ToolTip="DirectInput instance ID"/>
+                              </StackPanel>
+                            </DockPanel>
+                          </DataTemplate>
+                        </ListBox.ItemTemplate>
+                      </ListBox>
+                    </DockPanel>
+                  </Border>
+                </Grid>
+
+                <Border Grid.Column="2" Style="{StaticResource CardBorder}" Padding="10">
+                  <DockPanel>
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                      <TextBlock Text="G920 bindings" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"/>
+                      <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Clear all" Click="ClearAllBindings_Click"
+                              Margin="0" HorizontalAlignment="Right" Padding="10,5"
+                              ToolTip="Clear every G920 binding in this profile"/>
+                    </DockPanel>
+                    <ListBox x:Name="BindingList" MouseLeftButtonUp="BindingList_MouseLeftButtonUp"
+                             BorderThickness="0" Background="Transparent">
+                      <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                          <Setter Property="Padding" Value="8,6"/>
+                          <Setter Property="Cursor" Value="Hand"/>
+                          <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        </Style>
+                      </ListBox.ItemContainerStyle>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate>
+                          <StackPanel>
+                            <Grid>
+                              <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                              </Grid.ColumnDefinitions>
+                              <TextBlock Text="{Binding TargetName}" FontWeight="SemiBold"/>
+                              <TextBlock Grid.Column="1" Text="{Binding SourceText}" Opacity="0.85" TextTrimming="CharacterEllipsis"/>
+                            </Grid>
+                            <DockPanel Margin="0,6,0,0" Visibility="{Binding DeadzoneVisibility}">
+                              <TextBlock Text="{Binding DeadzoneLabel}" Width="72" Opacity="0.7" VerticalAlignment="Center" FontSize="12"/>
+                              <TextBlock DockPanel.Dock="Right" Text="{Binding DeadzoneText}" Width="36"
+                                         Opacity="0.85" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="12"/>
+                              <Slider Minimum="{Binding DeadzoneMinimum}" Maximum="{Binding DeadzoneMaximum}"
+                                      TickFrequency="0.01" IsSnapToTickEnabled="False"
+                                      Value="{Binding Deadzone, Mode=TwoWay}"
+                                      Margin="8,0"
+                                      ToolTip="{Binding DeadzoneToolTip}"
+                                      PreviewMouseLeftButtonDown="DeadzoneSlider_PreviewMouseLeftButtonDown"/>
+                            </DockPanel>
+                          </StackPanel>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </DockPanel>
+                </Border>
+              </Grid>
+
+      <ScrollViewer x:Name="FfbPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid ToolTipService.ShowDuration="30000" ToolTipService.InitialShowDelay="400">
                   <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
                     <ColumnDefinition Width="*"/>
                   </Grid.ColumnDefinitions>
-                  <TextBlock Text="{Binding TargetName}" FontWeight="SemiBold"/>
-                  <TextBlock Grid.Column="1" Text="{Binding SourceText}" Opacity="0.85" TextTrimming="CharacterEllipsis"/>
+
+                  <!-- Left: profile, device, master, effect gains -->
+                  <StackPanel Grid.Column="0">
+                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                      <StackPanel>
+                        <DockPanel Margin="0,0,0,8">
+                          <TextBlock Text="FFB profile" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"
+                                     ToolTip="Saved force feedback settings for this setup. Separate from input profiles."/>
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{StaticResource IconButton}" Margin="0,0,4,0" Click="SaveFfbButton_Click"
+                                    ToolTip="Save current settings to the selected FFB profile.">
+                              <iconPacks:PackIconMaterial Kind="ContentSave" Width="14" Height="14" Foreground="#E8EAED"/>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}" Margin="0,0,4,0" Click="SaveFfbAsButton_Click"
+                                    ToolTip="Save current settings as a new FFB profile.">
+                              <iconPacks:PackIconMaterial Kind="ContentSavePlus" Width="14" Height="14" Foreground="#E8EAED"/>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}" Margin="0,0,4,0" Click="DefaultFfbButton_Click"
+                                    ToolTip="Reset sliders to Raw defaults. Save to keep the change.">
+                              <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14" Foreground="#E8EAED"/>
+                            </Button>
+                            <Button Style="{StaticResource IconButton}" Margin="0" Click="DeleteFfbButton_Click"
+                                    ToolTip="Delete the selected FFB profile. Raw cannot be deleted.">
+                              <iconPacks:PackIconMaterial Kind="DeleteOutline" Width="14" Height="14" Foreground="#E8EAED"/>
+                            </Button>
+                          </StackPanel>
+                        </DockPanel>
+                        <ComboBox x:Name="FfbProfilesCombo" Margin="0,0,0,12" VerticalAlignment="Center"
+                                  ToolTip="Select an FFB profile. Raw leaves the game's feedback unchanged."
+                                  SelectionChanged="FfbProfilesCombo_SelectionChanged"/>
+                        <TextBlock Text="FFB output device" Opacity="0.7" Margin="0,0,0,4"
+                                   ToolTip="Physical wheel base that plays force feedback."/>
+                        <ComboBox x:Name="FfbDeviceCombo" DisplayMemberPath="Display" SelectionChanged="FfbDeviceCombo_SelectionChanged"
+                                  ToolTip="Physical wheel base that plays force feedback."/>
+                        <DockPanel Margin="0,12,0,0"
+                                   ToolTip="Overall force feedback strength. 100% matches the game; higher values boost output.">
+                          <TextBlock Text="Master" Width="88" VerticalAlignment="Center"/>
+                          <TextBlock x:Name="GainValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                                     Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                          <Slider x:Name="GainSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1" IsSnapToTickEnabled="False" ValueChanged="GainSlider_ValueChanged"/>
+                        </DockPanel>
+                        <CheckBox x:Name="InvertFfbCheck" Content="Invert FFB" Margin="0,10,0,0"
+                                  ToolTip="Reverses force direction."
+                                  Checked="InvertFfbCheck_Changed" Unchecked="InvertFfbCheck_Changed"/>
+                      </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource CardBorder}">
+                      <StackPanel>
+                        <TextBlock Text="Effect gains" Style="{StaticResource SectionTitle}"
+                                   ToolTip="Scale each force feedback effect type. 100% = as sent by the game, 0% = muted. Bind assigns hardware buttons that change that gain while you drive."/>
+                        <DockPanel Margin="0,2,0,0"
+                                   ToolTip="Main steering torque from tire load, road feel, and impacts.">
+                          <TextBlock Text="Constant" Width="88" VerticalAlignment="Center"/>
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="GainConstantValueText" Width="40" Text="100%" VerticalAlignment="Center"
+                                       TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                       MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Button x:Name="BindFfbConstant" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                    Tag="Constant" Click="FfbEffectBind_Click"/>
+                          </StackPanel>
+                          <Slider x:Name="GainConstantSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
+                                  ValueChanged="EffectGainSlider_ValueChanged"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,4,0,0"
+                                   ToolTip="Pulls the wheel toward center, stronger the farther you turn.">
+                          <TextBlock Text="Spring" Width="88" VerticalAlignment="Center"/>
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="GainSpringValueText" Width="40" Text="100%" VerticalAlignment="Center"
+                                       TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                       MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Button x:Name="BindFfbSpring" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                    Tag="Spring" Click="FfbEffectBind_Click"/>
+                          </StackPanel>
+                          <Slider x:Name="GainSpringSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
+                                  ValueChanged="EffectGainSlider_ValueChanged"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,4,0,0"
+                                   ToolTip="Resists how quickly you turn the wheel.">
+                          <TextBlock Text="Damper" Width="88" VerticalAlignment="Center"/>
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="GainDamperValueText" Width="40" Text="100%" VerticalAlignment="Center"
+                                       TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                       MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Button x:Name="BindFfbDamper" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                    Tag="Damper" Click="FfbEffectBind_Click"/>
+                          </StackPanel>
+                          <Slider x:Name="GainDamperSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
+                                  ValueChanged="EffectGainSlider_ValueChanged"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,4,0,0"
+                                   ToolTip="Constant drag whenever the wheel is moving.">
+                          <TextBlock Text="Friction" Width="88" VerticalAlignment="Center"/>
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="GainFrictionValueText" Width="40" Text="100%" VerticalAlignment="Center"
+                                       TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                       MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Button x:Name="BindFfbFriction" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                    Tag="Friction" Click="FfbEffectBind_Click"/>
+                          </StackPanel>
+                          <Slider x:Name="GainFrictionSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
+                                  ValueChanged="EffectGainSlider_ValueChanged"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,4,0,0"
+                                   ToolTip="Makes the wheel feel heavier by resisting changes in turning speed.">
+                          <TextBlock Text="Inertia" Width="88" VerticalAlignment="Center"/>
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="GainInertiaValueText" Width="40" Text="100%" VerticalAlignment="Center"
+                                       TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                       MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Button x:Name="BindFfbInertia" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                    Tag="Inertia" Click="FfbEffectBind_Click"/>
+                          </StackPanel>
+                          <Slider x:Name="GainInertiaSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
+                                  ValueChanged="EffectGainSlider_ValueChanged"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,4,0,0"
+                                   ToolTip="Vibration effects such as rumble, gravel, and crash shake.">
+                          <TextBlock Text="Periodic" Width="88" VerticalAlignment="Center"/>
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="GainPeriodicValueText" Width="40" Text="100%" VerticalAlignment="Center"
+                                       TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                       MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Button x:Name="BindFfbPeriodic" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                    Tag="Periodic" Click="FfbEffectBind_Click"/>
+                          </StackPanel>
+                          <Slider x:Name="GainPeriodicSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
+                                  ValueChanged="EffectGainSlider_ValueChanged"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,4,0,0"
+                                   ToolTip="Force that ramps from one strength to another over time.">
+                          <TextBlock Text="Ramp" Width="88" VerticalAlignment="Center"/>
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="GainRampValueText" Width="40" Text="100%" VerticalAlignment="Center"
+                                       TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                       MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Button x:Name="BindFfbRamp" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                    Tag="Ramp" Click="FfbEffectBind_Click"/>
+                          </StackPanel>
+                          <Slider x:Name="GainRampSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
+                                  ValueChanged="EffectGainSlider_ValueChanged"/>
+                        </DockPanel>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+
+                  <!-- Right: feel, shaping, centering, advanced -->
+                  <StackPanel Grid.Column="2">
+                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                      <Expander Header="Output feel" IsExpanded="True"
+                                ToolTip="Optional filtering applied to the final force before it reaches your wheel.">
+                        <StackPanel Margin="0,8,0,0">
+                          <DockPanel Margin="0,2,0,0"
+                                     ToolTip="Softens harsh detail. Higher values feel smoother but add a little delay. 0 = off.">
+                            <TextBlock Text="Smoothing" Width="88" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="FeelSmoothingValueText" DockPanel.Dock="Right" Width="40" Text="0 ms" VerticalAlignment="Center"
+                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Slider x:Name="FeelSmoothingSlider" Minimum="0" Maximum="40" Value="0" TickFrequency="1"
+                                    ValueChanged="FeelSlider_ValueChanged"/>
+                          </DockPanel>
+                          <DockPanel Margin="0,4,0,0"
+                                     ToolTip="Softens the strongest peaks (crashes, big curbs). 100% = off; lower = gentler peaks.">
+                            <TextBlock Text="Peak soft" Width="88" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="FeelPeakSoftValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
+                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Slider x:Name="FeelPeakSoftSlider" Minimum="0.5" Maximum="1" Value="1" TickFrequency="0.01"
+                                    ValueChanged="FeelSlider_ValueChanged"/>
+                          </DockPanel>
+                          <DockPanel Margin="0,4,0,0"
+                                     ToolTip="Fades force in when FFB first starts, instead of a sudden jolt. 0 = off.">
+                            <TextBlock Text="Soft start" Width="88" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="FeelSoftStartValueText" DockPanel.Dock="Right" Width="40" Text="0" VerticalAlignment="Center"
+                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Slider x:Name="FeelSoftStartSlider" Minimum="0" Maximum="2000" Value="0" TickFrequency="50"
+                                    ValueChanged="FeelSlider_ValueChanged"/>
+                          </DockPanel>
+                        </StackPanel>
+                      </Expander>
+                    </Border>
+
+                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                      <Expander Header="Torque shaping" IsExpanded="True"
+                                ToolTip="Optional cleanup for noisy or jumpy force feedback.">
+                        <StackPanel Margin="0,8,0,0">
+                          <DockPanel Margin="0,2,0,0"
+                                     ToolTip="Ignores very small forces near center so the wheel does not twitch. 0 = off.">
+                            <TextBlock Text="Deadband" Width="88" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="FeelDeadbandValueText" DockPanel.Dock="Right" Width="48" Text="0" VerticalAlignment="Center"
+                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Slider x:Name="FeelDeadbandSlider" Minimum="0" Maximum="0.05" Value="0" TickFrequency="0.001"
+                                    ValueChanged="FeelSlider_ValueChanged"/>
+                          </DockPanel>
+                          <DockPanel Margin="0,4,0,0"
+                                     ToolTip="Limits how fast force can change. Lower is smoother; 0 = unlimited.">
+                            <TextBlock Text="Slew" Width="88" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="FeelSlewValueText" DockPanel.Dock="Right" Width="48" Text="off" VerticalAlignment="Center"
+                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Slider x:Name="FeelSlewSlider" Minimum="0" Maximum="200" Value="0" TickFrequency="1"
+                                    ValueChanged="FeelSlider_ValueChanged"/>
+                          </DockPanel>
+                          <DockPanel Margin="0,4,0,0"
+                                     ToolTip="Caps the largest force jump in one update. 100% = off.">
+                            <TextBlock Text="Spike cap" Width="88" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="FeelSpikeValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
+                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Slider x:Name="FeelSpikeSlider" Minimum="0.05" Maximum="1" Value="1" TickFrequency="0.01"
+                                    ValueChanged="FeelSlider_ValueChanged"/>
+                          </DockPanel>
+                          <DockPanel Margin="0,4,0,0"
+                                     ToolTip="Ignores tiny force changes to reduce chatter or buzzing. 0 = off.">
+                            <TextBlock Text="DI epsilon" Width="88" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="FeelEpsilonValueText" DockPanel.Dock="Right" Width="48" Text="0" VerticalAlignment="Center"
+                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Slider x:Name="FeelEpsilonSlider" Minimum="0" Maximum="64" Value="0" TickFrequency="1"
+                                    ValueChanged="FeelSlider_ValueChanged"/>
+                          </DockPanel>
+                        </StackPanel>
+                      </Expander>
+                    </Border>
+
+                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                      <Expander Header="Centering" IsExpanded="True"
+                                ToolTip="Extra return-to-center spring for games that leave the wheel loose.">
+                        <StackPanel Margin="0,8,0,0">
+                          <CheckBox x:Name="ForceCenterCheck" Content="Force center spring"
+                                    Checked="ForceCenterCheck_Changed" Unchecked="ForceCenterCheck_Changed"
+                                    ToolTip="Adds a centering spring based on your wheel angle, including menus and pause."/>
+                          <StackPanel x:Name="CenterSpringPanel" Margin="0,4,0,0" IsEnabled="False" Opacity="0.5">
+                            <DockPanel Margin="0,2,0,0"
+                                       ToolTip="Maximum centering force. Scaled by Master.">
+                              <TextBlock Text="Strength" Width="88" VerticalAlignment="Center"/>
+                              <TextBlock x:Name="CenterStrengthValueText" DockPanel.Dock="Right" Width="48" Text="30%" VerticalAlignment="Center"
+                                         Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Slider x:Name="CenterStrengthSlider" Minimum="0.05" Maximum="1" Value="0.3" TickFrequency="0.01"
+                                      ValueChanged="FeelSlider_ValueChanged"/>
+                            </DockPanel>
+                            <DockPanel Margin="0,4,0,0"
+                                       ToolTip="How far from center the spring reaches full strength. Lower is stiffer near center.">
+                              <TextBlock Text="Range" Width="88" VerticalAlignment="Center"/>
+                              <TextBlock x:Name="CenterRangeValueText" DockPanel.Dock="Right" Width="48" Text="25%" VerticalAlignment="Center"
+                                         Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Slider x:Name="CenterRangeSlider" Minimum="0.05" Maximum="0.5" Value="0.25" TickFrequency="0.01"
+                                      ValueChanged="FeelSlider_ValueChanged"/>
+                            </DockPanel>
+                            <DockPanel Margin="0,4,0,0"
+                                       ToolTip="Free zone around center where the spring does not push. 0 = off.">
+                              <TextBlock Text="Deadzone" Width="88" VerticalAlignment="Center"/>
+                              <TextBlock x:Name="CenterDeadzoneValueText" DockPanel.Dock="Right" Width="48" Text="off" VerticalAlignment="Center"
+                                         Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Slider x:Name="CenterDeadzoneSlider" Minimum="0" Maximum="0.05" Value="0" TickFrequency="0.001"
+                                      ValueChanged="FeelSlider_ValueChanged"/>
+                            </DockPanel>
+                          </StackPanel>
+                        </StackPanel>
+                      </Expander>
+                    </Border>
+
+                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                      <Expander Header="Advanced mix" IsExpanded="False"
+                                ToolTip="Fine-tune damper response and constant-force direction.">
+                        <StackPanel Margin="0,8,0,0">
+                          <CheckBox x:Name="InvertConstantForceCheck" Content="Invert Constant Force" Margin="0,0,0,4"
+                                    ToolTip="Reverses only the constant-force effect. Independent of Invert FFB."
+                                    Checked="MixOption_Changed" Unchecked="MixOption_Changed"/>
+                          <DockPanel Margin="0,2,0,0"
+                                     ToolTip="How strongly wheel speed feeds into damper and inertia. 100% = as the game sent it.">
+                            <TextBlock Text="Damp vel" Width="88" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="DamperVelScaleValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
+                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Slider x:Name="DamperVelScaleSlider" Minimum="0.25" Maximum="4" Value="1" TickFrequency="0.05"
+                                    ValueChanged="FeelSlider_ValueChanged"/>
+                          </DockPanel>
+                          <DockPanel Margin="0,4,0,0"
+                                     ToolTip="How soon damper engages near zero speed. Lower engages sooner. 100% = as the game sent it.">
+                            <TextBlock Text="Damp dead" Width="88" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="DamperDeadbandScaleValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
+                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Slider x:Name="DamperDeadbandScaleSlider" Minimum="0.1" Maximum="1" Value="1" TickFrequency="0.01"
+                                    ValueChanged="FeelSlider_ValueChanged"/>
+                          </DockPanel>
+                        </StackPanel>
+                      </Expander>
+                    </Border>
+
+                    <Border Style="{StaticResource CardBorder}">
+                      <Expander x:Name="FfbDebugExpander" Header="FFB debug" IsExpanded="False"
+                                Expanded="FfbDebugExpander_ExpandedChanged"
+                                Collapsed="FfbDebugExpander_ExpandedChanged"
+                                ToolTip="Test force feedback and view live effect counters.">
+                        <StackPanel Margin="0,8,0,0">
+                          <TextBlock Text="Send test forces to your FFB wheel. No game required."
+                                     Opacity="0.65" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,10"/>
+                          <WrapPanel Margin="0,0,0,4">
+                            <Button Style="{StaticResource WrapButton}" Content="Attach FFB" Click="FfbAttach_Click"
+                                    ToolTip="Connect force feedback to the selected wheel."/>
+                            <Button Style="{StaticResource WrapButton}" Content="Left" Click="FfbTestLeft_Click"/>
+                            <Button Style="{StaticResource WrapButton}" Content="Center" Click="FfbTestCenter_Click"
+                                    ToolTip="Toggle a return-to-center spring test."/>
+                            <Button Style="{StaticResource WrapButton}" Content="Right" Click="FfbTestRight_Click"/>
+                            <Button Style="{StaticResource WrapButton}" Content="Pulse" Click="FfbTestPulse_Click"
+                                    ToolTip="Short left/right pulse."/>
+                            <Button Style="{StaticResource WrapButton}" Content="Release test" Click="FfbTestRelease_Click"
+                                    Margin="0,0,0,8"
+                                    ToolTip="Clear the test force so game FFB can drive again."/>
+                          </WrapPanel>
+                          <DockPanel Margin="0,0,0,4">
+                            <TextBlock Text="Test torque" Width="88" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="FfbTestTorqueValueText" DockPanel.Dock="Right" Width="48"
+                                       Text="0%" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                            <Slider x:Name="FfbTestTorqueSlider" Minimum="-1" Maximum="1" Value="0"
+                                    TickFrequency="0.05" IsSnapToTickEnabled="False"
+                                    ValueChanged="FfbTestTorqueSlider_ValueChanged"/>
+                          </DockPanel>
+                          <TextBlock x:Name="FfbDiagText" Opacity="0.8" FontSize="11" TextWrapping="Wrap"
+                                     FontFamily="Consolas" Margin="0,8,0,0"
+                                     Text="FFB diagnostics will appear here."/>
+                        </StackPanel>
+                      </Expander>
+                    </Border>
+
+                    <TextBlock x:Name="DriverText" Text="" Opacity="0.65" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                  </StackPanel>
                 </Grid>
-                <DockPanel Margin="0,6,0,0" Visibility="{Binding DeadzoneVisibility}">
-                  <TextBlock Text="{Binding DeadzoneLabel}" Width="72" Opacity="0.7" VerticalAlignment="Center" FontSize="12"/>
-                  <TextBlock DockPanel.Dock="Right" Text="{Binding DeadzoneText}" Width="36"
-                             Opacity="0.85" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="12"/>
-                  <Slider Minimum="{Binding DeadzoneMinimum}" Maximum="{Binding DeadzoneMaximum}"
-                          TickFrequency="0.01" IsSnapToTickEnabled="False"
-                          Value="{Binding Deadzone, Mode=TwoWay}"
-                          Margin="8,0"
-                          ToolTip="{Binding DeadzoneToolTip}"
-                          PreviewMouseLeftButtonDown="DeadzoneSlider_PreviewMouseLeftButtonDown"/>
-                </DockPanel>
-              </StackPanel>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-      </DockPanel>
-
-      <ScrollViewer Grid.Column="4" VerticalScrollBarVisibility="Auto">
-        <StackPanel>
-          <TextBlock Text="Live virtual G920" FontWeight="SemiBold" Margin="0,0,0,8"/>
-          <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4">
-            <StackPanel>
-              <TextBlock x:Name="GearText" Text="Gear: N" FontSize="22" FontWeight="Bold" FontFamily="Bahnschrift"/>
-              <TextBlock x:Name="SteerText" Text="Steering: 0.00" Margin="0,8,0,0"/>
-              <ProgressBar x:Name="SteerBar" Height="8" Minimum="-1" Maximum="1" Value="0" Margin="0,4,0,0"/>
-              <TextBlock x:Name="ThrottleText" Text="Throttle: 0%" Margin="0,8,0,0"/>
-              <ProgressBar x:Name="ThrottleBar" Height="8" Minimum="0" Maximum="1" Value="0" Margin="0,4,0,0"/>
-              <TextBlock x:Name="BrakeText" Text="Brake: 0%" Margin="0,8,0,0"/>
-              <ProgressBar x:Name="BrakeBar" Height="8" Minimum="0" Maximum="1" Value="0" Margin="0,4,0,0"/>
-              <TextBlock x:Name="ClutchText" Text="Clutch: 0%" Margin="0,8,0,0"/>
-              <ProgressBar x:Name="ClutchBar" Height="8" Minimum="0" Maximum="1" Value="0" Margin="0,4,0,0"/>
-              <TextBlock x:Name="ButtonsText" Text="Buttons: —" Margin="0,10,0,0" TextWrapping="Wrap"/>
-            </StackPanel>
-          </Border>
-
-          <TextBlock Text="Force feedback" FontWeight="SemiBold" Margin="0,16,0,8"/>
-          <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="4">
-            <StackPanel ToolTipService.ShowDuration="30000" ToolTipService.InitialShowDelay="400">
-              <TextBlock Text="FFB profile" Opacity="0.7" Margin="0,0,0,4"
-                         ToolTip="Saved force feedback settings (gains, output feel, torque shaping). Separate from input bindings. Raw passes the game's feedback through unchanged."/>
-              <ComboBox x:Name="FfbProfilesCombo" Margin="0,0,0,6" VerticalAlignment="Center"
-                        ToolTip="Pick an FFB profile. Raw passes the game's feedback through unchanged. Use Save As… to create your own per-game profiles."
-                        SelectionChanged="FfbProfilesCombo_SelectionChanged"/>
-              <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                <Button Style="{StaticResource AppButton}" Content="Save" Click="SaveFfbButton_Click"
-                        ToolTip="Save the current FFB sliders to the selected FFB profile."/>
-                <Button Style="{StaticResource AppButton}" Content="Save As…" Click="SaveFfbAsButton_Click"
-                        ToolTip="Save the current FFB sliders as a new FFB profile."/>
-                <Button Style="{StaticResource AppButton}" Content="Default" Click="DefaultFfbButton_Click"
-                        ToolTip="Reset sliders to Raw defaults (exact game mix). Does not change the selected profile until you Save."/>
-                <Button Style="{StaticResource AppButton}" Content="Delete" Click="DeleteFfbButton_Click" Margin="0"
-                        ToolTip="Delete the selected FFB profile. The built-in Raw profile cannot be deleted."/>
-              </StackPanel>
-              <TextBlock Text="FFB output device" Opacity="0.7" Margin="0,0,0,4"
-                         ToolTip="The physical wheel base that plays the force feedback (Fanatec, Simucube, Moza, …)."/>
-              <ComboBox x:Name="FfbDeviceCombo" DisplayMemberPath="Display" SelectionChanged="FfbDeviceCombo_SelectionChanged"
-                        ToolTip="The physical wheel base that plays the force feedback (Fanatec, Simucube, Moza, …)."/>
-              <DockPanel Margin="0,10,0,0"
-                         ToolTip="Overall force feedback strength, applied after all effects are mixed. 100% = the game's own strength; up to 200% boosts weak games (strong peaks may clip).">
-                <TextBlock Text="Master" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="GainSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1" IsSnapToTickEnabled="False" ValueChanged="GainSlider_ValueChanged"/>
-              </DockPanel>
-              <TextBlock Text="Effect gains" Opacity="0.7" Margin="0,12,0,4"
-                         ToolTip="Scale each type of effect the game sends before they are mixed. 100% = as the game sent it, 0% = mute, up to 200% = boost it. Click a % to type an exact value."/>
-              <DockPanel Margin="0,2,0,0"
-                         ToolTip="Constant force (tire load): the main steering torque most games send — tyre load, self-aligning force, road surface, curb and crash hits.">
-                <TextBlock Text="Constant" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainConstantValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="GainConstantSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
-                        ValueChanged="EffectGainSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="Spring: pulls the wheel back toward center, harder the further you turn. Arcade games use it for self-centering and in menus. Lower it if centering feels too stiff.">
-                <TextBlock Text="Spring" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainSpringValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="GainSpringSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
-                        ValueChanged="EffectGainSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="Damper: resists how fast you turn the wheel (like moving through thick liquid). Adds weight and calms oscillation; too much feels sluggish.">
-                <TextBlock Text="Damper" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainDamperValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="GainDamperSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
-                        ValueChanged="EffectGainSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="Friction: a constant drag whenever the wheel moves, regardless of speed. Often used for tyre scrub or a heavy wheel when parked.">
-                <TextBlock Text="Friction" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainFrictionValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="GainFrictionSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
-                        ValueChanged="EffectGainSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="Inertia: resists changes in turning speed, so the wheel feels like it has more mass. Few games use it.">
-                <TextBlock Text="Inertia" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainInertiaValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="GainInertiaSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
-                        ValueChanged="EffectGainSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="Periodic: vibration effects (sine, square, triangle, sawtooth) — engine rumble, rumble strips, gravel, collisions and crash shake. Raise it if rumble feels weak, lower it if it is too buzzy.">
-                <TextBlock Text="Periodic" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainPeriodicValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="GainPeriodicSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
-                        ValueChanged="EffectGainSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="Ramp: a force that slides from one strength to another over time. Rarely used; some games use it for building or fading pushes.">
-                <TextBlock Text="Ramp" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainRampValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="GainRampSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
-                        ValueChanged="EffectGainSlider_ValueChanged"/>
-              </DockPanel>
-
-              <TextBlock Text="Output feel" Opacity="0.7" Margin="0,12,0,4"
-                         ToolTip="Optional filtering of the final mixed torque before it reaches your base. The defaults (off) leave the game's feedback exact."/>
-              <DockPanel Margin="0,2,0,0"
-                         ToolTip="Smoothing: filters out harsh, grainy detail (low-pass, in milliseconds). 0 = off, exact game feedback. Try 8–15 ms on direct-drive bases that feel notchy. Higher values add a little delay and soften detail.">
-                <TextBlock Text="Smoothing" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelSmoothingValueText" DockPanel.Dock="Right" Width="40" Text="0 ms" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="FeelSmoothingSlider" Minimum="0" Maximum="40" Value="0" TickFrequency="1"
-                        ValueChanged="FeelSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="Peak soft: rounds off the strongest forces (crashes, big curbs) so they don't slam the wheel, while light and medium forces stay the same. 100% = off. Lower = gentler peaks.">
-                <TextBlock Text="Peak soft" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelPeakSoftValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="FeelPeakSoftSlider" Minimum="0.5" Maximum="1" Value="1" TickFrequency="0.01"
-                        ValueChanged="FeelSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="Soft start: when force feedback first kicks in (game launch, loading into a race), fade it in over this many milliseconds instead of jolting the wheel. Happens once, not every frame. 0 = off.">
-                <TextBlock Text="Soft start" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelSoftStartValueText" DockPanel.Dock="Right" Width="40" Text="0" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="FeelSoftStartSlider" Minimum="0" Maximum="2000" Value="0" TickFrequency="50"
-                        ValueChanged="FeelSlider_ValueChanged"/>
-              </DockPanel>
-
-              <TextBlock Text="Torque shaping" Opacity="0.7" Margin="0,12,0,4"
-                         ToolTip="Optional cleanup for games that send noisy or jumpy torque. Off when Deadband/Slew/DI epsilon are 0 and Spike cap is 100% (as on Raw). Click a value to type."/>
-              <DockPanel Margin="0,2,0,0"
-                         ToolTip="Deadband: ignores very small forces (fraction of full strength) so the wheel doesn't twitch or hum around center. 0 = off. Try around 0.004.">
-                <TextBlock Text="Deadband" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelDeadbandValueText" DockPanel.Dock="Right" Width="48" Text="0" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="FeelDeadbandSlider" Minimum="0" Maximum="0.05" Value="0" TickFrequency="0.001"
-                        ValueChanged="FeelSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="Slew: limits how fast the force may change (full-strength units per second). Stops sudden snaps; lower = smoother but less sharp. Releasing to zero is allowed 2.5× faster. 0 = unlimited (off). Try around 40.">
-                <TextBlock Text="Slew" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelSlewValueText" DockPanel.Dock="Right" Width="48" Text="off" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="FeelSlewSlider" Minimum="0" Maximum="200" Value="0" TickFrequency="1"
-                        ValueChanged="FeelSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="Spike cap: the largest jump allowed in a single update, as a percentage of full strength. Tames one-frame spikes from glitchy games. 100% = off.">
-                <TextBlock Text="Spike cap" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelSpikeValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="FeelSpikeSlider" Minimum="0.05" Maximum="1" Value="1" TickFrequency="0.01"
-                        ValueChanged="FeelSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="DI epsilon: skips sending tiny changes to your base (out of 10000). Reduces USB chatter and buzzing on some bases; returning to zero is always sent. 0 = off (every change is sent). Try around 12.">
-                <TextBlock Text="DI epsilon" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="FeelEpsilonValueText" DockPanel.Dock="Right" Width="48" Text="0" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="FeelEpsilonSlider" Minimum="0" Maximum="64" Value="0" TickFrequency="1"
-                        ValueChanged="FeelSlider_ValueChanged"/>
-              </DockPanel>
-
-              <TextBlock Text="Centering" Opacity="0.7" Margin="0,12,0,4"
-                         ToolTip="Extra return-to-center spring added by the emulator, for games that don't center the wheel themselves."/>
-              <CheckBox x:Name="ForceCenterCheck" Content="Force center spring" Foreground="#E8EAED"
-                        Checked="ForceCenterCheck_Changed" Unchecked="ForceCenterCheck_Changed"
-                        ToolTip="Adds a centering spring from your physical rim angle on top of the game's feedback, always on — including menus and pause. Use it for games that leave the wheel loose or never return it to center. Saved with the FFB profile. Off by default."/>
-              <StackPanel x:Name="CenterSpringPanel" Margin="0,4,0,0" IsEnabled="False" Opacity="0.5">
-                <DockPanel Margin="0,2,0,0"
-                           ToolTip="Strength: the maximum centering force (percent of full strength). Scaled by Master. Start around 20–40% on direct-drive bases.">
-                  <TextBlock Text="Strength" Width="72" VerticalAlignment="Center"/>
-                  <TextBlock x:Name="CenterStrengthValueText" DockPanel.Dock="Right" Width="48" Text="30%" VerticalAlignment="Center"
-                             Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                  <Slider x:Name="CenterStrengthSlider" Minimum="0.05" Maximum="1" Value="0.3" TickFrequency="0.01"
-                          ValueChanged="FeelSlider_ValueChanged"/>
-                </DockPanel>
-                <DockPanel Margin="0,4,0,0"
-                           ToolTip="Range: how far from center (percent of full rotation to one side) the spring reaches full strength. Lower = stiffer near center, higher = softer and more gradual.">
-                  <TextBlock Text="Range" Width="72" VerticalAlignment="Center"/>
-                  <TextBlock x:Name="CenterRangeValueText" DockPanel.Dock="Right" Width="48" Text="25%" VerticalAlignment="Center"
-                             Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                  <Slider x:Name="CenterRangeSlider" Minimum="0.05" Maximum="0.5" Value="0.25" TickFrequency="0.01"
-                          ValueChanged="FeelSlider_ValueChanged"/>
-                </DockPanel>
-                <DockPanel Margin="0,4,0,0"
-                           ToolTip="Deadzone: a small free zone around center where the spring doesn't push, so the wheel doesn't hunt or buzz at dead center. 0 = off.">
-                  <TextBlock Text="Deadzone" Width="72" VerticalAlignment="Center"/>
-                  <TextBlock x:Name="CenterDeadzoneValueText" DockPanel.Dock="Right" Width="48" Text="off" VerticalAlignment="Center"
-                             Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                  <Slider x:Name="CenterDeadzoneSlider" Minimum="0" Maximum="0.05" Value="0" TickFrequency="0.001"
-                          ValueChanged="FeelSlider_ValueChanged"/>
-                </DockPanel>
-              </StackPanel>
-
-              <TextBlock Text="Advanced mix" Opacity="0.7" Margin="0,12,0,4"
-                         ToolTip="Optional damper scales and an extra CF flip. CF polarity is already corrected in the OEM driver."/>
-              <CheckBox x:Name="InvertConstantForceCheck" Content="Invert Constant Force" Foreground="#E8EAED" Margin="0,0,0,4"
-                        ToolTip="Extra CF flip only — the driver already converts game DI Constant Force to app polarity (+ = right). Independent of Invert FFB."
-                        Checked="MixOption_Changed" Unchecked="MixOption_Changed"/>
-              <DockPanel Margin="0,2,0,0"
-                         ToolTip="Damper velocity: how strongly wheel speed feeds into damper/inertia. 100% = as the game sent it.">
-                <TextBlock Text="Damp vel" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="DamperVelScaleValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="DamperVelScaleSlider" Minimum="0.25" Maximum="4" Value="1" TickFrequency="0.05"
-                        ValueChanged="FeelSlider_ValueChanged"/>
-              </DockPanel>
-              <DockPanel Margin="0,4,0,0"
-                         ToolTip="Damper deadband: shrinks the game's near-zero damper deadzone. 100% = as the game sent it; lower = damper engages sooner.">
-                <TextBlock Text="Damp dead" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="DamperDeadbandScaleValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
-                           Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
-                <Slider x:Name="DamperDeadbandScaleSlider" Minimum="0.1" Maximum="1" Value="1" TickFrequency="0.01"
-                        ValueChanged="FeelSlider_ValueChanged"/>
-              </DockPanel>
-
-              <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <CheckBox x:Name="InvertFfbCheck" Content="Invert FFB" Foreground="#E8EAED"
-                          ToolTip="Flip the force direction. Use it if the wheel pushes away from center instead of toward it."
-                          Checked="InvertFfbCheck_Changed" Unchecked="InvertFfbCheck_Changed"/>
-                <CheckBox x:Name="FfbDebugCheck" Content="FFB debug" Foreground="#E8EAED" Margin="16,0,0,0"
-                          ToolTip="Show FFB test controls and live OEM / HID++ counters (file logging uses the status-bar Debug button)"
-                          Checked="FfbDebugCheck_Changed" Unchecked="FfbDebugCheck_Changed"/>
-              </StackPanel>
-
-              <StackPanel x:Name="FfbDebugPanel" Visibility="Collapsed" Margin="0,14,0,0">
-                <TextBlock Text="FFB test" FontWeight="SemiBold" Margin="0,0,0,6"/>
-                <TextBlock Text="Sends constant force to any DirectInput FFB base (Fanatec, Simucube, Simagic, Moza, generic, etc.). No game required."
-                           Opacity="0.65" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,10"/>
-                <WrapPanel Margin="0,0,0,4">
-                  <Button Style="{StaticResource WrapButton}" Content="Attach FFB" Click="FfbAttach_Click"
-                          ToolTip="Debug: acquire the selected wheel for force feedback (Start bridge attaches automatically)"/>
-                  <Button Style="{StaticResource WrapButton}" Content="Left" Click="FfbTestLeft_Click"/>
-                  <Button Style="{StaticResource WrapButton}" Content="Center" Click="FfbTestCenter_Click"
-                          ToolTip="Toggle return-to-center spring (reads physical rim; same idea as game DI Spring)"/>
-                  <Button Style="{StaticResource WrapButton}" Content="Right" Click="FfbTestRight_Click"/>
-                  <Button Style="{StaticResource WrapButton}" Content="Pulse" Click="FfbTestPulse_Click"
-                          ToolTip="Short left/right pulse"/>
-                  <Button Style="{StaticResource WrapButton}" Content="Release test" Click="FfbTestRelease_Click"
-                          Margin="0,0,0,8"
-                          ToolTip="Clear test override so game FFB can drive again"/>
-                </WrapPanel>
-                <DockPanel Margin="0,0,0,4">
-                  <TextBlock Text="Test torque" Width="72" VerticalAlignment="Center"/>
-                  <TextBlock x:Name="FfbTestTorqueValueText" DockPanel.Dock="Right" Width="48"
-                             Text="0%" VerticalAlignment="Center" HorizontalAlignment="Right"/>
-                  <Slider x:Name="FfbTestTorqueSlider" Minimum="-1" Maximum="1" Value="0"
-                          TickFrequency="0.05" IsSnapToTickEnabled="False"
-                          ValueChanged="FfbTestTorqueSlider_ValueChanged"/>
-                </DockPanel>
-                <TextBlock x:Name="FfbDiagText" Opacity="0.8" FontSize="11" TextWrapping="Wrap"
-                           FontFamily="Consolas" Margin="0,8,0,0"
-                           Text="FFB diagnostics will appear here."/>
-              </StackPanel>
-
-              <TextBlock Text="Shifter mode" Opacity="0.7" Margin="0,12,0,4"
-                         ToolTip="Exclusive H-pattern (default): only one gear bit is on at a time — like a real H-gate. If more than one gear is pressed, keeps the first match (R→1→6) and clears the rest. Passthrough: every gear binding is forwarded as-is, so multiple gear bits can be on together."/>
-              <ComboBox x:Name="ShifterModeCombo" SelectionChanged="ShifterModeCombo_SelectionChanged"
-                        ToolTip="Exclusive H-pattern (default): only one gear bit is on at a time — like a real H-gate. If more than one gear is pressed, keeps the first match (R→1→6) and clears the rest. Passthrough: every gear binding is forwarded as-is, so multiple gear bits can be on together.">
-                <ComboBoxItem Content="Exclusive H-pattern" Tag="ExclusiveHPattern" IsSelected="True"/>
-                <ComboBoxItem Content="Passthrough" Tag="Passthrough"/>
-              </ComboBox>
-            </StackPanel>
-          </Border>
-
-          <TextBlock x:Name="DriverText" Text="" Opacity="0.65" TextWrapping="Wrap" Margin="0,16,0,0"/>
-        </StackPanel>
-      </ScrollViewer>
+              </ScrollViewer>
     </Grid>
   </DockPanel>
 </Window>

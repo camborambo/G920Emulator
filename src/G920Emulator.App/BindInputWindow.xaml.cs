@@ -35,6 +35,7 @@ public partial class BindInputWindow : Window
         Func<string?, string?>? resolveProductId = null)
     {
         InitializeComponent();
+        DarkTitleBar.Apply(this);
         _target = target;
         _binding = binding;
         _profile = profile;
@@ -47,7 +48,7 @@ public partial class BindInputWindow : Window
         _wantsButton = !_wantsAxis && !_wantsHat;
         _isGearR = target == G920Control.GearR;
 
-        TitleText.Text = $"Bind {G920ControlInfo.DisplayName(target)}";
+        TitleText.Text = $"Assign {G920ControlInfo.DisplayName(target)}";
         InvertCheck.IsChecked = binding.Invert;
         InvertCheck.Visibility = _wantsHat ? Visibility.Collapsed : Visibility.Visible;
 

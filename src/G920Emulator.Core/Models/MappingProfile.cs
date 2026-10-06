@@ -118,6 +118,8 @@ public sealed class MappingProfile
         // Ensure UI targets exist once (CreateDefault / older profiles).
         foreach (var target in G920ControlInfo.UiOrder)
             GetOrCreate(target);
+        foreach (var target in G920ControlInfo.FfbNudgeControls)
+            GetOrCreate(target);
     }
 
     private void MergeSources(G920Control from, G920Control into)

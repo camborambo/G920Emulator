@@ -32,6 +32,21 @@ public enum G920Control
     Gear5,
     Gear6,
     GearR,
+    /// <summary>Input-profile only: lower Constant effect gain. Not a virtual G920 control.</summary>
+    FfbConstantMinus,
+    FfbConstantPlus,
+    FfbSpringMinus,
+    FfbSpringPlus,
+    FfbDamperMinus,
+    FfbDamperPlus,
+    FfbFrictionMinus,
+    FfbFrictionPlus,
+    FfbInertiaMinus,
+    FfbInertiaPlus,
+    FfbPeriodicMinus,
+    FfbPeriodicPlus,
+    FfbRampMinus,
+    FfbRampPlus,
 }
 
 public static class G920ControlInfo
@@ -81,6 +96,53 @@ public static class G920ControlInfo
         ..GearControls,
     ];
 
+    /// <summary>Per-effect −/+ binds stored on the input profile; not shown in the G920 binding list.</summary>
+    public static readonly G920Control[] FfbNudgeControls =
+    [
+        G920Control.FfbConstantMinus,
+        G920Control.FfbConstantPlus,
+        G920Control.FfbSpringMinus,
+        G920Control.FfbSpringPlus,
+        G920Control.FfbDamperMinus,
+        G920Control.FfbDamperPlus,
+        G920Control.FfbFrictionMinus,
+        G920Control.FfbFrictionPlus,
+        G920Control.FfbInertiaMinus,
+        G920Control.FfbInertiaPlus,
+        G920Control.FfbPeriodicMinus,
+        G920Control.FfbPeriodicPlus,
+        G920Control.FfbRampMinus,
+        G920Control.FfbRampPlus,
+    ];
+
+    /// <summary>Effect gain rows: display name → lower / raise bind targets.</summary>
+    public static readonly (string Effect, G920Control Minus, G920Control Plus)[] FfbEffectNudgePairs =
+    [
+        ("Constant", G920Control.FfbConstantMinus, G920Control.FfbConstantPlus),
+        ("Spring", G920Control.FfbSpringMinus, G920Control.FfbSpringPlus),
+        ("Damper", G920Control.FfbDamperMinus, G920Control.FfbDamperPlus),
+        ("Friction", G920Control.FfbFrictionMinus, G920Control.FfbFrictionPlus),
+        ("Inertia", G920Control.FfbInertiaMinus, G920Control.FfbInertiaPlus),
+        ("Periodic", G920Control.FfbPeriodicMinus, G920Control.FfbPeriodicPlus),
+        ("Ramp", G920Control.FfbRampMinus, G920Control.FfbRampPlus),
+    ];
+
+    public static bool TryGetFfbEffectNudgePair(string effect, out G920Control minus, out G920Control plus)
+    {
+        foreach (var pair in FfbEffectNudgePairs)
+        {
+            if (!string.Equals(pair.Effect, effect, StringComparison.OrdinalIgnoreCase))
+                continue;
+            minus = pair.Minus;
+            plus = pair.Plus;
+            return true;
+        }
+
+        minus = default;
+        plus = default;
+        return false;
+    }
+
     /// <summary>Binding list order (axes, hat / D-pad directions, face buttons, gears R→6).</summary>
     public static readonly G920Control[] UiOrder =
     [
@@ -108,6 +170,19 @@ public static class G920ControlInfo
     public static bool IsHatDirection(G920Control control) => HatDirectionControls.Contains(control);
     public static bool IsButton(G920Control control) =>
         ButtonControls.Contains(control) || control == G920Control.Hat;
+
+    public static bool IsFfbNudge(G920Control control) => FfbNudgeControls.Contains(control);
+
+    public static double FfbNudgeDelta(G920Control control) => control switch
+    {
+        G920Control.FfbConstantPlus or G920Control.FfbSpringPlus or G920Control.FfbDamperPlus
+            or G920Control.FfbFrictionPlus or G920Control.FfbInertiaPlus
+            or G920Control.FfbPeriodicPlus or G920Control.FfbRampPlus => 0.05,
+        G920Control.FfbConstantMinus or G920Control.FfbSpringMinus or G920Control.FfbDamperMinus
+            or G920Control.FfbFrictionMinus or G920Control.FfbInertiaMinus
+            or G920Control.FfbPeriodicMinus or G920Control.FfbRampMinus => -0.05,
+        _ => 0,
+    };
 
     public static string DisplayName(G920Control control) => control switch
     {
@@ -141,6 +216,20 @@ public static class G920ControlInfo
         G920Control.Gear5 => "Gear 5",
         G920Control.Gear6 => "Gear 6",
         G920Control.GearR => "Gear R",
+        G920Control.FfbConstantMinus => "Constant −",
+        G920Control.FfbConstantPlus => "Constant +",
+        G920Control.FfbSpringMinus => "Spring −",
+        G920Control.FfbSpringPlus => "Spring +",
+        G920Control.FfbDamperMinus => "Damper −",
+        G920Control.FfbDamperPlus => "Damper +",
+        G920Control.FfbFrictionMinus => "Friction −",
+        G920Control.FfbFrictionPlus => "Friction +",
+        G920Control.FfbInertiaMinus => "Inertia −",
+        G920Control.FfbInertiaPlus => "Inertia +",
+        G920Control.FfbPeriodicMinus => "Periodic −",
+        G920Control.FfbPeriodicPlus => "Periodic +",
+        G920Control.FfbRampMinus => "Ramp −",
+        G920Control.FfbRampPlus => "Ramp +",
         _ => control.ToString(),
     };
 }

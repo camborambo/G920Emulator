@@ -1,7 +1,7 @@
 <Window x:Class="G920Emulator.App.BindInputWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Bind input"
+        Title="Assign input"
         Icon="pack://application:,,,/Assets/app.ico"
         Height="520" Width="520"
         MinHeight="440" MinWidth="480"

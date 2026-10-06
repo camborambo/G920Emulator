@@ -60,6 +60,8 @@ public sealed class BridgeService : IDisposable
     private Task? _loop;
     private Task? _ffbApplyLoop;
     private MappedG920State _latest = new();
+    private IReadOnlyDictionary<string, DeviceState> _latestDevices =
+        new Dictionary<string, DeviceState>(StringComparer.OrdinalIgnoreCase);
     private byte[] _latestReport = G920ReportBuilder.Build(new MappedG920State());
     /// <summary>Immutable snapshot for WinUHid ReadReport callbacks (no Bridge lock).</summary>
     private byte[] _callbackReport = G920ReportBuilder.Build(new MappedG920State());
@@ -127,6 +129,7 @@ public sealed class BridgeService : IDisposable
 
     public bool IsRunning => _cts is not null;
     public MappedG920State LatestState { get { lock (_gate) return _latest; } }
+    public IReadOnlyDictionary<string, DeviceState> LatestDevices { get { lock (_gate) return _latestDevices; } }
     public string? VirtualDeviceError => _virtualDevice?.LastError;
     public bool IsDriverAvailable => _virtualDevice?.IsDriverAvailable ?? false;
     public string? LastFfbStatus { get; private set; }
@@ -462,6 +465,7 @@ public sealed class BridgeService : IDisposable
                     // (freeze → jump felt like a steering hitch).
                     mapped.Steering = SoftCatchUpSteer(mapped.Steering);
                     _latest = mapped;
+                    _latestDevices = devices;
                     report = G920ReportBuilder.Build(mapped);
                     _latestReport = report;
                     mappedCallback = _onMappedFrame;

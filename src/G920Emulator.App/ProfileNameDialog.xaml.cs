@@ -9,6 +9,7 @@ public partial class ProfileNameDialog : Window
     public ProfileNameDialog(string suggested)
     {
         InitializeComponent();
+        DarkTitleBar.Apply(this);
         NameBox.Text = suggested;
         NameBox.SelectAll();
         Loaded += (_, _) => NameBox.Focus();

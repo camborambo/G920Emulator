@@ -80,7 +80,7 @@ All of these are **user optional**. On **Raw**, everything below is at the “of
 
 ### Effect gains
 
-Scale each DirectInput effect type **in the mixer** before summing (0% mutes that type; up to **200%**):
+Scale each DirectInput effect type **in the mixer** before summing (0% mutes that type; up to **200%**). On the Force Feedback tab, **Bind** opens a dialog to assign hardware buttons for lower / raise while you drive (stored on the **input** profile; 5% steps, hold repeats). These binds are not virtual G920 controls.
 
 | Slider | Typical use |
 |--------|-------------|
@@ -140,7 +140,7 @@ Leave it off for games that already send a DI Spring (most sims); stacking both 
 
 ## FFB debug UI
 
-Under **Force feedback**, check **FFB debug** to show:
+Under **Force Feedback**, expand **FFB debug** to show:
 
 - Attach FFB (normally Start bridge attaches)
 - Left / Center / Right / Pulse / Release test + test torque slider
@@ -151,13 +151,13 @@ Off by default so everyday use stays uncluttered. File logging (OEM effects + HI
 
 **Leave Debug off for normal racing.** It enables `%TEMP%\g920ffb-effects.log` (and HID++ ingress logging) from inside the game process. Titles that re-download effects every frame (Forza Horizon, some Steam Input paths) can generate hundreds of lines per second; older builds opened/closed the file on every write and could freeze game input while the emulator UI stayed live. Current `g920ffb.dll` rate-limits stream lines, keeps the file open, and rotates at 4 MB — still use Debug only for short diagnostic captures, then **Stop debug**.
 
-**FFB debug** (the checkbox) is separate: live counters and test pulses with no file I/O on the game thread.
+**FFB debug** (the expander) is separate: live counters and test pulses with no file I/O on the game thread.
 
 ## Probing which effects a game uses
 
 1. Start bridge with an FFB output device selected.
 2. Click **Debug** (status bar) so OEM file logging is on, then launch the game.
-3. Optional: enable **FFB debug** to watch live OEM effects seen / playing.
+3. Optional: expand **FFB debug** to watch live OEM effects seen / playing.
 4. Reproduce briefly, then **Stop debug** and **Export log…** (preferred for support zips). Do not leave Debug on for a full race. Starting **Debug** again clears the previous `%TEMP%` OEM / HID++ log files.
 
 While a Debug session is active (and until the next Start clears them), you can also open:

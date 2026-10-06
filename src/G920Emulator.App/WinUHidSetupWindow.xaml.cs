@@ -14,6 +14,7 @@ public partial class WinUHidSetupWindow : Window
     public WinUHidSetupWindow()
     {
         InitializeComponent();
+        DarkTitleBar.Apply(this);
         RefreshStatus();
     }
 

@@ -12,7 +12,7 @@
 ## Launch
 
 1. Download **`G920Emulator-win-x64.zip`** from [Releases](https://github.com/camborambo/G920Emulator/releases).
-2. Extract → open the **`G920Emulator`** folder → run **`G920Emulator.exe`**.
+2. Extract → open the **`G920Emulator`** folder → run **`G920Emulator.exe`**. Only one instance can run; launching again restores the existing window (including from the system tray).
 
 (From a source checkout: `.\publish.ps1`, then `dist\G920Emulator\G920Emulator.exe`.)
 
@@ -20,23 +20,32 @@ Approve UAC when prompted (WinUHid requires elevation to open the device).
 
 ## First-time setup
 
-1. Open **Dependencies** (banner **Manage dependencies…** or **Fix dependencies…**).
+1. Open **Dependencies** (header **Settings** → **Manage dependencies**, or the **Fix** banner if something is missing).
 2. **Install WinUHid** → Recheck until installed/ready.
 3. Install HidHide if missing → configure it yourself in **HidHide Client** (or optional **Configure HidHide** in Dependencies). The app does **not** change HidHide when you Start bridge.
 4. Create a profile name → **Save** (stored in `%AppData%\G920Emulator\profiles`, so updates do not wipe binds).
 
 Details and troubleshooting: [driver-install.md](driver-install.md).
 
+## Tabs
+
+- **Input** — detected devices, G920 bindings, shifter mode, and live virtual G920 preview (including buttons).
+- **Force Feedback** — FFB profile, output device, gains, and feel controls (full workspace).
+
+Shared chrome: Input / Force Feedback tabs, input profile, **Start** (toggles to **Stop** while running), and **Settings**. Settings (including **Minimize to system tray**) save immediately in `settings.json`. Live meters sit on the Input tab. A warning strip appears if required pieces are missing.
+
 ## Detected devices
 
-- **Refresh** re-enumerates DirectInput devices and restores any you hid with Remove.
-- **Remove** only hides a device from this list (local UI preference).
+On the **Input** tab:
 
-Top-right toolbar is **Start bridge** / **Stop** only.
+- **Refresh** re-enumerates DirectInput devices and restores any you hid.
+- Each device has an **×** to hide it from this list (local UI preference).
+
+**Start** is on the right, left of Profile, with a divider between them. It uses a play icon; it becomes **Stop** (square icon, red) while running.
 
 ## Bindings
 
-Click a G920 control in **G920 bindings** to open the capture dialog.
+On the **Input** tab, click a G920 control in **G920 bindings** to **Assign** (capture dialog).
 
 | Target kind | Capture |
 |-------------|---------|
@@ -54,9 +63,9 @@ Tips:
 
 ### H-pattern gears
 
-Bind **Gear R** and **Gear 1–6**. Gears 1–6 always map to G920 buttons **13–18** (official Driving Force Shifter).
+Assign **Gear R** and **Gear 1–6**. Gears 1–6 always map to G920 buttons **13–18** (official Driving Force Shifter).
 
-**Gear R** output button is selectable in the Bind Gear R dialog (saved on the profile):
+**Gear R** output button is selectable in the Assign Gear R dialog (saved on the profile):
 
 | Setting | G920 button | Use when |
 |---------|-------------|----------|
@@ -65,25 +74,24 @@ Bind **Gear R** and **Gear 1–6**. Gears 1–6 always map to G920 buttons **13�
 
 If reverse works in Heat but not Unbound (or the reverse), change this setting — gears 1–6 stay on 13–18 either way.
 
-**Shifter mode** (Force feedback panel):
-
-- **Exclusive H-pattern** — only one gear bit at a time
-- **Passthrough** — forwards overlapping sources as mapped
+Gears are always exclusive H-pattern: only one gear bit is on at a time. If more than one gear is pressed, the first match (R→1→6) is kept.
 
 ## Force feedback
 
+On the **Force Feedback** tab:
+
 1. Select **FFB output device** (your physical base — not DualSense).
 2. Pick an **FFB profile** in the dropdown (default **Raw** = exact game mix, the only built-in). Use **Save As…** to make your own per-game presets.
-3. Adjust sliders as needed, then **Save** / **Save As…** / **Delete** on the button row under the profile name (FFB profiles are separate from input bindings):
+3. Adjust sliders as needed, then use the FFB profile icons (Save / Save As / Reset to Raw defaults / Delete):
    - **Master** + **Invert FFB**
-   - **Effect gains** — Constant, Spring, Damper, Friction, Inertia, Periodic, Ramp (0% mutes that DI type)
+   - **Effect gains** — Constant, Spring, Damper, Friction, Inertia, Periodic, Ramp (0% mutes that DI type). **Bind** assigns hardware buttons that step that gain while you drive (saved on the input profile, not sent to the virtual G920).
    - **Output feel** — Smoothing (ms), Peak soft, Soft start (all off on Raw)
    - **Advanced mix** — Invert Constant Force, damper velocity / deadband scales (all off on Raw)
    - **Torque shaping** — Deadband, Slew, Spike cap, DI epsilon (all off on Raw; optional ShapeGameTorque path)
    - **Centering** — **Force center spring** checkbox plus Strength / Range / Deadzone, for games that never center the wheel (off on Raw)
    - Hover any FFB row (label, slider or value) for a tooltip explaining what it does and what 0% / off means.
 4. **Start bridge** attaches FFB automatically.
-5. Optional: enable **FFB debug** for test pulses and live OEM counters. Use status-bar **Debug** only for short diagnostic captures (see [Getting help](#getting-help--diagnostics)) — leave it off for normal play.
+5. Optional: expand **FFB debug** for test pulses and live OEM counters. Use status-bar **Debug** only for short diagnostic captures (see [Getting help](#getting-help--diagnostics)) — leave it off for normal play.
 
 Slider ranges and probing tips: [force-feedback.md](force-feedback.md).
 
@@ -91,7 +99,7 @@ Slider ranges and probing tips: [force-feedback.md](force-feedback.md).
 
 1. Confirm WinUHid + HidHide ready.
 2. Bindings update the live meters on the right.
-3. Click **Start bridge**.
+3. Click **Start** (the button becomes **Stop** while the bridge is running).
 4. Launch the game and select the Logitech G920 / wheel device.
 
 You can change bindings (and tweak deadzone/invert) while the bridge is running; they take effect immediately. Restart the bridge only when you change something that attaches at Start (for example the **FFB output device**) or after driver/dependency changes.
