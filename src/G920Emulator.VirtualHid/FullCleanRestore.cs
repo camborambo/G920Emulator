@@ -11,7 +11,7 @@ namespace G920Emulator.VirtualHid;
 ///   • g920ffb COM registration
 ///   • Logitech Steering Wheel SDK ServerBinary pin
 ///   • ProgramData LogitechSDK cache
-///   • oem-session.json + SessionWatch session state
+///   • oem-session.json session state
 ///   • Stale DirectInput cache / orphan virtual C262 PnP nodes
 ///   • hidpp_forcefeedback_x64.dll rename (.g920emulator-disabled) from older G HUB repair
 ///   • WinUHid device node + published driver package

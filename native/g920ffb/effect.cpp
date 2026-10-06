@@ -23,6 +23,7 @@ CEffect::CEffect()
 	LastLogTick = 0;
 	LastLoggedExtra = 0;
 	LastReportedStatus = 0xFFFFFFFF;
+	LastDownloadTick = 0;
 }
 
 LONG CEffect::EvalCondition(const DICONDITION& Cond, LONG Metric)
@@ -107,8 +108,18 @@ VOID CEffect::CalcTorque(LONG* Torque, LONG AxisPos, LONG AxisVel)
 	LONG effectGain = (LONG)min(DiEffect.dwGain, (DWORD)10000);
 	NormalLevel = (LONG)(((LONGLONG)NormalLevel * effectGain) / 10000);
 
-	// Original mix: direction applies to all effect types, including Spring.
-	*Torque += NormalLevel * DirectionSign;
+	// SHM torque is app convention (+ = right), matching FfbBridge / forced-center.
+	// Condition forces are evaluated from physical rim (already app-space) with the
+	// standard DI restoring formula — do not apply DIEFFECT direction (PID/Wine
+	// ignore it for conditions; a polar 18000 would invert centering).
+	// Constant / ramp / periodic magnitudes are DI device-axis forces; FfbBridge
+	// negates again for Fanatec/Simucube/Moza X sense, so convert DI → app here
+	// (negate). Without this, CF pushes into the turn and Unbound needed
+	// InvertConstantForce as a workaround.
+	if (isCondition)
+		*Torque += NormalLevel;
+	else
+		*Torque += -(NormalLevel * DirectionSign);
 }
 
 LONG CEffect::ApplyEnvelope(LONG Magnitude, ULONG Duration, ULONG CurrentPos) const

@@ -35,14 +35,18 @@ dotnet publish ".\src\G920Emulator.App\G920Emulator.App.csproj" `
     -p:PublishReadyToRun=true `
     -o $outDir
 
-Write-Host "Publishing session watchdog..." -ForegroundColor Cyan
-dotnet publish ".\src\G920Emulator.SessionWatch\G920Emulator.SessionWatch.csproj" `
-    -c Release `
-    -r win-x64 `
-    --self-contained true `
-    -p:PublishSingleFile=false `
-    -o $outDir
-Write-Host "Bundled G920Emulator.SessionWatch.exe (OEM/SDK crash restore)."
+# Remove legacy SessionWatch leftovers from older publishes (no longer shipped).
+$legacyWatchPaths = @(
+    (Join-Path $outDir "G920Emulator.SessionWatch.exe"),
+    (Join-Path $outDir "sessionwatch")
+)
+foreach ($p in $legacyWatchPaths) {
+    if (Test-Path $p) {
+        Remove-Item $p -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+Get-ChildItem $outDir -Filter "G920Emulator.SessionWatch.*" -File -ErrorAction SilentlyContinue |
+    Remove-Item -Force -ErrorAction SilentlyContinue
 
 # Ensure bundled WinUHid package is present beside the EXE
 $destWinuhid = Join-Path $outDir "winuhid"

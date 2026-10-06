@@ -36,7 +36,8 @@ public sealed class FfbProfile
 
     /// <summary>
     /// Desktop-era known-good Unbound/Heat mix: weakened spring, boosted CF/damper,
-    /// CF polarity flip, damper path scales, light torque shaping.
+    /// damper path scales, light torque shaping. CF polarity is corrected in
+    /// <c>g920ffb</c> (DI→app); Invert Constant Force stays off.
     /// </summary>
     public static FfbProfile CreateNfsUnboundHeat() => new()
     {
@@ -51,7 +52,7 @@ public sealed class FfbProfile
         },
         OutputFeel = new FfbOutputFeel
         {
-            InvertConstantForce = true,
+            InvertConstantForce = false,
             DamperVelocityScale = 2.0,
             DamperDeadbandScale = 1.0 / 3.0,
             Deadband = 0.004,

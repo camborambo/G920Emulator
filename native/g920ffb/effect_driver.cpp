@@ -324,10 +324,15 @@ HRESULT STDMETHODCALLTYPE CEffectDriver::DownloadEffect(
 	}
 
 	EnterCriticalSection(&CriticalSection);
+	// Forza / Steam Input sometimes leave actuators off or paused; a download means they want force.
+	Actuator = TRUE;
+	Paused = FALSE;
 
 	CEffect* Effect = NULL;
+	BOOL isNewEffect = FALSE;
 	if (*EffectHandle == 0)
 	{
+		isNewEffect = TRUE;
 		Effect = new CEffect();
 		Effect->Handle = (DWORD)(EffectIndex++);
 		EffectCount++;
@@ -392,7 +397,8 @@ HRESULT STDMETHODCALLTYPE CEffectDriver::DownloadEffect(
 			}
 			else
 			{
-				// Polar / spherical: 0=north · 9000=+X · 18000=south · 27000=-X
+				// Polar: single-axis devices use 0 = +axis, 18000 = -axis (MSDN).
+				// Treat the southern semicircle as negative so 18000 flips sign.
 				LONG deg = ((d % 36000) + 36000) % 36000;
 				if (deg > 9000 && deg < 27000)
 					Effect->DirectionSign = -1;
@@ -462,15 +468,21 @@ HRESULT STDMETHODCALLTYPE CEffectDriver::DownloadEffect(
 	}
 
 	// Keep every DI effect type available. Real DI does not play until DIEP_START /
-	// StartEffect. Unbound/Heat often skip Start and only stream TYPEPARAMS (0x100);
-	// honor that stream, but do NOT arm on the initial full create (0x3FF): Unbound
-	// creates CF at 5000 and Sine at 10000 as placeholders. If the game never streams
-	// them, arming on create would hold a constant 50% pull / full rumble.
+	// StartEffect. Unbound/Heat often skip Start and only stream TYPEPARAMS (0x100).
+	// Forza re-downloads DIEP_ALL (0x3FF) every frame — sometimes as updates on the same
+	// handle, sometimes as destroy+create (handle 0 each time). Treat both as live once
+	// we are past the first few boot downloads.
+	// Do NOT arm on the very first full creates alone: Unbound creates CF at 5000 and
+	// Sine at 10000 as placeholders; arming that would hold a constant pull / rumble.
 	if (Flags & DIEP_TYPESPECIFICPARAMS)
 	{
 		const BOOL hasStart = (Flags & DIEP_START) != 0;
 		const BOOL paramStream =
 			(Flags & ~(DIEP_TYPESPECIFICPARAMS | DIEP_NORESTART | DIEP_NODOWNLOAD)) == 0;
+		// Update on an existing handle (Forza 0x3FF stream without destroy).
+		const BOOL paramUpdate = !isNewEffect && !paramStream;
+		// Past boot placeholders — Forza may recreate effects every frame (always "new").
+		const BOOL pastBoot = DownloadCount >= 24;
 		const BOOL alreadyPlaying = Effect->Status == DIEGES_PLAYING;
 
 		BOOL arm = FALSE;
@@ -479,7 +491,9 @@ HRESULT STDMETHODCALLTYPE CEffectDriver::DownloadEffect(
 			if (Effect->DiConstantForce.lMagnitude == 0 && !hasStart)
 				Effect->Status = 0;
 			else if (hasStart || alreadyPlaying ||
-					 (paramStream && Effect->DiConstantForce.lMagnitude != 0))
+					 (paramStream && Effect->DiConstantForce.lMagnitude != 0) ||
+					 (paramUpdate && Effect->DiConstantForce.lMagnitude != 0) ||
+					 (isNewEffect && pastBoot && Effect->DiConstantForce.lMagnitude != 0))
 				arm = TRUE;
 		}
 		else if (Effect->Type == SPRING || Effect->Type == DAMPER ||
@@ -491,15 +505,18 @@ HRESULT STDMETHODCALLTYPE CEffectDriver::DownloadEffect(
 		else if (Effect->Type == SQUARE || Effect->Type == SINE || Effect->Type == TRIANGLE ||
 				 Effect->Type == SAWTOOTH_UP || Effect->Type == SAWTOOTH_DOWN)
 		{
-			// Periodics: Start, ongoing play, or param-only stream with magnitude.
-			// Full create (0x3FF) with mag 10000 is Unbound's boot rumble — stay quiet.
+			// Periodics: Start, ongoing play, param stream, handle updates, or post-boot creates.
+			// Early full create (0x3FF) with mag 10000 is Unbound boot rumble — stay quiet.
 			if (hasStart || alreadyPlaying ||
-				(paramStream && Effect->DiPeriodic.dwMagnitude != 0))
+				(paramStream && Effect->DiPeriodic.dwMagnitude != 0) ||
+				(paramUpdate && Effect->DiPeriodic.dwMagnitude != 0) ||
+				(isNewEffect && pastBoot && Effect->DiPeriodic.dwMagnitude != 0))
 				arm = TRUE;
 		}
 		else if (Effect->Type == RAMP_FORCE)
 		{
-			if (hasStart || alreadyPlaying || paramStream)
+			if (hasStart || alreadyPlaying || paramStream || paramUpdate ||
+				(isNewEffect && pastBoot))
 				arm = TRUE;
 		}
 
@@ -535,6 +552,7 @@ HRESULT STDMETHODCALLTYPE CEffectDriver::DownloadEffect(
 	DownloadCount++;
 	LastEffectType = Effect->Type;
 	LastFlags = Flags;
+	Effect->LastDownloadTick = GetTickCount();
 
 	// Games stream parameter-only updates every frame. Rate-limit per effect handle so
 	// every type stays visible: log on a zero/non-zero transition, on a value change
@@ -793,17 +811,40 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 			if (!Driver->Actuator || Driver->Paused)
 				continue;
 
+			const DWORD mixNow = GetTickCount();
 			for (LONG i = 0; i < Driver->EffectCount; i++)
 			{
 				CEffect* e = Driver->EffectList[i];
-				LONG before = TorqueDi;
-				if (e->Status == DIEGES_PLAYING)
+				// Forza often DownloadEffect then StopEffect/STOPALL before the next frame.
+				// If params were streamed in the last 100 ms, keep outputting them.
+				const BOOL recentlyDownloaded =
+					e->LastDownloadTick != 0 && (mixNow - e->LastDownloadTick) < 100;
+				BOOL live = (e->Status == DIEGES_PLAYING);
+				if (!live && recentlyDownloaded)
 				{
-					Playing = TRUE;
-					if (e->Type < 32)
-						typesPlaying |= (1u << e->Type);
+					if (e->Type == CONSTANT_FORCE && e->DiConstantForce.lMagnitude != 0)
+						live = TRUE;
+					else if (e->Type == SPRING || e->Type == DAMPER ||
+							 e->Type == INERTIA || e->Type == FRICTION)
+						live = TRUE;
+					else if ((e->Type == SQUARE || e->Type == SINE || e->Type == TRIANGLE ||
+							  e->Type == SAWTOOTH_UP || e->Type == SAWTOOTH_DOWN) &&
+							 e->DiPeriodic.dwMagnitude != 0)
+						live = TRUE;
+					else if (e->Type == RAMP_FORCE)
+						live = TRUE;
 				}
+				if (!live)
+					continue;
+
+				const DWORD savedStatus = e->Status;
+				e->Status = DIEGES_PLAYING;
+				LONG before = TorqueDi;
+				Playing = TRUE;
+				if (e->Type < 32)
+					typesPlaying |= (1u << e->Type);
 				e->CalcTorque(&TorqueDi, AxisPos, AxisVel);
+				e->Status = savedStatus;
 				LONG delta = TorqueDi - before;
 				if (delta != 0 && e->Type < G920FFB_TYPE_GAIN_COUNT)
 				{
@@ -847,17 +888,26 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 		}
 		else
 		{
-			// Non-game: layer rumble onto Aux so Steam Input cannot own/zero Torque.
+			// Non-game (Steam / overlay): never write Torque (game owns that channel).
+			// Layer onto Aux. If the game is not publishing (Forza via Steam Input is
+			// often the sole OEM host), publish the full mix — not only "rumble" bits.
 			const BOOL hasRumble = (typesPlaying & kRumbleTypeMask) != 0;
-			if (hasRumble)
+			// Require Playing — a quiet game mixer still refreshes TickMs every loop.
+			const BOOL gameTorqueLive =
+				Shared->Playing != 0 && (nowTick - Shared->TickMs) < 250;
+			const BOOL publishAux = Playing && (hasRumble || !gameTorqueLive);
+			if (publishAux)
 			{
 				Shared->AuxTorque = Torque;
 				Shared->AuxPlaying = 1u;
 				Shared->AuxTypesPlaying = typesPlaying;
 				Shared->AuxTickMs = nowTick;
 				if (InterlockedCompareExchange(&g_AuxPublishLogged, 1, 0) == 0)
-					G920FfbLogCall("AUX PUBLISH pid=%lu types=0x%X (layered under game Torque)",
-						(unsigned long)GetCurrentProcessId(), (unsigned)typesPlaying);
+					G920FfbLogCall(
+						"AUX PUBLISH pid=%lu types=0x%X (%s)",
+						(unsigned long)GetCurrentProcessId(),
+						(unsigned)typesPlaying,
+						gameTorqueLive ? "layered under game Torque" : "sole OEM host — full mix");
 			}
 			else if (Shared->AuxTickMs != 0 && nowTick - Shared->AuxTickMs > 250)
 			{

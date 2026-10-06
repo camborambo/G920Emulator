@@ -407,14 +407,6 @@ public static class G920OemRegistration
         }
         catch { /* ignore */ }
 
-        try
-        {
-            var asmDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            if (!string.IsNullOrEmpty(asmDir))
-                candidates.Add(Path.Combine(asmDir, "g920ffb.dll"));
-        }
-        catch { /* ignore */ }
-
         candidates.Add(Path.Combine(AppContext.BaseDirectory, "g920ffb.dll"));
 
         foreach (var c in candidates.Distinct(StringComparer.OrdinalIgnoreCase))

@@ -55,6 +55,7 @@ public sealed class ProfileStore
         EnsureRawFfbProfile();
         EnsureNfsUnboundHeatFfbProfile();
         RemoveLegacySeededFfbProfiles();
+        MigrateNfsUnboundHeatCfPolarity();
     }
 
     private static bool TryEnsureWritableProfilesDir(string root)
@@ -144,6 +145,41 @@ public sealed class ProfileStore
         }
     }
 
+    /// <summary>
+    /// Old Unbound/Heat seed used Invert Constant Force to paper over a DI→app
+    /// polarity bug. With the driver fix, that toggle would double-invert — clear
+    /// it when the profile still matches the original seed.
+    /// </summary>
+    private void MigrateNfsUnboundHeatCfPolarity()
+    {
+        try
+        {
+            var name = FfbProfile.NfsUnboundHeatProfileName;
+            if (!FfbExists(name))
+                return;
+            var loaded = LoadFfb(name);
+            var g = loaded.EffectGains;
+            var f = loaded.OutputFeel ?? FfbOutputFeel.CreateDefault();
+            if (!f.InvertConstantForce)
+                return;
+            if (Math.Abs(g.ConstantForce - 2.0) >= 0.001 ||
+                Math.Abs(g.SpringForce - 0.4) >= 0.001 ||
+                Math.Abs(g.DamperForce - 1.5) >= 0.001)
+                return;
+            if (Math.Abs(f.DamperVelocityScale - 2.0) >= 0.001 ||
+                Math.Abs(f.DamperDeadbandScale - (1.0 / 3.0)) >= 0.02)
+                return;
+
+            f.InvertConstantForce = false;
+            loaded.OutputFeel = f;
+            loaded.Save(GetFfbPath(name));
+        }
+        catch
+        {
+            // Best-effort migration only.
+        }
+    }
+
     private void TryDeleteSeededFfbIfUnchanged(string profileName, bool isLegacyGainsOnly)
     {
         var path = GetFfbPath(profileName);
@@ -159,9 +195,8 @@ public sealed class ProfileStore
         if (!isLegacyGainsOnly)
         {
             var f = loaded.OutputFeel ?? FfbOutputFeel.CreateDefault();
-            // Only remove if it still looks like our Classic seed (not a user tweak).
-            if (!f.InvertConstantForce ||
-                Math.Abs(f.DamperVelocityScale - 2.0) >= 0.001 ||
+            // Classic seed had InvertConstantForce on (pre DI→app fix) plus damper scales.
+            if (Math.Abs(f.DamperVelocityScale - 2.0) >= 0.001 ||
                 Math.Abs(f.DamperDeadbandScale - (1.0 / 3.0)) >= 0.02)
                 return;
         }

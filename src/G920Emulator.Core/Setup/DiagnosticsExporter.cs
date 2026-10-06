@@ -75,8 +75,10 @@ public static class DiagnosticsExporter
         "  " + GitHubIssuesUrl + "\r\n\r\n" +
         "How this zip was captured:\r\n" +
         "  1. Click Debug on the main window (starts OEM / HID++ file logging).\r\n" +
-        "  2. Start bridge, launch the game, reproduce the issue.\r\n" +
+        "  2. Start bridge, launch the game, reproduce briefly (do not leave Debug on for a full race).\r\n" +
         "  3. Stop debug, then Export log…\r\n\r\n" +
+        "Leave Debug off during normal play — Forza-class titles stream OEM updates every frame;\r\n" +
+        "older builds could stall the game on log I/O while the emulator UI stayed live.\r\n\r\n" +
         "For Fanatec vs Simucube FFB comparison, do the same on both PCs with the same build.\r\n\r\n" +
         "Key files in this zip:\r\n" +
         "  summary.txt       — machine, deps, processes, g920ffb.dll stamp\r\n" +

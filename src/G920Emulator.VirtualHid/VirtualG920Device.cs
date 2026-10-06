@@ -85,9 +85,10 @@ public sealed class VirtualG920Device : IVirtualG920Device
     public bool Start(Func<byte[]> latestReportProvider, Action<FfbCommand>? onFfb = null)
     {
         Stop();
-        // If a previous Stop abandoned a slow WinUHidStopDevice, wait briefly so we
-        // do not CreateDevice while the old instance is still tearing down.
-        try { _nativeTeardown?.Wait(2000); } catch { /* ignore */ }
+        // Previous Stop may still be inside WinUHidStopDevice (game held the device open).
+        // Wait longer before CreateDevice — a short wait caused "Start does nothing"/fail
+        // right after Stop while Forza still had the old G920 open.
+        try { _nativeTeardown?.Wait(8000); } catch { /* ignore */ }
         _nativeTeardown = null;
         _reportProvider = latestReportProvider;
         _onFfb = onFfb;
@@ -158,8 +159,9 @@ public sealed class VirtualG920Device : IVirtualG920Device
                 // Leftover Disconnected VHF/Col01 from a previous Stop/crash often keeps
                 // InstanceID "G920Emulator" reserved — purge orphans and retry once.
                 var firstErr = Marshal.GetLastWin32Error();
+                try { _nativeTeardown?.Wait(5000); } catch { /* ignore */ }
                 _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes();
-                Thread.Sleep(250);
+                Thread.Sleep(500);
                 _device = WinUHidNative.WinUHidCreateDevice(ref config);
                 if (_device == IntPtr.Zero)
                 {

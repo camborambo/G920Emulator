@@ -50,6 +50,8 @@ public:
 	DWORD LastLogTick;
 	LONG LastLoggedExtra;
 	DWORD LastReportedStatus;
+	// Every successful DownloadEffect (Forza StopEffect/STOPALL clears Status).
+	DWORD LastDownloadTick;
 
 	// Emulator mix options (updated each mixer tick from shared memory).
 	static volatile LONG s_InvertConstantForce;   // 0/1

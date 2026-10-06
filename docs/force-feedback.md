@@ -11,7 +11,7 @@ Force-feedback presets live in `%AppData%\G920Emulator\ffb-profiles\` (not in th
 | Preset | Meaning |
 |--------|---------|
 | **Raw** (default) | Exact game mix — master/effect gains 100%, all feel / torque shaping / advanced mix options off. Cannot be deleted. |
-| **Need For Speed Unbound / Heat** | Desktop-era known-good mix for Heat/Unbound: CF 200%, Spring 40%, Damper 150%, Invert Constant Force on, damper vel ×2 / deadband ×⅓, light torque shaping (deadband 0.004, slew 40, DI ε 12). Seeded once; editable/deletable. |
+| **Need For Speed Unbound / Heat** | Desktop-era known-good mix for Heat/Unbound: CF 200%, Spring 40%, Damper 150%, damper vel ×2 / deadband ×⅓, light torque shaping (deadband 0.004, slew 40, DI ε 12). Seeded once; editable/deletable. |
 | Your Save / Save As… | Capture current master gain, invert, per-effect gains, output feel, advanced mix options, and torque shaping into a named JSON |
 
 **UI:** under Force feedback, pick the profile in the dropdown (its own row), then use **Save** / **Save As…** / **Delete** on the row below. Click any **% / value** label beside a slider to type an exact number (Enter to apply, Esc to cancel).
@@ -40,7 +40,7 @@ Game → DirectInput → g920ffb.dll (IDirectInputEffectDriver)
 |-------|--------|
 | COM CLSID | `{A920FFB0-E7DB-4329-8C13-A966D84A289F}` |
 | DLL | `g920ffb.dll` next to `G920Emulator.exe` (built from `native/g920ffb`) |
-| Registration | Session-scoped: `OemRegistrationSession.BeginSession()` on Start bridge; restored on Stop/Close/crash (`EndSession` / SessionWatch) |
+| Registration | Session-scoped: `OemRegistrationSession.BeginSession()` on Start bridge; restored on Stop/Close (`EndSession`), or next launch after a crash (`RecoverIfDirty`) |
 | Shared memory | Magic `G9FF`, version 6 (`…FfbTorque.v6`): game `Torque` + optional `AuxTorque` (Steam/overlay), playing, steering in/out, type bitmasks, per-type gains, OEM mix flags/scales. Each process mixes its own OEM instances; bridge sums game + aux. |
 | Effect gains | Per-type sliders applied in `g920ffb.dll` before mix; master gain applies on the physical base |
 | Advanced mix options | Optional inside `g920ffb.dll`: Invert Constant Force, damper velocity scale, damper deadband scale (see below). Defaults = pass-through |
@@ -50,7 +50,7 @@ Game → DirectInput → g920ffb.dll (IDirectInputEffectDriver)
 
 Constant, Ramp, Square, Sine, Triangle, Sawtooth up/down, Spring, Damper, Inertia, Friction (and Custom reserved). Condition effects (spring/damper/…) use **physical rim angle** fed from the FFB output device (not the virtual/DualSense steer).
 
-Downloads with `DIEP_START` or type-specific params auto-start continuous CF / conditions / non-zero periodics so titles that never call `StartEffect` still feel force.
+Downloads with `DIEP_START`, Unbound-style param-only streams (`0x100`), or **subsequent** full updates on an existing handle (Forza-style `0x3FF` every frame) auto-start continuous CF / conditions / non-zero periodics so titles that never call `StartEffect` still feel force. The *first* full create alone stays quiet (Unbound boot placeholders). When Steam Input is the only OEM host, Aux publishes the full mix until a game process owns Torque.
 
 Timing and shaping follow DirectInput semantics:
 
@@ -61,6 +61,7 @@ Timing and shaping follow DirectInput semantics:
 - Damper/inertia velocity is rim units per second, smoothed over ~15 ms; ±10000 corresponds to 3 rim units/s. Friction has a small velocity deadband so it doesn't chatter at rest.
 - If the driver thread stops publishing for more than 250 ms (game exited or crashed), the bridge sends zero torque instead of holding the last value.
 - Multi-axis spring/damper downloads: the driver picks the strongest condition axis (largest \|coeff\|) so a zeroed first axis does not mute the wheel.
+- **Polarity:** shared-memory torque is app convention (`+` = right). Spring/damper are evaluated from the physical rim in that space. Constant / ramp / periodic magnitudes are converted from DI device sense → app before publish (so CF resists the turn instead of amplifying it). Condition effects ignore `DIEFFECT` direction.
 
 ### Physical apply
 
@@ -97,7 +98,7 @@ Applied while evaluating effects, before the shared-memory torque is published. 
 
 | Control | Default | NFS Unbound / Heat | Notes |
 |---------|---------|--------------------|--------|
-| **Invert Constant Force** | off | **on** | Negates Constant Force only (Desktop tire-load polarity) |
+| **Invert Constant Force** | off | off | Extra CF flip only — driver already converts DI CF → app polarity (`+` = right) |
 | **Damp vel** | 100% | **200%** | Scales rim velocity before damper/inertia condition eval |
 | **Damp dead** | 100% | **~33%** | Scales damper deadband before eval |
 
@@ -146,12 +147,18 @@ Under **Force feedback**, check **FFB debug** to show:
 - Diagnostics: OEM status, effects seen/playing, host/HID++ counters, apply counts, rim angle
 Off by default so everyday use stays uncluttered. File logging (OEM effects + HID++ ingress) is gated by the status-bar **Debug** button, not this checkbox.
 
+## Status-bar Debug (OEM file log)
+
+**Leave Debug off for normal racing.** It enables `%TEMP%\g920ffb-effects.log` (and HID++ ingress logging) from inside the game process. Titles that re-download effects every frame (Forza Horizon, some Steam Input paths) can generate hundreds of lines per second; older builds opened/closed the file on every write and could freeze game input while the emulator UI stayed live. Current `g920ffb.dll` rate-limits stream lines, keeps the file open, and rotates at 4 MB — still use Debug only for short diagnostic captures, then **Stop debug**.
+
+**FFB debug** (the checkbox) is separate: live counters and test pulses with no file I/O on the game thread.
+
 ## Probing which effects a game uses
 
 1. Start bridge with an FFB output device selected.
 2. Click **Debug** (status bar) so OEM file logging is on, then launch the game.
 3. Optional: enable **FFB debug** to watch live OEM effects seen / playing.
-4. After reproducing, **Stop debug** and **Export log…** (preferred for support zips). Starting **Debug** again clears the previous `%TEMP%` OEM / HID++ log files.
+4. Reproduce briefly, then **Stop debug** and **Export log…** (preferred for support zips). Do not leave Debug on for a full race. Starting **Debug** again clears the previous `%TEMP%` OEM / HID++ log files.
 
 While a Debug session is active (and until the next Start clears them), you can also open:
 

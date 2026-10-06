@@ -64,8 +64,9 @@ public sealed class FfbOutputFeel
     public double CenterSpringDeadzone { get; set; }
 
     /// <summary>
-    /// Negate Constant Force only (Desktop classic mix). Independent of Invert FFB.
-    /// Off by default (Raw = game CF sign).
+    /// Extra Constant Force flip on top of the driver's DI→app polarity fix.
+    /// Independent of Invert FFB. Off by default — leave off unless a specific
+    /// game/base still feels mirrored after the built-in conversion.
     /// </summary>
     public bool InvertConstantForce { get; set; }
 

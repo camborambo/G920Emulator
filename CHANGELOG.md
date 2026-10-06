@@ -7,6 +7,30 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-10-05
+
+### Added
+
+- **Forza Horizon 6 FFB (work in progress):** OEM path now arms Constant Force / periodics when Forza re-downloads full `DIEP_ALL` every frame (previously silent FFB). Input + force feedback are usable; feel tuning and broader validation are still ongoing.
+- FFB profile **Default** button resets sliders to Raw defaults; main window widened so Save / Save As / Default / Delete fit
+
+### Removed
+
+- **SessionWatch** crash watchdog — OEM/SDK pins still restore on Stop/close; after a hard crash they clear on the next emulator launch
+
+### Changed
+
+- Docs / diagnostics HOW-TO: leave status-bar **Debug** off for normal play (especially Forza); use only for short captures
+- README: prominent post-install step — turn **test signing off** and **re-enable Secure Boot** once WinUHid is installed
+
+### Fixed
+
+- **Forza FFB silent:** games that re-download full DIEP_ALL (`0x3FF`) every frame (Forza / some Steam Input paths) never armed Constant Force — only Unbound-style `0x100` param streams did. Updates on an existing effect handle now arm CF/periodics; Steam Aux publishes the full mix when no game Torque channel is live.
+- **Steam unload harden:** `g920ffb` PIN now falls back to a permanent `LoadLibrary` ref if pin fails, and holds a COM lock for process lifetime (crash stamp `0x6AC32A35` was the pre-pin Oct 4 build; no `steam.exe` faults after the pinned builds).
+- **OEM FFB polarity:** Constant / ramp / periodic forces were published in DI device sense while springs used app sense (`+` = right); after `FfbBridge`’s base negation, CF pushed into the turn (Unbound’s Invert Constant Force was compensating). Non-condition effects now convert DI→app; conditions no longer take `DIEFFECT` direction; Unbound/Heat seed drops the CF invert workaround.
+- **Debug FFB log stall:** with Debug on, Forza’s per-frame OEM downloads (~600 lines/s) opened/wrote/closed the log on the game thread and could freeze game input while the emulator UI stayed live — log is now rate-limited, keeps the file open, and rotates at 4 MB
+- **Start after Stop:** OEM/SDK restore always runs even if WinUHid stop is slow; Start waits longer for teardown before recreating the virtual G920
+
 ## [0.2.4] - 2026-10-05
 
 ### Added
@@ -15,7 +39,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - **Forza-friendly WinUHid install:** enable test signing only for install → install driver → turn test signing off automatically (WinUHid usually keeps working; FH6 can launch)
 - **Uninstall WinUHid** removes the driver **and** turns off Windows test signing, then offers a reboot
 - **Dependencies → Full clean restore…** — optional nuclear wipe of app system leftovers (OEM/SDK, SDK cache, WinUHid, test signing, etc.)
-- Session-scoped OEM / Logitech SDK pins on Start bridge with **SessionWatch** crash restore; Dependencies status card (Active / Idle / Needs restore)
+- Session-scoped OEM / Logitech SDK pins on Start bridge (restored on Stop/close / next launch); Dependencies status card (Active / Idle / Needs restore)
 - Docs / README: Forza Horizon + Secure Boot guidance (Secure Boot can be re-enabled after install)
 
 ### Changed
@@ -99,7 +123,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Initial public build: virtual Logitech G920 (WinUHid), binding UI, HidHide helpers, OEM `g920ffb.dll` path, bundled WinUHid + Logitech Steering Wheel SDK
 - NFS Heat / Unbound gear mapping (reverse button 19 vs 12)
 
-[Unreleased]: https://github.com/camborambo/G920Emulator/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/camborambo/G920Emulator/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/camborambo/G920Emulator/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/camborambo/G920Emulator/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/camborambo/G920Emulator/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/camborambo/G920Emulator/compare/v0.2.1...v0.2.2

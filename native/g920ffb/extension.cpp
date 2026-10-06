@@ -27,19 +27,30 @@ BOOL WINAPI DllMain(HINSTANCE Instance, DWORD Reason, LPVOID Reserved)
 	case DLL_PROCESS_ATTACH:
 		DisableThreadLibraryCalls(Instance);
 		InitializeCriticalSection(&CriticalSection);
-		// Pin so CoFreeUnusedLibraries / FreeLibrary cannot unload us while
-		// Steam (or DI) still holds vtable pointers into this module.
-		// Without this, WER reports: steam.exe faulting in g920ffb.dll_unloaded (0xc0000005).
+		// Keep this module mapped for the process lifetime. Steam/DirectInput
+		// CoCreates our IDirectInputEffectDriver then CoFreeUnusedLibraries /
+		// FreeLibrary — without a pin, WER reports steam.exe faulting in
+		// g920ffb.dll_unloaded (0xc0000005) on the leftover vtable.
 		{
 			HMODULE pinned = nullptr;
-			GetModuleHandleExW(
+			if (!GetModuleHandleExW(
 				GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
 				reinterpret_cast<LPCWSTR>(Instance),
-				&pinned);
+				&pinned))
+			{
+				// PIN failed — hold an extra LoadLibrary ref that we never free.
+				wchar_t path[MAX_PATH];
+				if (GetModuleFileNameW(Instance, path, MAX_PATH) > 0)
+					LoadLibraryW(path);
+			}
+			// Also bump COM lock count so DllCanUnloadNow stays S_FALSE even if
+			// a future edit makes the object-count path fallible.
+			InterlockedIncrement(&g_cLocks);
 		}
 		break;
 	case DLL_PROCESS_DETACH:
-		// Only runs on process exit when PIN is set (or if pin failed).
+		// With PIN (or an unreclaimed LoadLibrary), this normally only runs
+		// on process exit — safe to tear down the CS then.
 		DeleteCriticalSection(&CriticalSection);
 		break;
 	}
@@ -63,10 +74,5 @@ STDAPI DllGetClassObject(REFCLSID ClassID, REFIID InterfaceID, LPVOID* Interface
 STDAPI DllCanUnloadNow(VOID)
 {
 	// Never allow COM to unload this inproc server for the process lifetime.
-	// Steam enumerates the virtual G920, CoCreates our IDirectInputEffectDriver,
-	// then CoFreeUnusedLibraries — with a naive S_OK here the DLL was freed while
-	// DI still called into it (crash: g920ffb.dll_unloaded / ACCESS_VIOLATION).
-	if (g_cObjects != 0 || g_cLocks != 0)
-		return S_FALSE;
 	return S_FALSE;
 }

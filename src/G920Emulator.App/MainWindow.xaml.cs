@@ -138,6 +138,7 @@ public partial class MainWindow : Window
         {
             try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
             try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
+            try { OemRegistrationSession.KillLegacySessionWatchProcesses(); } catch { /* ignore */ }
 
             var dispose = Task.Run(() =>
             {
@@ -157,7 +158,7 @@ public partial class MainWindow : Window
             catch { /* ignore */ }
 
             // Hard exit so abandoned native teardown / LongRunning tasks cannot keep the EXE alive.
-            try { Thread.Sleep(1200); } catch { /* ignore */ }
+            try { Thread.Sleep(400); } catch { /* ignore */ }
             Environment.Exit(0);
         });
     }
@@ -612,6 +613,32 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show(ex.Message, "Save FFB As", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void DefaultFfbButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var defaults = FfbProfile.CreateRaw();
+            _profile.FfbGain = defaults.FfbGain;
+            _profile.FfbInvert = defaults.FfbInvert;
+            _profile.FfbEffectGains = defaults.EffectGains;
+            _profile.FfbOutputFeel = defaults.OutputFeel;
+
+            GainSlider.Value = _profile.FfbGain;
+            InvertFfbCheck.IsChecked = _profile.FfbInvert;
+            LoadEffectGainsIntoUi(_profile.FfbEffectGains);
+            LoadFeelIntoUi(_profile.FfbOutputFeel);
+            _bridge.Profile = _profile;
+            ScheduleFfbProfilePush();
+
+            var selected = FfbProfilesCombo.SelectedItem as string ?? _profile.FfbProfileName ?? "Raw";
+            StatusText.Text = $"FFB sliders reset to defaults — Save to write '{selected}'";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Default FFB", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -1140,11 +1167,12 @@ public partial class MainWindow : Window
         try
         {
             // Tear down off the UI thread — WinUHid stop + FFB detach must not freeze the window.
+            // Always EndSession even if Stop hangs: otherwise OEM pins stay and the next
+            // Start can fail while WinUHid is still destroying the previous device.
+            try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
             var stop = Task.Run(() =>
             {
-                try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
                 try { _bridge.Stop(); } catch { /* ignore */ }
-                try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
             });
             var finished = await Task.WhenAny(stop, Task.Delay(5000)).ConfigureAwait(true);
             if (finished != stop)
@@ -1163,6 +1191,7 @@ public partial class MainWindow : Window
         }
         finally
         {
+            try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
             _bridgeBusy = false;
         }
 

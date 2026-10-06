@@ -28,13 +28,20 @@ Game FFB effects  →  g920ffb.dll    →  Physical base
 |----------|--------|
 | Input | DualSense |
 | FFB bases | **Fanatec Podium Wheel Base DD2** (Heat / Unbound), **Simucube** (Unbound) |
-| Games | **NFS Heat**, **NFS Unbound** |
+| Games | **NFS Heat**, **NFS Unbound**, **Forza Horizon 6** (FFB work in progress) |
 
 **Gear R:** Heat uses default button **19**. Unbound needs Bind Gear R → **12**. Full matrix: [compatibility](docs/compatibility.md).
 
 **Unbound tip:** Accessibility → Controls → **Controller Vibration** must be **On**, or the game streams spring-only (walls/rumble stay at magnitude 0).
 
-> **Forza Horizon / Secure Boot:** FH6 won't launch while Windows test signing is on (splash exit 100). **Install WinUHid** only needs test signing (and Secure Boot off) for the install, then turns test signing off — emulator and Forza can coexist. After that you can **re-enable Secure Boot**. If test signing was left on: **Disable test signing** → reboot. Details: [driver-install](docs/driver-install.md#forza-horizon-6-and-test-signing).
+### After WinUHid is installed (important)
+
+WinUHid is test-signed, so install needs **Windows test signing on** and usually **Secure Boot off** in UEFI. **Once WinUHid is installed, you do not leave the PC in that state:**
+
+1. **Turn test signing off** — **Install WinUHid** already does this at the end. If Dependencies still shows test signing on: **Disable test signing** → reboot. (Forza Horizon exits at splash with code **100** while test signing is on.)
+2. **Turn Secure Boot back on** in UEFI/BIOS if you disabled it for the install. WinUHid (UMDF) usually keeps working with Secure Boot on and test signing off.
+
+Emulator and Forza can coexist on the same boot after that. Details: [driver-install](docs/driver-install.md#forza-horizon-6-and-test-signing).
 
 ## Quick start (download a release)
 
@@ -43,10 +50,11 @@ No Visual Studio or .NET SDK required.
 1. Download **`G920Emulator-win-x64.zip`** from the latest [**Releases**](https://github.com/camborambo/G920Emulator/releases) page.
 2. Extract the zip — you get a **`G920Emulator`** folder.
 3. Run **`G920Emulator.exe`** inside that folder.
-4. Open **Dependencies** → **Install WinUHid** (bundled; approve UAC; may reboot once or twice — finishes with test signing **off** for Forza) → install **HidHide** from its download link → **Configure HidHide**.  
+4. Open **Dependencies** → **Install WinUHid** (bundled; approve UAC; may reboot once or twice). When install finishes: confirm **test signing is off**, then **re-enable Secure Boot** in UEFI if you turned it off for install (see [above](#after-winuhid-is-installed-important)).
+5. Install **HidHide** from its download link → **Configure HidHide**.  
    Step-by-step: [driver install](docs/driver-install.md).
-5. **Refresh** devices, bind steering / pedals / buttons / gears **R–6** (and D-pad via hat or **D-pad Up/Down/Left/Right**), pick an **FFB output device** + **FFB profile**, then **Save** your input profile.
-6. **Start bridge**, then launch your game and select the G920.
+6. **Refresh** devices, bind steering / pedals / buttons / gears **R–6** (and D-pad via hat or **D-pad Up/Down/Left/Right**), pick an **FFB output device** + **FFB profile**, then **Save** your input profile.
+7. **Start bridge**, then launch your game and select the G920.
 
 Binding changes apply while the bridge is running — no need to Stop/Start after rebinding. Full walkthrough: [user guide](docs/user-guide.md).
 
@@ -122,11 +130,11 @@ User bindings and FFB presets live in **`%AppData%\G920Emulator\`** at runtime �
 
 ## Version notes
 
-Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.4**.
+Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.5**.
 
 ## Support
 
-Report bugs and ask questions on [GitHub Issues](https://github.com/camborambo/G920Emulator/issues). From the app: **Debug** (status bar) → reproduce → **Stop debug** → **Export log…**, then attach the zip to your issue. Release notes on GitHub should match the matching section in [CHANGELOG.md](CHANGELOG.md).
+Report bugs and ask questions on [GitHub Issues](https://github.com/camborambo/G920Emulator/issues). From the app: **Debug** (status bar) → short reproduce → **Stop debug** → **Export log…**, then attach the zip to your issue. Leave **Debug** off during normal play (especially Forza) — it is for brief captures only. Release notes on GitHub should match the matching section in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

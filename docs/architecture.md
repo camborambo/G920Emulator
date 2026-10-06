@@ -54,7 +54,7 @@ Games that support a Logitech G920 via DirectInput OEM do **not** rely on Logite
 
 **Validated FFB bases:** Fanatec Podium Wheel Base DD2 (NFS Heat / Unbound) and Simucube (NFS Unbound). See [compatibility](compatibility.md).
 
-Verbose OEM / HID++ file logging is off until the UI **Debug** session is active; after **Stop debug**, **Export log…** builds the support zip.
+Verbose OEM / HID++ file logging is off until the UI **Debug** session is active; after **Stop debug**, **Export log…** builds the support zip. Leave Debug off for normal play — high-rate games write the OEM log from the game process; use short captures only.
 
 Details: [force-feedback.md](force-feedback.md).
 

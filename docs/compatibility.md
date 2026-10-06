@@ -30,6 +30,7 @@ Same DirectInput constant-force path for all of these:
 |------|--------|-------|-----|--------|
 | Need for Speed Heat | **Tested** | Virtual G920 | OEM path used | Gears 1–6 = buttons 13–18. **Reverse: default button 19** (LGS / Driving Force Shifter). |
 | Need for Speed Unbound | **Tested** | Virtual G920 | OEM path (multi-instance mixer + SHM v6) on Fanatec DD2 and Simucube | ConstantForce, Spring, Sine, Damper, Triangle. Gears 1–6 = 13–18. **Reverse: Bind Gear R → button 12**. Centering spring needs physical rim angle. **Controller Vibration must be On** (Accessibility → Controls) or race rumble magnitudes stay 0. |
+| Forza Horizon 6 | **WIP** | Virtual G920 | OEM path (DIEP_ALL arming fix) | Force feedback works in early testing; feel and broader validation still ongoing. Requires **test signing off** to launch (see below). Leave status-bar **Debug** off during normal play. |
 
 ### Forza Horizon series (test signing)
 
@@ -60,6 +61,6 @@ When you test something new, note:
 1. Physical input device(s) and FFB base
 2. Game + whether the virtual G920 appeared
 3. Whether FFB moved the base
-4. Optional: click **Debug**, reproduce, **Stop debug** → **Export log…** (or enable **FFB debug** for live counters)
+4. Optional: click **Debug**, reproduce briefly, **Stop debug** → **Export log…** (or enable **FFB debug** for live counters). Leave Debug off for normal play.
 
 See [force-feedback.md](force-feedback.md) and [user-guide.md](user-guide.md).

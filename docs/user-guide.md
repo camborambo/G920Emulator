@@ -83,7 +83,7 @@ If reverse works in Heat but not Unbound (or the reverse), change this setting �
    - **Centering** — **Force center spring** checkbox plus Strength / Range / Deadzone, for games that never center the wheel (off on Raw)
    - Hover any FFB row (label, slider or value) for a tooltip explaining what it does and what 0% / off means.
 4. **Start bridge** attaches FFB automatically.
-5. Optional: enable **FFB debug** for test pulses and live OEM counters. Use status-bar **Debug** when you need file logs / **Export log…**.
+5. Optional: enable **FFB debug** for test pulses and live OEM counters. Use status-bar **Debug** only for short diagnostic captures (see [Getting help](#getting-help--diagnostics)) — leave it off for normal play.
 
 Slider ranges and probing tips: [force-feedback.md](force-feedback.md).
 
@@ -100,7 +100,9 @@ If **joy.cpl still lists the G920 but buttons stop updating** in-game, the virtu
 
 If the **app itself freezes** while alt-tabbing or dragging FFB sliders, use a build that keeps DirectInput work off the UI thread (device refresh, FFB reattach, and FFB debug no longer poll the exclusive wheel on the UI). Stop → Start recovers a stuck session.
 
-Stop ends the virtual device and FFB apply loop.
+If the **game** freezes or loses the wheel mid-session while the emulator UI stays live, check whether status-bar **Debug** was left on — Forza-class titles stream OEM updates every frame, and older builds could stall the game on log I/O. Leave Debug off for racing; use it only for a short capture. Current builds rate-limit that log, but everyday play should still keep Debug off.
+
+Stop ends the virtual device and FFB apply loop. If Stop is slow (WinUHid teardown), wait a few seconds before Start again — Start waits for the previous virtual G920 to finish tearing down.
 
 ## Profiles
 
@@ -155,8 +157,10 @@ Forza Horizon 6 refuses to launch while Windows **test signing** is on. It exits
 
 ## Getting help / diagnostics
 
-1. Click **Debug** (status bar, bottom-right) — this turns on OEM / HID++ file logging (and clears prior session logs in `%TEMP%`).
-2. Reproduce the issue (Start bridge, launch the game, hit a wall, etc.).
+Leave status-bar **Debug** **off** during normal play. It turns on OEM / HID++ file logging inside the game process; on Forza and similar titles that can add enough I/O to freeze the game or drop the virtual G920 while the emulator UI stays responsive. Current builds rate-limit and keep the log file open, but Debug is still for short captures only — not full races.
+
+1. Click **Debug** (status bar, bottom-right) — clears prior session logs in `%TEMP%` and starts OEM / HID++ file logging.
+2. Reproduce briefly (Start bridge, launch the game, hit a wall, etc.). Prefer a short run over a long session with Debug left on.
 3. Click **Stop debug**, then **Export log…**, save the zip, and attach it to a [GitHub issue](https://github.com/camborambo/G920Emulator/issues) with a short description (wheel, game, what failed). Export before starting Debug again, or those logs are wiped.
 
 The zip includes:

@@ -119,7 +119,7 @@
             </Border>
           </StackPanel>
           <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Opacity="0.85"
-                     Text="Pinned automatically on Start bridge for NFS Heat / Unbound-style games; restored on Stop, app close, or crash (watchdog). No setup needed."/>
+                     Text="Pinned automatically on Start bridge for NFS Heat / Unbound-style games; restored on Stop, app close, or next launch after a crash. No setup needed."/>
           <TextBlock x:Name="OemSdkDetail" Margin="0,6,0,0" Opacity="0.65" TextWrapping="Wrap"/>
           <WrapPanel Margin="0,14,0,-8">
             <Button x:Name="RestoreOemSdkButton" Style="{StaticResource AccentWrapButton}"

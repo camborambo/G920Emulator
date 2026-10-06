@@ -74,9 +74,9 @@ These registry pins are **not** a permanent Dependencies install. They apply onl
 
 | Event | What happens |
 |-------|----------------|
-| **Start bridge** | Cache SDK DLLs under `%ProgramData%\G920Emulator\LogitechSDK\` if needed, pin SDK + OEM FFB CLSID, start a crash watchdog |
+| **Start bridge** | Cache SDK DLLs under `%ProgramData%\G920Emulator\LogitechSDK\` if needed, pin SDK + OEM FFB CLSID |
 | **Stop bridge / close app** | Restore previous registry (or clear our pins) |
-| **App crash / Task Manager kill** | `G920Emulator.SessionWatch.exe` restores pins immediately |
+| **App crash / Task Manager kill** | Pins stay until the next emulator launch (auto-recover) |
 | **Next launch** | Auto-recovers any leftover dirty state |
 
 Dependencies shows **OEM / Logitech SDK registration** as Idle / Active / Needs restore, with **Restore system registration** if something was left dirty. Session pins are for NFS Heat / Unbound-style games; they are **not** what stops Forza Horizon 6 from launching.
@@ -107,7 +107,7 @@ You do not need G HUB for this app.
 
 - Select your physical FFB wheel under **Force feedback → FFB output device**
 - Games drive FFB through DirectInput OEM into **`g920ffb.dll`**, which publishes torque over shared memory; the bridge applies it to your base (not Logitech HID++ WriteReports)
-- **Start bridge** applies session OEM/SDK pins and attaches FFB; **Stop** restores system registration; use status-bar **Debug** to capture OEM logs, and **FFB debug** for on-screen test controls
+- **Start bridge** applies session OEM/SDK pins and attaches FFB; **Stop** restores system registration; use status-bar **Debug** only for short OEM log captures (leave it off for normal play — see [force-feedback.md](force-feedback.md#status-bar-debug-oem-file-log)), and **FFB debug** for on-screen test controls
 - Full detail: [force-feedback.md](force-feedback.md)
 - Exclusive cooperative level may require running G920 Emulator elevated on some setups
 

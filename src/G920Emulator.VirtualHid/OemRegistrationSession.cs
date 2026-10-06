@@ -14,12 +14,11 @@ public enum OemSessionUiState
 
 /// <summary>
 /// Session-scoped OEM FFB + Logitech SDK registry pins.
-/// Applied on bridge Start; restored on Stop/Close/crash (via watchdog or RecoverIfDirty).
+/// Applied on bridge Start; restored on Stop/Close, or on next launch via <see cref="RecoverIfDirty"/>.
 /// </summary>
 public static class OemRegistrationSession
 {
     private static readonly object Gate = new();
-    private static Process? _watchdog;
     private static bool _activeInProcess;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
@@ -49,7 +48,7 @@ public static class OemRegistrationSession
 
     public static string? LastMessage { get; private set; }
 
-    /// <summary>Snapshot baseline (once), apply our pins, start crash watchdog.</summary>
+    /// <summary>Snapshot baseline (once) and apply our pins.</summary>
     public static string BeginSession()
     {
         lock (Gate)
@@ -57,7 +56,6 @@ public static class OemRegistrationSession
             if (_activeInProcess)
             {
                 G920OemRegistration.EnsureRegistered(installSdk: true);
-                EnsureWatchdogLocked();
                 LastMessage = "OEM/SDK session already active; refreshed pins.";
                 return LastMessage;
             }
@@ -66,7 +64,7 @@ public static class OemRegistrationSession
             OemSessionState state;
             if (existing is { Active: true })
             {
-                // Crash recovery left Active; treat as resume after partial apply.
+                // Previous crash left Active; reuse that baseline.
                 state = existing;
             }
             else
@@ -79,26 +77,22 @@ public static class OemRegistrationSession
             _activeInProcess = true;
             G920OemRegistration.EnsureSdkFilesCached();
             G920OemRegistration.EnsureRegistered(installSdk: true);
-            EnsureWatchdogLocked();
             LastMessage = "OEM/SDK session started (pins applied).";
             return LastMessage;
         }
     }
 
-    /// <summary>Restore baseline / clear our pins; stop watchdog. Safe if not active.</summary>
+    /// <summary>Restore baseline / clear our pins. Safe if not active.</summary>
     public static string EndSession()
     {
         lock (Gate)
         {
-            // Clear Active before killing the watchdog so it will not also restore.
             var state = TryReadState();
             if (state is not null)
             {
                 state.Active = false;
                 try { WriteState(state); } catch { /* ignore */ }
             }
-
-            StopWatchdogLocked();
 
             string result;
             if (state is not null)
@@ -123,18 +117,20 @@ public static class OemRegistrationSession
 
     /// <summary>
     /// On app launch: if session marked Active (crash) or leftover pins while idle, restore.
+    /// Also clears any leftover SessionWatch process from older builds.
     /// </summary>
     public static string RecoverIfDirty()
     {
         lock (Gate)
         {
+            KillLegacySessionWatchProcesses();
+
             if (_activeInProcess)
                 return "Session active in this process; skip recover.";
 
             var state = TryReadState();
             if (state?.Active == true || HasOurPinsPresent() || HasOurOemTreeLeftover())
             {
-                StopWatchdogLocked();
                 string msg;
                 if (state is { Active: true })
                     msg = RestoreFromBaseline(state);
@@ -160,25 +156,34 @@ public static class OemRegistrationSession
     }
 
     /// <summary>
-    /// Used by <c>G920Emulator.SessionWatch</c> after the main process dies.
-    /// Restores baseline only when the session file still says <c>Active</c>.
+    /// One-shot cleanup for <c>G920Emulator.SessionWatch</c> left by older releases.
     /// </summary>
-    public static int WatchdogRestoreIfActive(string? sessionPath = null)
+    public static void KillLegacySessionWatchProcesses()
     {
-        var path = string.IsNullOrWhiteSpace(sessionPath) ? SessionFilePath : sessionPath!;
-        try
+        foreach (var name in new[] { "G920Emulator.SessionWatch", "SessionWatch" })
         {
-            if (!File.Exists(path)) return 0;
-            var json = File.ReadAllText(path);
-            var state = JsonSerializer.Deserialize<OemSessionState>(json, JsonOpts);
-            if (state is not { Active: true }) return 0;
-            RestoreFromBaseline(state);
-            try { File.Delete(path); } catch { /* ignore */ }
-            return 0;
-        }
-        catch
-        {
-            return 1;
+            Process[] procs;
+            try { procs = Process.GetProcessesByName(name); }
+            catch { continue; }
+
+            foreach (var p in procs)
+            {
+                try
+                {
+                    if (p.Id == Environment.ProcessId)
+                        continue;
+                    if (!p.HasExited)
+                    {
+                        p.Kill(entireProcessTree: true);
+                        p.WaitForExit(2000);
+                    }
+                }
+                catch { /* ignore */ }
+                finally
+                {
+                    try { p.Dispose(); } catch { /* ignore */ }
+                }
+            }
         }
     }
 
@@ -452,66 +457,6 @@ public static class OemRegistrationSession
         var dir = Path.GetDirectoryName(SessionFilePath)!;
         Directory.CreateDirectory(dir);
         File.WriteAllText(SessionFilePath, JsonSerializer.Serialize(state, JsonOpts));
-    }
-
-    private static void EnsureWatchdogLocked()
-    {
-        if (_watchdog is { HasExited: false })
-            return;
-
-        var exe = ResolveWatchdogPath();
-        if (exe is null)
-        {
-            LastMessage = (LastMessage ?? "") + " (watchdog EXE missing)";
-            return;
-        }
-
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = exe,
-                Arguments = $"--parent {Environment.ProcessId} --session \"{SessionFilePath}\"",
-                UseShellExecute = false,
-                CreateNoWindow = true,
-            };
-            _watchdog = Process.Start(psi);
-        }
-        catch (Exception ex)
-        {
-            LastMessage = (LastMessage ?? "") + $" (watchdog start failed: {ex.Message})";
-        }
-    }
-
-    private static void StopWatchdogLocked()
-    {
-        var w = _watchdog;
-        _watchdog = null;
-        if (w is null) return;
-        try
-        {
-            if (!w.HasExited)
-            {
-                w.Kill(entireProcessTree: true);
-                w.WaitForExit(2000);
-            }
-        }
-        catch { /* ignore */ }
-        finally
-        {
-            try { w.Dispose(); } catch { /* ignore */ }
-        }
-    }
-
-    private static string? ResolveWatchdogPath()
-    {
-        var dir = AppContext.BaseDirectory;
-        var candidates = new[]
-        {
-            Path.Combine(dir, "G920Emulator.SessionWatch.exe"),
-            Path.Combine(dir, "SessionWatch", "G920Emulator.SessionWatch.exe"),
-        };
-        return candidates.FirstOrDefault(File.Exists);
     }
 
     private sealed class OemSessionState

@@ -3,9 +3,27 @@
 #include <stdarg.h>
 
 static const DWORD kMaxLogBytes = 4 * 1024 * 1024;
+// Cap DownloadEffect spam — Forza can hit ~600 lines/s; open+write+close per line
+// on the game's FFB thread stalls input/FFB (seen as "game stopped seeing the G920").
+static const LONG kMaxEffectLinesPerSecond = 40;
 
 // Created by the emulator while a Debug session is active (DiagnosticsDebugSession).
 #define G920FFB_DEBUG_EVENT L"Local\\G920Emulator.FfbDebug"
+
+static CRITICAL_SECTION g_logCs;
+static bool g_logCsInit = false;
+static HANDLE g_logFile = INVALID_HANDLE_VALUE;
+static DWORD g_effectWindowTick = 0;
+static LONG g_effectLinesInWindow = 0;
+
+static void EnsureLogCs()
+{
+	if (!g_logCsInit)
+	{
+		InitializeCriticalSection(&g_logCs);
+		g_logCsInit = true;
+	}
+}
 
 static bool LoggingEnabled()
 {
@@ -43,20 +61,77 @@ static bool LogPath(wchar_t* path, size_t cch)
 	return wcscat_s(path, cch, L"g920ffb-effects.log") == 0;
 }
 
+static void CloseLogFile_NoLock()
+{
+	if (g_logFile != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(g_logFile);
+		g_logFile = INVALID_HANDLE_VALUE;
+	}
+}
+
+static void RotateIfNeeded_NoLock(const wchar_t* path)
+{
+	WIN32_FILE_ATTRIBUTE_DATA info;
+	if (!GetFileAttributesExW(path, GetFileExInfoStandard, &info))
+		return;
+	if (info.nFileSizeHigh == 0 && info.nFileSizeLow <= kMaxLogBytes)
+		return;
+
+	CloseLogFile_NoLock();
+	wchar_t old[MAX_PATH];
+	wcscpy_s(old, path);
+	wcscat_s(old, L".old");
+	MoveFileExW(path, old, MOVEFILE_REPLACE_EXISTING);
+}
+
+static bool AllowEffectLog_NoLock()
+{
+	const DWORD now = GetTickCount();
+	if (now - g_effectWindowTick >= 1000)
+	{
+		g_effectWindowTick = now;
+		g_effectLinesInWindow = 0;
+	}
+	if (g_effectLinesInWindow >= kMaxEffectLinesPerSecond)
+		return false;
+	g_effectLinesInWindow++;
+	return true;
+}
+
 static void AppendLine(const char* body)
 {
 	if (!LoggingEnabled())
+	{
+		EnsureLogCs();
+		EnterCriticalSection(&g_logCs);
+		CloseLogFile_NoLock();
+		LeaveCriticalSection(&g_logCs);
 		return;
+	}
+
+	EnsureLogCs();
+	EnterCriticalSection(&g_logCs);
 
 	wchar_t path[MAX_PATH];
 	if (!LogPath(path, MAX_PATH))
+	{
+		LeaveCriticalSection(&g_logCs);
 		return;
+	}
 
-	// Game threads and the EffectProc thread log concurrently.
-	HANDLE file = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
-		OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (file == INVALID_HANDLE_VALUE)
-		return;
+	RotateIfNeeded_NoLock(path);
+
+	if (g_logFile == INVALID_HANDLE_VALUE)
+	{
+		g_logFile = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
+			OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (g_logFile == INVALID_HANDLE_VALUE)
+		{
+			LeaveCriticalSection(&g_logCs);
+			return;
+		}
+	}
 
 	SYSTEMTIME st;
 	GetLocalTime(&st);
@@ -66,9 +141,11 @@ static void AppendLine(const char* body)
 	if (n > 0)
 	{
 		DWORD written = 0;
-		WriteFile(file, line, (DWORD)n, &written, NULL);
+		if (!WriteFile(g_logFile, line, (DWORD)n, &written, NULL))
+			CloseLogFile_NoLock();
 	}
-	CloseHandle(file);
+
+	LeaveCriticalSection(&g_logCs);
 }
 
 void G920FfbLogSession()
@@ -76,19 +153,12 @@ void G920FfbLogSession()
 	if (!LoggingEnabled())
 		return;
 
+	EnsureLogCs();
+	EnterCriticalSection(&g_logCs);
 	wchar_t path[MAX_PATH];
-	if (!LogPath(path, MAX_PATH))
-		return;
-
-	WIN32_FILE_ATTRIBUTE_DATA info;
-	if (GetFileAttributesExW(path, GetFileExInfoStandard, &info) &&
-		(info.nFileSizeHigh != 0 || info.nFileSizeLow > kMaxLogBytes))
-	{
-		wchar_t old[MAX_PATH];
-		wcscpy_s(old, path);
-		wcscat_s(old, L".old");
-		MoveFileExW(path, old, MOVEFILE_REPLACE_EXISTING);
-	}
+	if (LogPath(path, MAX_PATH))
+		RotateIfNeeded_NoLock(path);
+	LeaveCriticalSection(&g_logCs);
 
 	wchar_t exe[MAX_PATH] = L"?";
 	GetModuleFileNameW(NULL, exe, MAX_PATH);
@@ -113,6 +183,16 @@ void G920FfbLogCall(const char* format, ...)
 
 void G920FfbLogEffect(DWORD effectType, DWORD flags, DWORD handle, LONG extra)
 {
+	if (!LoggingEnabled())
+		return;
+
+	EnsureLogCs();
+	EnterCriticalSection(&g_logCs);
+	const bool allow = AllowEffectLog_NoLock();
+	LeaveCriticalSection(&g_logCs);
+	if (!allow)
+		return;
+
 	char body[200];
 	sprintf_s(body, "type=%lu(%s) handle=%lu flags=0x%08lX extra=%ld",
 		(unsigned long)effectType, EffectName(effectType),
@@ -123,6 +203,16 @@ void G920FfbLogEffect(DWORD effectType, DWORD flags, DWORD handle, LONG extra)
 void G920FfbLogSpringDetail(DWORD handle, DWORD flags, DWORD condCount, DWORD pick,
 	LONG offset, LONG posCoeff, LONG negCoeff, DWORD posSat, DWORD negSat, LONG deadBand, LONG dirSign)
 {
+	if (!LoggingEnabled())
+		return;
+
+	EnsureLogCs();
+	EnterCriticalSection(&g_logCs);
+	const bool allow = AllowEffectLog_NoLock();
+	LeaveCriticalSection(&g_logCs);
+	if (!allow)
+		return;
+
 	char body[320];
 	sprintf_s(body,
 		"SPRING_DETAIL handle=%lu flags=0x%08lX conds=%lu pick=%lu "

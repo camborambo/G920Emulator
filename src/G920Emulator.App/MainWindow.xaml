@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="G920 Emulator"
         Icon="pack://application:,,,/Assets/app.ico"
-        Height="760" Width="1140"
-        MinHeight="640" MinWidth="960"
+        Height="760" Width="1280"
+        MinHeight="640" MinWidth="1220"
         Background="#121418"
         Foreground="#E8EAED"
         FontFamily="Segoe UI">
@@ -260,11 +260,11 @@
 
     <Grid>
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="1.1*"/>
+        <ColumnDefinition Width="1.05*"/>
         <ColumnDefinition Width="12"/>
-        <ColumnDefinition Width="1.2*"/>
+        <ColumnDefinition Width="1.15*"/>
         <ColumnDefinition Width="12"/>
-        <ColumnDefinition Width="0.9*"/>
+        <ColumnDefinition Width="1.05*"/>
       </Grid.ColumnDefinitions>
 
       <DockPanel Grid.Column="0">
@@ -357,6 +357,8 @@
                         ToolTip="Save the current FFB sliders to the selected FFB profile."/>
                 <Button Style="{StaticResource AppButton}" Content="Save As…" Click="SaveFfbAsButton_Click"
                         ToolTip="Save the current FFB sliders as a new FFB profile."/>
+                <Button Style="{StaticResource AppButton}" Content="Default" Click="DefaultFfbButton_Click"
+                        ToolTip="Reset sliders to Raw defaults (exact game mix). Does not change the selected profile until you Save."/>
                 <Button Style="{StaticResource AppButton}" Content="Delete" Click="DeleteFfbButton_Click" Margin="0"
                         ToolTip="Delete the selected FFB profile. The built-in Raw profile cannot be deleted."/>
               </StackPanel>
@@ -525,9 +527,9 @@
               </StackPanel>
 
               <TextBlock Text="Advanced mix" Opacity="0.7" Margin="0,12,0,4"
-                         ToolTip="Extra options for Constant Force direction and damper feel while effects are mixed. Defaults leave the game's feedback unchanged."/>
+                         ToolTip="Optional damper scales and an extra CF flip. CF polarity is already corrected in the OEM driver."/>
               <CheckBox x:Name="InvertConstantForceCheck" Content="Invert Constant Force" Foreground="#E8EAED" Margin="0,0,0,4"
-                        ToolTip="Flip Constant Force polarity only (not Spring/Damper). Independent of Invert FFB."
+                        ToolTip="Extra CF flip only — the driver already converts game DI Constant Force to app polarity (+ = right). Independent of Invert FFB."
                         Checked="MixOption_Changed" Unchecked="MixOption_Changed"/>
               <DockPanel Margin="0,2,0,0"
                          ToolTip="Damper velocity: how strongly wheel speed feeds into damper/inertia. 100% = as the game sent it.">
