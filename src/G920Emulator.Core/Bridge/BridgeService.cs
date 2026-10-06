@@ -73,7 +73,12 @@ public sealed class BridgeService : IDisposable
     private string _oemFfbStatus = "OEM FFB: waiting for g920ffb.dll";
     private string _oemFfbTypesSeen = "";
     private string _oemFfbTypesPlaying = "";
+    private string _oemFfbEffectsDetail = OemFfbSharedMemory.FormatOemEffects(0, 0, [], 0);
     private uint _oemFfbDownloadCount;
+    private uint _oemTypesSeenMask;
+    private uint _oemTypesPlayingMask;
+    private uint _oemLastEffectType;
+    private int[] _oemTypeTorqueDi = new int[OemFfbSharedMemory.TypeGainCount];
     private float _ffbRimSteer;
     private float _lastRim;
     private long _lastRimTick;
@@ -168,6 +173,24 @@ public sealed class BridgeService : IDisposable
     public FfbDiagnostics GetFfbDiagnostics()
     {
         var d = _ffb.GetDiagnostics();
+        lock (_gate)
+        {
+            d.OemFfbTorque = _oemFfbTorque;
+            d.OemFfbSequence = _lastOemFfbSequence;
+            d.OemFfbPlaying = _oemFfbPlaying;
+            d.OemFfbStatus = _oemFfbStatus;
+            d.OemFfbTypesSeen = _oemFfbTypesSeen;
+            d.OemFfbTypesPlaying = _oemFfbTypesPlaying;
+            d.OemFfbEffectsDetail = _oemFfbEffectsDetail;
+            d.OemFfbDownloadCount = _oemFfbDownloadCount;
+            d.OemTypesSeenMask = _oemTypesSeenMask;
+            d.OemTypesPlayingMask = _oemTypesPlayingMask;
+            d.OemLastEffectType = _oemLastEffectType;
+            d.OemTypeTorqueDi = _oemTypeTorqueDi;
+            d.FfbRimSteer = _ffbRimSteer;
+            d.HardwareAutoCenter = _ffb.TestAutoCenterActive ? true : false;
+        }
+
         var ingress = _virtualDevice?.GetFfbIngressStats();
         if (ingress is null)
             return d;
@@ -183,18 +206,6 @@ public sealed class BridgeService : IDisposable
         d.LastHostReportId = ingress.Value.LastHostReportId;
         d.LastHostWriteHex = ingress.Value.LastHostWriteHex;
         d.HostPathHint = ingress.Value.HostPathHint;
-        lock (_gate)
-        {
-            d.OemFfbTorque = _oemFfbTorque;
-            d.OemFfbSequence = _lastOemFfbSequence;
-            d.OemFfbPlaying = _oemFfbPlaying;
-            d.OemFfbStatus = _oemFfbStatus;
-            d.OemFfbTypesSeen = _oemFfbTypesSeen;
-            d.OemFfbTypesPlaying = _oemFfbTypesPlaying;
-            d.OemFfbDownloadCount = _oemFfbDownloadCount;
-            d.FfbRimSteer = _ffbRimSteer;
-            d.HardwareAutoCenter = _ffb.TestAutoCenterActive ? true : false;
-        }
         return d;
     }
 
@@ -532,6 +543,11 @@ public sealed class BridgeService : IDisposable
                         _oemFfbTorque = 0;
                         _oemFfbPlaying = false;
                         _oemFfbTypesPlaying = OemFfbSharedMemory.FormatTypeMask(0);
+                        _oemTypesPlayingMask = 0;
+                        _oemTypesSeenMask = oemSnap.TypesSeen | oemSnap.AuxTypesPlaying;
+                        _oemLastEffectType = oemSnap.LastEffectType;
+                        _oemTypeTorqueDi = oemSnap.CombinedTypeTorqueDi();
+                        _oemFfbEffectsDetail = OemFfbSharedMemory.FormatOemEffects(oemSnap, playing: false);
                         _oemFfbStatus = $"OEM FFB: stale (no game publishing) seq={oemSnap.Sequence}";
                     }
                 }
@@ -554,6 +570,11 @@ public sealed class BridgeService : IDisposable
                         _oemFfbDownloadCount = oemSnap.DownloadCount;
                         _oemFfbTypesSeen = OemFfbSharedMemory.FormatTypeMask(oemSnap.TypesSeen | oemSnap.AuxTypesPlaying);
                         _oemFfbTypesPlaying = OemFfbSharedMemory.FormatTypeMask(combinedTypes);
+                        _oemTypesSeenMask = oemSnap.TypesSeen | oemSnap.AuxTypesPlaying;
+                        _oemTypesPlayingMask = combinedTypes;
+                        _oemLastEffectType = oemSnap.LastEffectType;
+                        _oemTypeTorqueDi = oemSnap.CombinedTypeTorqueDi();
+                        _oemFfbEffectsDetail = OemFfbSharedMemory.FormatOemEffects(oemSnap, combinedPlaying);
                         _oemFfbStatus = combinedPlaying
                             ? $"OEM FFB: playing seq={oemSnap.Sequence} dl={oemSnap.DownloadCount} rim={ffbSteer:+0.00;-0.00;0.00}"
                             : $"OEM FFB: idle seq={oemSnap.Sequence} dl={oemSnap.DownloadCount} rim={ffbSteer:+0.00;-0.00;0.00}";
@@ -575,7 +596,12 @@ public sealed class BridgeService : IDisposable
                 }
                 else
                 {
-                    lock (_gate) _oemFfbStatus = $"OEM FFB: {oemErr ?? "not connected"}";
+                    lock (_gate)
+                    {
+                        _oemFfbStatus = $"OEM FFB: {oemErr ?? "not connected"}";
+                        _oemTypesPlayingMask = 0;
+                        _oemFfbEffectsDetail = OemFfbSharedMemory.FormatOemEffects(0, 0, [], 0);
+                    }
                 }
 
                 if (!usedOem && _virtualDevice is not null && _ffb.IsReady)

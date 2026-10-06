@@ -24,6 +24,7 @@ public static class DiagnosticsExporter
         "g920ffb-effects.log",
         "g920ffb-effects.log.old",
         "g920-hidpp-ingress.log",
+        "g920emulator-perf.log",
     ];
 
     /// <summary>
@@ -88,6 +89,7 @@ public static class DiagnosticsExporter
         "  oem-registry.txt  — OEMForceFeedback CLSID / Effects / DLL path for VID_046D&PID_C262\r\n" +
         "  game-ffb-analysis.txt — OEM race signature (Triangle/CF vs spring-only / Vibration)\r\n" +
         "  logs\\g920ffb-effects.log — game OEM calls (SESSION / CALL / EFFECT / MIX)\r\n" +
+        "  logs\\g920emulator-perf.log — emulator vs game CPU/RAM every 10s (hint= is our load, not the game GPU)\r\n" +
         "Repository: " + GitHubRepoUrl + "\r\n";
 
     private static void WriteSummary(
@@ -107,6 +109,9 @@ public static class DiagnosticsExporter
         sb.AppendLine("64-bit process: " + Environment.Is64BitProcess);
         sb.AppendLine("User interactive: " + Environment.UserInteractive);
         sb.AppendLine("App directory: " + AppContext.BaseDirectory);
+        sb.AppendLine();
+        ProcessResourceProbe.AppendTo(sb);
+        sb.AppendLine();
         AppendDllStamp(sb, "g920ffb.dll");
         AppendDllStamp(sb, "WinUHid.dll");
         sb.AppendLine();
@@ -218,6 +223,8 @@ public static class DiagnosticsExporter
             sb.AppendLine($"  OEM playing: {d.OemFfbPlaying}  torque={d.OemFfbTorque:+0.00;-0.00;0.00}  dl={d.OemFfbDownloadCount}");
             sb.AppendLine("  OEM types seen: " + (string.IsNullOrEmpty(d.OemFfbTypesSeen) ? "(none)" : d.OemFfbTypesSeen));
             sb.AppendLine("  OEM types playing: " + (string.IsNullOrEmpty(d.OemFfbTypesPlaying) ? "(none)" : d.OemFfbTypesPlaying));
+            if (!string.IsNullOrEmpty(d.OemFfbEffectsDetail))
+                sb.AppendLine(d.OemFfbEffectsDetail);
             sb.AppendLine("  OEM status: " + d.OemFfbStatus);
             sb.AppendLine($"  Rim (spring): {d.FfbRimSteer:+0.00;-0.00;0.00}");
             sb.AppendLine($"  Apply count: {d.ApplyCount}  last mag: {d.LastMagnitude}");
@@ -396,7 +403,8 @@ public static class DiagnosticsExporter
             sb.AppendLine($"TypesPlaying (game): {OemFfbSharedMemory.FormatTypeMask(oem.TypesPlaying)} (0x{oem.TypesPlaying:X4})");
             sb.AppendLine($"TypesPlaying (aux):  {OemFfbSharedMemory.FormatTypeMask(oem.AuxTypesPlaying)} (0x{oem.AuxTypesPlaying:X4})");
             sb.AppendLine($"TypesPlaying (combined): {OemFfbSharedMemory.FormatTypeMask(oem.CombinedTypesPlaying)} (0x{oem.CombinedTypesPlaying:X4})");
-            sb.AppendLine($"LastEffectType: {oem.LastEffectType}  LastFlags: 0x{oem.LastFlags:X8}");
+            sb.AppendLine(OemFfbSharedMemory.FormatOemEffects(oem, oem.Playing || (oem.AuxPlaying && !oem.IsAuxStale())));
+            sb.AppendLine($"LastEffectType: {oem.LastEffectType} ({OemFfbSharedMemory.TypeName(oem.LastEffectType)})  LastFlags: 0x{oem.LastFlags:X8}");
             sb.AppendLine($"TickMs: {oem.TickMs}  AuxTickMs: {oem.AuxTickMs}  Stale: {oem.IsStale()}");
             sb.AppendLine();
             sb.AppendLine("Read guide:");

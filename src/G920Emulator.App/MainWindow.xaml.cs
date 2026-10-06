@@ -51,6 +51,7 @@ public partial class MainWindow : Window
     private bool _minimizeToTray;
     private WindowState _restoreWindowState = WindowState.Normal;
     private TrayIcon? _trayIcon;
+    private DebugOverlayWindow? _debugOverlay;
 
     public MainWindow()
     {
@@ -121,6 +122,7 @@ public partial class MainWindow : Window
         }
 
         DisposeTrayIcon();
+        CloseDebugOverlay(saveEnabled: false);
         e.Cancel = true;
         _exitTeardownStarted = true;
         _bridgeBusy = true;
@@ -291,6 +293,99 @@ public partial class MainWindow : Window
         _minimizeToTray = settings.MinimizeToSystemTray;
         if (MinimizeToTrayMenuItem is not null)
             MinimizeToTrayMenuItem.IsChecked = _minimizeToTray;
+        if (DebugOverlayMenuItem is not null)
+            DebugOverlayMenuItem.IsChecked = settings.DebugOverlay;
+        ApplyDebugOverlay(settings.DebugOverlay);
+    }
+
+    private void DebugOverlayMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var enabled = DebugOverlayMenuItem?.IsChecked == true;
+        UpdateAppSettings(s => s.DebugOverlay = enabled);
+        StatusText.Text = enabled
+            ? "Debug Overlay on — live inputs and FFB stay on top of the game."
+            : "Debug Overlay off.";
+    }
+
+    private void ApplyDebugOverlay(bool enabled)
+    {
+        if (enabled)
+            ShowDebugOverlay();
+        else
+            CloseDebugOverlay(saveEnabled: false);
+    }
+
+    private void ShowDebugOverlay()
+    {
+        if (_debugOverlay is { IsLoaded: true })
+        {
+            _debugOverlay.Topmost = true;
+            _debugOverlay.Show();
+            _lastFfbDiagUiTick = 0;
+            RefreshFfbDiagnostics();
+            return;
+        }
+
+        var settings = _profiles.LoadSettings();
+        _debugOverlay = new DebugOverlayWindow();
+        _debugOverlay.ClosedByUser += DebugOverlay_ClosedByUser;
+        if (settings.DebugOverlayLeft is double left && settings.DebugOverlayTop is double top)
+        {
+            _debugOverlay.WindowStartupLocation = WindowStartupLocation.Manual;
+            _debugOverlay.Left = left;
+            _debugOverlay.Top = top;
+        }
+        else
+        {
+            _debugOverlay.WindowStartupLocation = WindowStartupLocation.Manual;
+            _debugOverlay.Left = SystemParameters.WorkArea.Right - 456;
+            _debugOverlay.Top = SystemParameters.WorkArea.Top + 16;
+        }
+
+        _debugOverlay.Show();
+        _lastFfbDiagUiTick = 0;
+        RefreshFfbDiagnostics();
+        ApplyLive(_bridge.LatestState);
+    }
+
+    private void CloseDebugOverlay(bool saveEnabled)
+    {
+        if (_debugOverlay is null) return;
+        var window = _debugOverlay;
+        _debugOverlay = null;
+        window.ClosedByUser -= DebugOverlay_ClosedByUser;
+        PersistOverlayBounds(window);
+        try
+        {
+            if (window.IsVisible)
+                window.Close();
+        }
+        catch { /* ignore */ }
+
+        if (saveEnabled)
+            UpdateAppSettings(s => s.DebugOverlay = false);
+    }
+
+    private void DebugOverlay_ClosedByUser()
+    {
+        if (_debugOverlay is not null)
+            PersistOverlayBounds(_debugOverlay);
+        _debugOverlay = null;
+        UpdateAppSettings(s => s.DebugOverlay = false);
+        if (StatusText is not null)
+            StatusText.Text = "Debug Overlay off.";
+    }
+
+    private void PersistOverlayBounds(DebugOverlayWindow window)
+    {
+        try
+        {
+            var settings = _profiles.LoadSettings();
+            settings.DebugOverlayLeft = window.Left;
+            settings.DebugOverlayTop = window.Top;
+            _profiles.SaveSettings(settings);
+        }
+        catch { /* ignore */ }
     }
 
     private AppSettings UpdateAppSettings(Action<AppSettings> mutate)
@@ -976,6 +1071,7 @@ public partial class MainWindow : Window
                     {
                         ApplyLive(mapped);
                         ProcessFfbEffectNudges(devices);
+                        RefreshFfbDiagnostics();
                     }
                 }));
             }
@@ -1006,7 +1102,8 @@ public partial class MainWindow : Window
     private void RefreshFfbDiagnostics()
     {
         if (FfbDiagText is null) return;
-        if (FfbDebugExpander?.IsExpanded != true)
+        var overlayOn = _debugOverlay is { IsVisible: true };
+        if (FfbDebugExpander?.IsExpanded != true && !overlayOn)
             return;
 
         // Cap UI DI/diagnostics work — was every 50ms and also polled the FFB joystick
@@ -1017,35 +1114,12 @@ public partial class MainWindow : Window
         _lastFfbDiagUiTick = now;
 
         var d = _bridge.GetFfbDiagnostics();
-        // Use bridge-published rim only — never Poll the exclusive FFB device here.
-        var rim = d.FfbRimSteer;
-        var ageIn = d.LastIncomingUtc is DateTime t
-            ? $"{(DateTime.UtcNow - t).TotalSeconds:0.0}s ago"
-            : "never";
-        var ageOut = d.LastApplyUtc is DateTime a
-            ? $"{(DateTime.UtcNow - a).TotalSeconds:0.0}s ago"
-            : "never";
-
         var link = _bridge.LinkStatus;
-        FfbDiagText.Text =
-            $"{d.Status}\n" +
-            $"Bridge link: {(string.IsNullOrWhiteSpace(link) ? "OK" : link)}\n" +
-            $"Attached: {d.IsAttached}  TestOverride: {d.TestOverrideActive}  AutoCenterTest: {d.TestAutoCenterActive}  Vendor: {d.VendorProfile}\n" +
-            $"Device: {d.DeviceName ?? "(none)"}\n" +
-            $"Coop: {d.CooperativeLevel}\n" +
-            $"Axis: {d.AxisInfo}\n" +
-            $"OEM FFB: {d.OemFfbStatus}  torque={d.OemFfbTorque:+0.00;-0.00;0.00}  playing={d.OemFfbPlaying}\n" +
-            $"Rim (spring): {rim:+0.00;-0.00;0.00}  hw auto-center (test): {d.HardwareAutoCenter?.ToString() ?? "?"}\n" +
-            $"OEM effects seen: {(string.IsNullOrEmpty(d.OemFfbTypesSeen) ? "(none)" : d.OemFfbTypesSeen)}\n" +
-            $"OEM effects playing: {(string.IsNullOrEmpty(d.OemFfbTypesPlaying) ? "(none)" : d.OemFfbTypesPlaying)}\n" +
-            $"Host writes: {d.HostWriteCount}  last: {d.LastHostWriteHex}\n" +
-            $"HID++ writes: {d.HidppWriteCount}  dl: {d.HidppDownloadCount}  play: {d.HidppPlayCount}\n" +
-            $"HID++ slots: {d.HidppSlotsPlaying}/{d.HidppSlotsInUse} playing  last: {d.HidppLastFunction}\n" +
-            $"HID++ torque: {d.HidppCurrentTorque:+0.00;-0.00;0.00}\n" +
-            $"Path: {(string.IsNullOrEmpty(d.HostPathHint) ? "(settling…)" : d.HostPathHint)}\n" +
-            $"Game/HID++ in: {d.LastIncomingTorque:+0.00;-0.00;0.00} ({d.IncomingUpdateCount} updates, {ageIn})\n" +
-            $"Applied out: {d.LastCommandTorque:+0.00;-0.00;0.00}  mag={d.LastMagnitude} ({d.ApplyCount} applies, {ageOut})\n" +
-            $"Error: {d.LastError ?? "(none)"}";
+        if (FfbDebugExpander?.IsExpanded == true)
+            FfbDiagText.Text = DebugOverlayWindow.FormatEffects(d)
+                + Environment.NewLine + Environment.NewLine
+                + DebugOverlayWindow.FormatFfb(d, link);
+        _debugOverlay?.UpdateFfb(d, link);
     }
 
     private async Task<bool> EnsureFfbAttachedForTestAsync()
@@ -1185,22 +1259,9 @@ public partial class MainWindow : Window
         if (StripClutchText is not null) StripClutchText.Text = $"Clutch: {s.Clutch:P0}";
         if (StripClutchBar is not null) StripClutchBar.Value = s.Clutch;
 
-        var pressed = new List<string>();
-        if (s.ButtonA) pressed.Add("A");
-        if (s.ButtonB) pressed.Add("B");
-        if (s.ButtonX) pressed.Add("X");
-        if (s.ButtonY) pressed.Add("Y");
-        if (s.ButtonLb || s.PaddleLeft) pressed.Add("LB");
-        if (s.ButtonRb || s.PaddleRight) pressed.Add("RB");
-        if (s.ButtonView) pressed.Add("View");
-        if (s.ButtonMenu) pressed.Add("Menu");
-        if (s.ButtonLs) pressed.Add("LSB");
-        if (s.ButtonRs) pressed.Add("RSB");
-        if (s.Hat >= 0) pressed.Add($"Hat{s.Hat}");
-        // Gears already shown on GearText; include active gear here when not Neutral.
-        if (s.ActiveGearLabel is not "N")
-            pressed.Add($"G{s.ActiveGearLabel}");
-        ButtonsText.Text = "Buttons: " + (pressed.Count == 0 ? "—" : string.Join(" ", pressed));
+        ButtonsText.Text = "Buttons: " + DebugOverlayWindow.FormatButtons(s);
+        if (_debugOverlay is { IsVisible: true })
+            _debugOverlay.UpdateInput(s);
     }
 
     private void RefreshButton_Click(object sender, RoutedEventArgs e) => RefreshDevices(restoreHidden: true);

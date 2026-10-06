@@ -62,6 +62,9 @@
                 <MenuItem x:Name="MinimizeToTrayMenuItem" Header="Minimize to system tray"
                           IsCheckable="True" Click="MinimizeToTrayMenuItem_Click"
                           ToolTip="When on, minimizing hides the window in the notification area. The close button still quits."/>
+                <MenuItem x:Name="DebugOverlayMenuItem" Header="Debug Overlay"
+                          IsCheckable="True" Click="DebugOverlayMenuItem_Click"
+                          ToolTip="Show a topmost overlay with live G920 inputs and FFB diagnostics while you drive."/>
                 <Separator/>
                 <MenuItem Header="Exit" Click="ExitApp_Click" ToolTip="Quit G920 Emulator."/>
               </ContextMenu>
@@ -612,9 +615,12 @@
                                     TickFrequency="0.05" IsSnapToTickEnabled="False"
                                     ValueChanged="FfbTestTorqueSlider_ValueChanged"/>
                           </DockPanel>
-                          <TextBlock x:Name="FfbDiagText" Opacity="0.8" FontSize="11" TextWrapping="Wrap"
-                                     FontFamily="Consolas" Margin="0,8,0,0"
-                                     Text="FFB diagnostics will appear here."/>
+                          <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto"
+                                        HorizontalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                            <TextBlock x:Name="FfbDiagText" Opacity="0.8" FontSize="12"
+                                       FontFamily="Consolas" TextWrapping="NoWrap"
+                                       Text="FFB diagnostics will appear here."/>
+                          </ScrollViewer>
                         </StackPanel>
                       </Expander>
                     </Border>

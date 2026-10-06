@@ -18,10 +18,10 @@ void G920FfbReleaseObject(void);
 // Contract: anything downloaded against our OEM CLSID must reach the base.
 // Game process owns Torque.*; Steam/overlay may only fill Aux* (rumble layer)
 // so they cannot zero-out the game channel.
-// v6: new map name + AuxTorque fields.
-#define G920FFB_SHM_NAME L"Local\\G920Emulator.FfbTorque.v6"
+// v7: per-type mix torque (TypeTorque / AuxTypeTorque). Isolated map name from v6.
+#define G920FFB_SHM_NAME L"Local\\G920Emulator.FfbTorque.v7"
 #define G920FFB_MAGIC 0x46463947u /* 'G9FF' */
-#define G920FFB_VERSION 6u
+#define G920FFB_VERSION 7u
 #define G920FFB_TYPE_GAIN_COUNT 16
 
 // Bit in TypesSeen / TypesPlaying: (1u << effectTypeId)
@@ -55,6 +55,11 @@ struct G920FfbSharedState
 	UINT32 MixFlags;
 	UINT16 DamperVelScale;      // 10000 = 1.0, 20000 = 2.0
 	UINT16 DamperDeadbandScale; // 10000 = 1.0, ~3333 = 1/3
+	// Per-type mix torque in DI units (−10000..+10000), same groups as MIX log lines.
+	INT32 TypeTorque[G920FFB_TYPE_GAIN_COUNT];
+	INT32 AuxTypeTorque[G920FFB_TYPE_GAIN_COUNT];
+	UINT32 GamePid; // process publishing Torque
+	UINT32 AuxPid;  // process publishing AuxTorque (Steam / overlay)
 };
 #pragma pack(pop)
 

@@ -32,7 +32,7 @@ Details and troubleshooting: [driver-install.md](driver-install.md).
 - **Input** — detected devices, G920 bindings, shifter mode, and live virtual G920 preview (including buttons).
 - **Force Feedback** — FFB profile, output device, gains, and feel controls (full workspace).
 
-Shared chrome: Input / Force Feedback tabs, input profile, **Start** (toggles to **Stop** while running), and **Settings**. Settings (including **Minimize to system tray**) save immediately in `settings.json`. Live meters sit on the Input tab. A warning strip appears if required pieces are missing.
+Shared chrome: Input / Force Feedback tabs, input profile, **Start** (toggles to **Stop** while running), and **Settings**. Settings (including **Minimize to system tray** and **Debug Overlay**) save immediately in `settings.json`. Live meters sit on the Input tab. A warning strip appears if required pieces are missing.
 
 ## Detected devices
 
@@ -91,7 +91,7 @@ On the **Force Feedback** tab:
    - **Centering** — **Force center spring** checkbox plus Strength / Range / Deadzone, for games that never center the wheel (off on Raw)
    - Hover any FFB row (label, slider or value) for a tooltip explaining what it does and what 0% / off means.
 4. **Start bridge** attaches FFB automatically.
-5. Optional: expand **FFB debug** for test pulses and live OEM counters. Use status-bar **Debug** only for short diagnostic captures (see [Getting help](#getting-help--diagnostics)) — leave it off for normal play.
+5. Optional: expand **FFB debug** for test pulses and live OEM counters, or turn on **Settings → Debug Overlay** for a topmost window with live G920 inputs plus the same FFB diagnostics while you are in-game. Use status-bar **Debug** only for short diagnostic captures (see [Getting help](#getting-help--diagnostics)) — leave it off for normal play.
 
 Slider ranges and probing tips: [force-feedback.md](force-feedback.md).
 
@@ -174,13 +174,14 @@ Leave status-bar **Debug** **off** during normal play. It turns on OEM / HID++ f
 The zip includes:
 
 - `HOW-TO-SEND.txt` — how the capture was meant to be taken
-- `summary.txt` — machine name, deps, running wheel/SimHub/Steam processes, `g920ffb.dll` stamp, live bridge/FFB attach
+- `summary.txt` — machine name, deps, running wheel/SimHub/Steam processes, `g920ffb.dll` stamp, live bridge/FFB attach, emulator CPU/RAM snapshot
 - `devices.txt` — every DirectInput game device (including virtual G920 and FFB flag)
 - `ffb-snapshot.txt` — OEM shared-memory mix + active gains at export time
 - `hidhide.txt` — cloak / app whitelist / hidden devices via HidHideCLI
 - `oem-registry.txt` — G920 OEMForceFeedback CLSID path
 - `game-ffb-analysis.txt` — Unbound race signature / Vibration hint from the OEM log
 - `logs\g920ffb-effects.log` — game OEM calls (`SESSION` / `CALL` / `EFFECT` / `MIX`) when Debug was used
+- `logs\g920emulator-perf.log` — 10 s snapshots of emulator CPU/RAM plus the OEM game (and Steam aux) process; high game load is expected, watch emulator `cpu1` / `hint=`
 - Copies of AppData (or portable) `profiles\`, `ffb-profiles\`, and `settings.json`
 
 **Fanatec DD2** (Heat / Unbound) and **Simucube** (Unbound) are validated FFB targets. For comparisons: **Debug** → race briefly with wall hits → **Stop debug** → **Export log…** on each PC with the same build.

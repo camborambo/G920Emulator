@@ -26,7 +26,7 @@ When Col01 is owned by **`logi_joy_hid_filter`**, Logitech’s HID++ FFB COM ser
 
 Logitech’s `hidpp_forcefeedback` may still load but does not deliver usable WriteReports to WinUHid (`HidD_SetOutputReport` → `ERROR_NOT_SUPPORTED`).
 
-**FFB path now:** OEMForceFeedback CLSID → `g920ffb.dll` (`IDirectInputEffectDriver`) → shared memory `Local\G920Emulator.FfbTorque.v6` → bridge → physical base.
+**FFB path now:** OEMForceFeedback CLSID → `g920ffb.dll` (`IDirectInputEffectDriver`) → shared memory `Local\G920Emulator.FfbTorque.v7` → bridge → physical base.
 
 | Change | Purpose |
 |--------|---------|
@@ -56,7 +56,7 @@ G920 Emulator defaults to **19**. For Unbound, open **Gear R** binding and set *
 
 ## Effect probe
 
-`g920ffb.dll` publishes SHM **v6** (`Local\G920Emulator.FfbTorque.v6`), including `TypesSeen` / `TypesPlaying` bitmasks of DI effect type IDs. The emulator **FFB debug** UI shows human names. Full OEM log (`%TEMP%\g920ffb-effects.log`) is written only while the status-bar **Debug** session is active.
+`g920ffb.dll` publishes SHM **v7** (`Local\G920Emulator.FfbTorque.v7`), including `TypesSeen` / `TypesPlaying` bitmasks and per-type mix torque. The emulator **FFB debug** UI and Debug Overlay list each DirectInput type (same names as `g920ffb-effects.log`) as seen or playing, with MIX totals. Full OEM log (`%TEMP%\g920ffb-effects.log`) is written only while the status-bar **Debug** session is active.
 
 ### NFS Unbound (2026-10-04)
 

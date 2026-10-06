@@ -47,7 +47,7 @@ Games that support a Logitech G920 via DirectInput OEM do **not** rely on Logite
 
 1. On Start bridge, a session registers OEM joystick identity and points `OEMForceFeedback` at **`g920ffb.dll`** (CLSID `{A920FFB0-E7DB-4329-8C13-A966D84A289F}`), and pins the Logitech SDK ServerBinary. Stop/Close/crash restore the previous system values.
 2. The game (and any helper that opens the same OEM device) downloads/starts DI effects (constant, spring, damper, sine, triangle, …) on that virtual G920.
-3. `g920ffb.dll` mixes effects per process and publishes into `Local\G920Emulator.FfbTorque.v6`:
+3. `g920ffb.dll` mixes effects per process and publishes into `Local\G920Emulator.FfbTorque.v7`:
    - **Torque** — game process (primary)
    - **AuxTorque** — Steam/overlay only, layered under the game channel so helpers cannot wipe spring/road forces
 4. **BridgeService** writes physical rim angle into that shared memory (required for spring/damper), reads **combined** torque, optionally applies **output feel** / **torque shaping** from the FFB profile, and **FfbBridge** applies it as a constant-force effect on the selected physical base (master gain + invert). Physical DI apply runs on a **side thread** so a slow base cannot stall virtual G920 axis submits.

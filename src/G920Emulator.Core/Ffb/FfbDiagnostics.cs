@@ -42,7 +42,12 @@ public sealed class FfbDiagnostics
     public string OemFfbStatus { get; set; } = "";
     public string OemFfbTypesSeen { get; set; } = "";
     public string OemFfbTypesPlaying { get; set; } = "";
+    public string OemFfbEffectsDetail { get; set; } = "";
     public uint OemFfbDownloadCount { get; set; }
+    public uint OemTypesSeenMask { get; set; }
+    public uint OemTypesPlayingMask { get; set; }
+    public uint OemLastEffectType { get; set; }
+    public int[] OemTypeTorqueDi { get; set; } = [];
 
     /// <summary>Physical FFB rim angle fed into spring/damper (-1..1).</summary>
     public float FfbRimSteer { get; set; }

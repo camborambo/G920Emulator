@@ -11,16 +11,17 @@ namespace G920Emulator.Core.Ffb;
 /// </summary>
 public static class OemFfbSharedMemory
 {
-    // v6: AuxTorque layer; isolated map name from v5.
-    public const string MapName = "Local\\G920Emulator.FfbTorque.v6";
+    // v7: per-type mix torque; isolated map name from v6.
+    public const string MapName = "Local\\G920Emulator.FfbTorque.v7";
     public const uint Magic = 0x46463947; // 'G9FF'
-    public const uint Version = 6;
+    public const uint Version = 7;
     public const int TypeGainCount = 16;
 
-    private static readonly string[] TypeNames =
+    // Same names as g920ffb-effects.log EffectName().
+    public static readonly string[] TypeNames =
     [
-        "Constant", "Ramp", "Square", "Sine", "Triangle", "SawUp", "SawDown",
-        "Spring", "Damper", "Inertia", "Friction", "Custom",
+        "ConstantForce", "RampForce", "Square", "Sine", "Triangle", "SawtoothUp", "SawtoothDown",
+        "Spring", "Damper", "Inertia", "Friction", "CustomForce",
     ];
 
     private static MemoryMappedFile? _mmf;
@@ -47,7 +48,11 @@ public static class OemFfbSharedMemory
         uint LastEffectType,
         uint LastFlags,
         ulong TickMs,
-        ulong AuxTickMs)
+        ulong AuxTickMs,
+        int[] TypeTorque,
+        int[] AuxTypeTorque,
+        uint GamePid,
+        uint AuxPid)
     {
         /// <summary>Combined torque for the physical base (game + aux rumble layer).</summary>
         public float CombinedTorque
@@ -64,6 +69,21 @@ public static class OemFfbSharedMemory
         /// <summary>Types from game and fresh aux layer.</summary>
         public uint CombinedTypesPlaying =>
             TypesPlaying | (AuxPlaying && !IsAuxStale() ? AuxTypesPlaying : 0u);
+
+        public int[] CombinedTypeTorqueDi()
+        {
+            var result = new int[TypeGainCount];
+            var auxLive = AuxPlaying && !IsAuxStale();
+            for (var i = 0; i < TypeGainCount; i++)
+            {
+                var g = TypeTorque is { Length: > 0 } && i < TypeTorque.Length ? TypeTorque[i] : 0;
+                var a = auxLive && AuxTypeTorque is { Length: > 0 } && i < AuxTypeTorque.Length
+                    ? AuxTypeTorque[i]
+                    : 0;
+                result[i] = g + a;
+            }
+            return result;
+        }
 
         /// <summary>The driver thread stopped publishing (game exited or crashed).</summary>
         public bool IsStale(long maxAgeMs = 250) =>
@@ -106,7 +126,11 @@ public static class OemFfbSharedMemory
                 LastEffectType: _view.ReadUInt32(Offset.LastEffectType),
                 LastFlags: _view.ReadUInt32(Offset.LastFlags),
                 TickMs: _view.ReadUInt64(Offset.TickMs),
-                AuxTickMs: _view.ReadUInt64(Offset.AuxTickMs));
+                AuxTickMs: _view.ReadUInt64(Offset.AuxTickMs),
+                TypeTorque: ReadInt32Array(_view, Offset.TypeTorque, TypeGainCount),
+                AuxTypeTorque: ReadInt32Array(_view, Offset.AuxTypeTorque, TypeGainCount),
+                GamePid: ReadUInt32If(_view, Offset.GamePid),
+                AuxPid: ReadUInt32If(_view, Offset.AuxPid));
             return true;
         }
         catch (FileNotFoundException)
@@ -245,13 +269,78 @@ public static class OemFfbSharedMemory
         return sb.Length == 0 ? "(none)" : sb.ToString();
     }
 
+    public static string TypeName(uint typeId) =>
+        typeId < (uint)TypeNames.Length ? TypeNames[typeId] : $"T{typeId}";
+
+    /// <summary>
+    /// Live per-type table for FFB debug / Debug Overlay (fixed-width Consolas).
+    /// Torque values are DI units scaled to −1..+1.
+    /// </summary>
+    public static string FormatOemEffects(uint seen, uint playing, ReadOnlySpan<int> torqueDi, uint lastEffectType)
+    {
+        static float Di(ReadOnlySpan<int> t, int i) =>
+            i < t.Length ? t[i] / 10000f : 0f;
+
+        var nl = Environment.NewLine;
+        var cf = Di(torqueDi, 0);
+        var periodic = Di(torqueDi, 2) + Di(torqueDi, 3) + Di(torqueDi, 4) + Di(torqueDi, 5) + Di(torqueDi, 6);
+        var spring = Di(torqueDi, 7);
+        var damper = Di(torqueDi, 8);
+        var other = Di(torqueDi, 1) + Di(torqueDi, 9) + Di(torqueDi, 10) + Di(torqueDi, 11);
+        var last = (seen | playing) == 0 ? "(none)" : TypeName(lastEffectType);
+        var sb = new StringBuilder();
+        sb.Append("MIX").Append(nl);
+        AppendRow(sb, "cf", $"{cf,7:0.00}");
+        AppendRow(sb, "periodic", $"{periodic,7:0.00}");
+        AppendRow(sb, "spring", $"{spring,7:0.00}");
+        AppendRow(sb, "damper", $"{damper,7:0.00}");
+        AppendRow(sb, "other", $"{other,7:0.00}");
+        AppendRow(sb, "last", last);
+        sb.Append(nl);
+        sb.Append($"  {"Type",-15} {"State",-8} {"Torque",7}").Append(nl);
+        for (var i = 0; i < TypeNames.Length; i++)
+        {
+            var bit = 1u << i;
+            var status = (playing & bit) != 0 ? "playing" : (seen & bit) != 0 ? "seen" : "idle";
+            var torque = Di(torqueDi, i);
+            sb.Append($"  {TypeNames[i],-15} {status,-8} {torque,7:0.00}").Append(nl);
+        }
+        return sb.ToString().TrimEnd();
+    }
+
+    private static void AppendRow(StringBuilder sb, string key, string value)
+    {
+        sb.Append("  ").Append(key.PadRight(15)).Append(value).Append(Environment.NewLine);
+    }
+
+    public static string FormatOemEffects(in Snapshot snap, bool playing) =>
+        FormatOemEffects(
+            snap.TypesSeen | snap.AuxTypesPlaying,
+            playing ? snap.CombinedTypesPlaying : 0u,
+            playing ? snap.CombinedTypeTorqueDi() : [],
+            snap.LastEffectType);
+
+    private static int[] ReadInt32Array(MemoryMappedViewAccessor view, int offset, int count)
+    {
+        var arr = new int[count];
+        var bytes = count * sizeof(int);
+        if (view.Capacity < offset + bytes)
+            return arr;
+        for (var i = 0; i < count; i++)
+            arr[i] = view.ReadInt32(offset + i * sizeof(int));
+        return arr;
+    }
+
+    private static uint ReadUInt32If(MemoryMappedViewAccessor view, int offset) =>
+        view.Capacity >= offset + sizeof(uint) ? view.ReadUInt32(offset) : 0u;
+
     private static void EnsureOpen()
     {
         lock (Gate)
         {
             if (_view is not null) return;
             _mmf = MemoryMappedFile.OpenExisting(MapName, MemoryMappedFileRights.ReadWrite);
-            _view = _mmf.CreateViewAccessor(0, Offset.Size, MemoryMappedFileAccess.ReadWrite);
+            _view = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
             _lastSteerTick = Stopwatch.GetTimestamp();
             _steeringVel = 0f;
         }
@@ -291,6 +380,10 @@ public static class OemFfbSharedMemory
         public const int MixFlags = 108;
         public const int DamperVelScale = 112;
         public const int DamperDeadbandScale = 114;
-        public const int Size = 116;
+        public const int TypeTorque = 116; // INT32[16] → ends 180
+        public const int AuxTypeTorque = 180; // INT32[16] → ends 244
+        public const int GamePid = 244;
+        public const int AuxPid = 248;
+        public const int Size = 252;
     }
 }

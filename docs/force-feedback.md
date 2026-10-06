@@ -32,7 +32,7 @@ See [research-logitech-g920.md](research-logitech-g920.md).
 
 ```
 Game → DirectInput → g920ffb.dll (IDirectInputEffectDriver)
-     → shared memory Local\G920Emulator.FfbTorque.v6
+     → shared memory Local\G920Emulator.FfbTorque.v7
      → BridgeService → optional feel / torque shaping → FfbBridge → physical base (DI constant force)
 ```
 
@@ -41,7 +41,7 @@ Game → DirectInput → g920ffb.dll (IDirectInputEffectDriver)
 | COM CLSID | `{A920FFB0-E7DB-4329-8C13-A966D84A289F}` |
 | DLL | `g920ffb.dll` next to `G920Emulator.exe` (built from `native/g920ffb`) |
 | Registration | Session-scoped: `OemRegistrationSession.BeginSession()` on Start bridge; restored on Stop/Close (`EndSession`), or next launch after a crash (`RecoverIfDirty`) |
-| Shared memory | Magic `G9FF`, version 6 (`…FfbTorque.v6`): game `Torque` + optional `AuxTorque` (Steam/overlay), playing, steering in/out, type bitmasks, per-type gains, OEM mix flags/scales. Each process mixes its own OEM instances; bridge sums game + aux. |
+| Shared memory | Magic `G9FF`, version 7 (`…FfbTorque.v7`): game `Torque` + optional `AuxTorque` (Steam/overlay), playing, steering in/out, type bitmasks, per-type mix torque, per-type gains, OEM mix flags/scales. Each process mixes its own OEM instances; bridge sums game + aux. |
 | Effect gains | Per-type sliders applied in `g920ffb.dll` before mix; master gain applies on the physical base |
 | Advanced mix options | Optional inside `g920ffb.dll`: Invert Constant Force, damper velocity scale, damper deadband scale (see below). Defaults = pass-through |
 | Output feel / torque shaping | Optional, after the advanced mix, in the emulator (see below). Defaults = pass-through |
@@ -144,14 +144,14 @@ Under **Force Feedback**, expand **FFB debug** to show:
 
 - Attach FFB (normally Start bridge attaches)
 - Left / Center / Right / Pulse / Release test + test torque slider
-- Diagnostics: OEM status, effects seen/playing, host/HID++ counters, apply counts, rim angle
+- Diagnostics: OEM MIX (cf / periodic / spring / damper / other) plus each DirectInput type as seen or playing, host/HID++ counters, apply counts, rim angle
 Off by default so everyday use stays uncluttered. File logging (OEM effects + HID++ ingress) is gated by the status-bar **Debug** button, not this checkbox.
 
 ## Status-bar Debug (OEM file log)
 
-**Leave Debug off for normal racing.** It enables `%TEMP%\g920ffb-effects.log` (and HID++ ingress logging) from inside the game process. Titles that re-download effects every frame (Forza Horizon, some Steam Input paths) can generate hundreds of lines per second; older builds opened/closed the file on every write and could freeze game input while the emulator UI stayed live. Current `g920ffb.dll` rate-limits stream lines, keeps the file open, and rotates at 4 MB — still use Debug only for short diagnostic captures, then **Stop debug**.
+**Leave Debug off for normal racing.** It enables `%TEMP%\g920ffb-effects.log` (and HID++ ingress logging) from inside the game process. Titles that re-download effects every frame (Forza Horizon, some Steam Input paths) can generate hundreds of lines per second; older builds opened/closed the file on every write and could freeze game input while the emulator UI stayed live. Current `g920ffb.dll` rate-limits stream lines, keeps the file open, and rotates at 4 MB — still use Debug only for short diagnostic captures, then **Stop debug**. Emulator CPU/RAM is sampled every 10 seconds into `%TEMP%\g920emulator-perf.log` (and once in `summary.txt` at export), including the OEM game process when `g920ffb.dll` is loaded. That file is not written from the game. High game CPU/GPU is expected; the `hint=` line is about **emulator** load. GPU is not sampled.
 
-**FFB debug** (the expander) is separate: live counters and test pulses with no file I/O on the game thread.
+**FFB debug** (the expander) is separate: live counters and test pulses with no file I/O on the game thread. **Settings → Debug Overlay** shows the same live G920 inputs and FFB diagnostics in a topmost window you can drag over the game.
 
 ## Probing which effects a game uses
 
@@ -185,7 +185,7 @@ Heat / Unbound pull the wheel back to center like an arcade cabinet. In DirectIn
 1. Select your **physical FFB base** under Force feedback (not DualSense). Spring uses that rim angle.
 2. Keep **Spring** (and other) effect gains above 0% unless you intend to mute a type.
 3. Do **not** rely on hardware `DIPROP_AUTOCENTER` during gameplay — it is left off so it cannot fight the OEM mix. FFB debug **Center** is a manual software return-to-center test only.
-4. OEM log (`%TEMP%\g920ffb-effects.log`) should list Spring / Damper / CF / periodic while driving. FFB debug shows **Rim (spring)** and **OEM effects playing**.
+4. OEM log (`%TEMP%\g920ffb-effects.log`) should list Spring / Damper / CF / periodic while driving. FFB debug and Debug Overlay show **Rim (spring)** plus the same MIX groups and per-type seen/playing list.
 
 ### Reading the OEM log
 
@@ -193,7 +193,7 @@ Heat / Unbound pull the wheel back to center like an arcade cabinet. In DirectIn
 - `CALL` lines record the game's other driver calls: `DeviceID`, `SendForceFeedbackCommand` (RESET / STOPALL / PAUSE / CONTINUE / ACTUATORSON / ACTUATORSOFF), `SetGain` (on change), `StopEffect`, `DestroyEffect`, `Escape`, and `GetForceFeedbackState` (when the reported state changes). The driver reports the safety switch as on, so games see a wheel that can play force feedback.
 - `MIX` lines (1 s) show what each type contributed to the output torque: `cf`, `periodic`, `spring`, `damper`, `other`, `total`, with `playing` as a DI type bitmask.
 - **Target device is always the virtual G920.** HidHide must hide every other FFB joystick from the game (physical base, vJoy, pads). The emulator stays whitelisted so it can still read those devices for binding and for applying torque to the base you pick.
-- Shared memory `Local\G920Emulator.FfbTorque.v6`: the **game** publishes `Torque`; Steam/overlay may only layer `AuxTorque` (logged `SESSION HOST` / `AUX PUBLISH`). The bridge applies the sum.
+- Shared memory `Local\G920Emulator.FfbTorque.v7`: the **game** publishes `Torque`; Steam/overlay may only layer `AuxTorque` (logged `SESSION HOST` / `AUX PUBLISH`). The bridge applies the sum.
 - **NFS Unbound:** Accessibility → Controls → **Controller Vibration = On**. Confirmed root cause when Vibration is Off: race still creates Triangle/CF/Damper, but all streamed magnitudes stay 0 (spring-only `MIX`). In-race with Vibration On: `GetEffectStatus` → `DestroyEffect` (boot Sine) → Triangle → non-zero `cf` / `periodic` / damper on `MIX`.
 - **vJoy may stay installed** (Joystick Gremlin / remappers). Keep feeder apps on the HidHide whitelist. The vJoy device itself must be **hidden from the game** when it advertises FFB, or Unbound can send forces there instead of the virtual G920. Seeing vJoy in the emulator device list does **not** mean the game sees it (this app is whitelisted). Check `hidhide.txt` for `VID_1234&PID_BEAD`, or use **Dependencies → Configure HidHide** (now also picks up vJoy from `--dev-all`).
 - If `MIX` only shows `spring` and there are no non-zero CF/periodic samples while driving, the **game** is not streaming those effects to the virtual G920. Confirm HidHide hides the physical FFB base and any competing FFB devices from the game; keep in-game FFB on. **SimHub can stay running** — mixed rigs (Simucube base + Fanatec shifter + SimHub) are supported.

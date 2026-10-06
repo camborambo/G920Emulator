@@ -7,6 +7,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- **Debug Overlay** (Settings): topmost live G920 inputs + FFB diagnostics
+- FFB debug lists each DirectInput OEM effect type (seen / playing) with MIX totals (`cf` / `periodic` / `spring` / `damper` / `other`), matching `g920ffb-effects.log`
+- Diagnostics capture emulator vs game process CPU/RAM (10 s snapshots + export). Game GPU/CPU being high is expected; the hint calls out whether *our* process is light, moderate, or hot. GPU is not sampled.
+
 ## [0.2.5] - 2026-10-05
 
 ### Added

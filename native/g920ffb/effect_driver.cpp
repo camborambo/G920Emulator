@@ -734,12 +734,19 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 		Shared->MixFlags = 0;
 		Shared->DamperVelScale = 10000;
 		Shared->DamperDeadbandScale = 10000;
+		for (int g = 0; g < G920FFB_TYPE_GAIN_COUNT; g++)
+		{
+			Shared->TypeTorque[g] = 0;
+			Shared->AuxTypeTorque[g] = 0;
+		}
+		Shared->GamePid = 0;
+		Shared->AuxPid = 0;
 	}
 	else
 	{
 		Shared->Magic = G920FFB_MAGIC;
 		Shared->Version = G920FFB_VERSION;
-		// In-place grow from older v6 layouts: zero scales mean "unset".
+		// In-place grow: zero scales mean "unset".
 		if (Shared->DamperVelScale == 0)
 			Shared->DamperVelScale = 10000;
 		if (Shared->DamperDeadbandScale == 0)
@@ -885,6 +892,9 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 			Shared->DownloadCount = downloadCount;
 			Shared->LastEffectType = lastType;
 			Shared->LastFlags = lastFlags;
+			for (int g = 0; g < G920FFB_TYPE_GAIN_COUNT; g++)
+				Shared->TypeTorque[g] = typeTorque[g];
+			Shared->GamePid = GetCurrentProcessId();
 		}
 		else
 		{
@@ -902,6 +912,9 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 				Shared->AuxPlaying = 1u;
 				Shared->AuxTypesPlaying = typesPlaying;
 				Shared->AuxTickMs = nowTick;
+				for (int g = 0; g < G920FFB_TYPE_GAIN_COUNT; g++)
+					Shared->AuxTypeTorque[g] = typeTorque[g];
+				Shared->AuxPid = GetCurrentProcessId();
 				if (InterlockedCompareExchange(&g_AuxPublishLogged, 1, 0) == 0)
 					G920FfbLogCall(
 						"AUX PUBLISH pid=%lu types=0x%X (%s)",
@@ -915,6 +928,8 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 				Shared->AuxPlaying = 0;
 				Shared->AuxTypesPlaying = 0;
 				Shared->AuxTickMs = 0;
+				for (int g = 0; g < G920FFB_TYPE_GAIN_COUNT; g++)
+					Shared->AuxTypeTorque[g] = 0;
 			}
 		}
 

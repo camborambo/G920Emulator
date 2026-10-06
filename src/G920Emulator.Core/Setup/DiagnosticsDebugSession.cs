@@ -34,6 +34,7 @@ public sealed class DiagnosticsDebugSession : IDisposable
             return;
 
         ClearSessionLogs();
+        ProcessResourceProbe.StartSparseLog();
         _nativeGate = new EventWaitHandle(true, EventResetMode.ManualReset, NativeLogEventName);
         IsActive = true;
         ExportReady = false;
@@ -46,6 +47,7 @@ public sealed class DiagnosticsDebugSession : IDisposable
             return;
 
         AppendManagedMarker("DEBUG SESSION STOP (emulator)");
+        try { ProcessResourceProbe.StopSparseLog(); } catch { /* ignore */ }
         try { _nativeGate?.Dispose(); } catch { /* ignore */ }
         _nativeGate = null;
         IsActive = false;
@@ -59,6 +61,7 @@ public sealed class DiagnosticsDebugSession : IDisposable
         if (IsActive)
         {
             try { AppendManagedMarker("DEBUG SESSION STOP (emulator dispose)"); } catch { /* ignore */ }
+            try { ProcessResourceProbe.StopSparseLog(); } catch { /* ignore */ }
         }
         try { _nativeGate?.Dispose(); } catch { /* ignore */ }
         _nativeGate = null;

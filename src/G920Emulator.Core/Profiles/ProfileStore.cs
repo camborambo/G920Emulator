@@ -453,4 +453,9 @@ public sealed class AppSettings
 
     /// <summary>When true, minimizing hides the window in the notification area. Close still quits.</summary>
     public bool MinimizeToSystemTray { get; set; }
+
+    /// <summary>Topmost in-game overlay of live G920 inputs and FFB diagnostics.</summary>
+    public bool DebugOverlay { get; set; }
+    public double? DebugOverlayLeft { get; set; }
+    public double? DebugOverlayTop { get; set; }
 }

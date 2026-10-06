@@ -1,0 +1,72 @@
+<Window x:Class="G920Emulator.App.DebugOverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
+        Title="Debug Overlay"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="CanResizeWithGrip"
+        Width="440" Height="720"
+        MinWidth="400" MinHeight="560"
+        FontFamily="Segoe UI"
+        Foreground="#E8EAED">
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/Controls.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
+  <Border Background="#E0121418" BorderBrush="#5A3A4254" BorderThickness="1" CornerRadius="10"
+          MouseLeftButtonDown="Chrome_MouseLeftButtonDown">
+    <DockPanel Margin="12">
+      <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+        <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Click="Close_Click"
+                ToolTip="Close overlay">
+          <iconPacks:PackIconMaterial Kind="Close" Width="12" Height="12" Foreground="#E8EAED"/>
+        </Button>
+        <TextBlock Text="Debug Overlay" FontWeight="SemiBold" FontSize="14" FontFamily="Bahnschrift"
+                   VerticalAlignment="Center"/>
+      </DockPanel>
+
+      <Border DockPanel.Dock="Top" Background="#222836" CornerRadius="8" Padding="10,8" Margin="0,0,0,10">
+        <DockPanel>
+          <TextBlock x:Name="ButtonsText" DockPanel.Dock="Right" Text="Buttons: —" FontSize="12"
+                     VerticalAlignment="Center" TextWrapping="Wrap" Opacity="0.9" Margin="10,0,0,0"/>
+          <TextBlock x:Name="GearText" Text="GEAR N" FontWeight="Bold" FontFamily="Bahnschrift"
+                     FontSize="18" VerticalAlignment="Center"/>
+        </DockPanel>
+      </Border>
+
+      <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+        <TextBlock x:Name="SteerText" Text="Steering: 0.00" FontSize="12" Opacity="0.9"/>
+        <ProgressBar x:Name="SteerBar" Height="8" Minimum="-1" Maximum="1" Value="0" Margin="0,3,0,8"
+                     Foreground="#2A9D8F"/>
+        <TextBlock x:Name="ThrottleText" Text="Throttle: 0%" FontSize="12" Opacity="0.9"/>
+        <ProgressBar x:Name="ThrottleBar" Height="8" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,8"
+                     Foreground="#1F6F4A"/>
+        <TextBlock x:Name="BrakeText" Text="Brake: 0%" FontSize="12" Opacity="0.9"/>
+        <ProgressBar x:Name="BrakeBar" Height="8" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,8"
+                     Foreground="#B33A3A"/>
+        <TextBlock x:Name="ClutchText" Text="Clutch: 0%" FontSize="12" Opacity="0.9"/>
+        <ProgressBar x:Name="ClutchBar" Height="8" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,0"
+                     Foreground="#C9A227"/>
+      </StackPanel>
+
+      <TextBlock DockPanel.Dock="Top" Text="Effects" FontWeight="SemiBold" Margin="0,0,0,6"/>
+      <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+        <StackPanel>
+          <TextBlock x:Name="EffectsText" FontFamily="Consolas" FontSize="12"
+                     TextWrapping="NoWrap" Text="MIX"/>
+          <TextBlock Text="Bridge" FontWeight="SemiBold" Margin="0,12,0,6"/>
+          <TextBlock x:Name="FfbText" FontFamily="Consolas" FontSize="12"
+                     TextWrapping="NoWrap" Opacity="0.9"
+                     Text="FFB diagnostics will appear here."/>
+        </StackPanel>
+      </ScrollViewer>
+    </DockPanel>
+  </Border>
+</Window>
