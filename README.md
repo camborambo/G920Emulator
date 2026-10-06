@@ -56,6 +56,8 @@ No Visual Studio or .NET SDK required.
 6. **Refresh** devices, bind steering / pedals / buttons / gears **R–6** (and D-pad via hat or **D-pad Up/Down/Left/Right**), pick an **FFB output device** + **FFB profile**, then **Save** your input profile.
 7. **Start bridge**, then launch your game and select the G920.
 
+Later releases: the app can show an **Update** banner when GitHub has a newer zip. That only downloads to **Downloads** — unzip over your `G920Emulator` folder yourself (AppData profiles are kept). You can turn the check off under **Settings**.
+
 Binding changes apply while the bridge is running — no need to Stop/Start after rebinding. Full walkthrough: [user guide](docs/user-guide.md).
 
 ## Profiles (where your binds / FFB live)
@@ -82,7 +84,9 @@ Details: [user guide → Profiles](docs/user-guide.md#profiles).
 - Virtual G920 that games see as a normal system HID / DirectInput wheel
 - Binding UI for axes, buttons, POV hats, **D-pad Up/Down/Left/Right** (for pads without a hat), and axis→button mappings
 - H-pattern gears **R, 1–6** (R defaults to button **19** / LGS; pick **12** in Bind Gear R for Unbound)
-- Force feedback via our DirectInput OEM driver (`g920ffb.dll`) — not Logitech HID++ — with separate FFB profiles, per-effect gains, optional feel and torque-shaping sliders
+- Force feedback via our DirectInput OEM driver (`g920ffb.dll`) — not Logitech HID++ — with separate FFB profiles, per-effect gains, optional feel and torque-shaping sliders, and in-car **Bind** buttons
+- **Debug Overlay** and **Effect Changes Overlay** for live inputs / FFB and on-screen slider toasts while you drive
+- Optional GitHub update check that downloads the new zip to Downloads
 - JSON input + FFB profiles in AppData (see above)
 
 ## Requirements
@@ -130,7 +134,7 @@ User bindings and FFB presets live in **`%AppData%\G920Emulator\`** at runtime �
 
 ## Version notes
 
-Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.5**.
+Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.6**.
 
 ## Support
 

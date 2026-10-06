@@ -19,7 +19,7 @@ flowchart LR
 
 | Layer | Project / binary | Role |
 |-------|------------------|------|
-| UI | `src/G920Emulator.App` | Profiles, bindings, dependencies, FFB device selection, live meters |
+| UI | `src/G920Emulator.App` | Profiles, bindings, dependencies, FFB device selection, live meters, Debug Overlay, Effect Changes Overlay, GitHub update zip download |
 | Bridge | `src/G920Emulator.Core` | Poll loop (~500 Hz), mapping, OEM shared-memory I/O, FFB apply |
 | Virtual HID | `src/G920Emulator.VirtualHid` | WinUHid device, G920 report descriptor, OEM registry / COM registration |
 | OEM FFB driver | `native/g920ffb/g920ffb.dll` | `IDirectInputEffectDriver` loaded by DirectInput when games create effects |

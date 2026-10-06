@@ -28,7 +28,7 @@ profiles/                     Repo reference only — runtime data is AppData
 
 The app version is **`Directory.Build.props`** (`<Version>`). Bump that for a release so the window title, About, tray tip, diagnostics zip, and assembly metadata stay in sync. Do not add a git hash to InformationalVersion.
 
-Users who leave **Settings → Check for GitHub updates** on are notified at launch when GitHub has a newer **published** release. Tag the GitHub release `v` + that version (example: `v0.2.5`) and attach **`G920Emulator-win-x64.zip`** as a release asset so **Update** can download it. Drafts and prereleases are ignored (`/releases/latest`). The app does not replace their folder — they unzip the zip themselves.
+Users who leave **Settings → Check for GitHub updates** on are notified at launch when GitHub has a newer **published** release. Tag the GitHub release `v` + that version (example: `v0.2.6`) and attach **`G920Emulator-win-x64.zip`** as a release asset so **Update** can download it. Drafts and prereleases are ignored (`/releases/latest`). The app does not replace their folder — they unzip the zip themselves.
 
 ## Publish (recommended)
 

@@ -7,15 +7,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-10-06
+
 ### Added
 
-- Main window, About, tray tip, and exported diagnostics show the app version (`Directory.Build.props`)
-- Optional GitHub update check at launch (Settings, on by default): a banner with **Update** downloads `G920Emulator-win-x64.zip` to Downloads. Unzip it over your app folder yourself. **Later** hides that version until the next tag.
-- **Bind** on every Force Feedback slider (Master, Custom, feel, shaping, centering, mix) — hardware −/+ while driving; overlay shows the slider’s actual value. Assigned sliders keep a green **Bind** button; the bind dialog has Clear on each −/+.
+- App version in the window title, About, tray tip, and exported diagnostics (`Directory.Build.props`)
+- **Check for GitHub updates** (Settings, on by default): banner when a newer published release exists. **Update** downloads `G920Emulator-{version}-win-x64.zip` to Downloads and opens that folder — unzip over your app folder yourself. **Later** hides that version until the next tag
+- **Bind** on every Force Feedback slider (Master, Custom, feel, shaping, centering, mix): hardware −/+ while driving (1% tap / 5% hold on gains). Green **Bind** means a − or + is assigned; the bind dialog has **Clear** per side
 - **Debug Overlay** (Settings): topmost live G920 inputs + FFB diagnostics
 - **Effect Changes Overlay** (Settings, on by default): brief top-center HUD of category, slider name, and value when FFB bind buttons fire
-- FFB debug lists each DirectInput OEM effect type (seen / playing) with MIX totals (`cf` / `periodic` / `spring` / `damper` / `other`), matching `g920ffb-effects.log`
-- Diagnostics capture emulator vs game process CPU/RAM (10 s snapshots + export). Game GPU/CPU being high is expected; the hint calls out whether *our* process is light, moderate, or hot. GPU is not sampled.
+- FFB debug / overlay lists each DirectInput OEM effect type (seen / playing) with MIX totals, matching `g920ffb-effects.log`
+- Diagnostics capture emulator vs game process CPU/RAM (10 s snapshots + export). Game GPU/CPU being high is expected; GPU is not sampled
 
 ## [0.2.5] - 2026-10-05
 
@@ -133,7 +135,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Initial public build: virtual Logitech G920 (WinUHid), binding UI, HidHide helpers, OEM `g920ffb.dll` path, bundled WinUHid + Logitech Steering Wheel SDK
 - NFS Heat / Unbound gear mapping (reverse button 19 vs 12)
 
-[Unreleased]: https://github.com/camborambo/G920Emulator/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/camborambo/G920Emulator/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/camborambo/G920Emulator/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/camborambo/G920Emulator/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/camborambo/G920Emulator/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/camborambo/G920Emulator/compare/v0.2.2...v0.2.3

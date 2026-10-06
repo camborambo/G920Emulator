@@ -175,7 +175,7 @@ When a game opens the virtual wheel's FFB, the log gets a `SESSION g920ffb loade
 
 At menu/load Unbound downloads **ConstantForce**, **Sine**, **Damper**, **Spring**, and in-race often **Triangle** (and streams `0x100` every frame). Universal mixing is required.
 
-Unbound can construct **multiple** OEM driver instances; older single-instance mixers published torque=0 while `effects.log` still grew. Current `g920ffb.dll` mixes all live instances and uses SHM **v6** (`Torque` + `AuxTorque`) so Steam/idle helpers cannot overwrite the game channel.
+Unbound can construct **multiple** OEM driver instances; older single-instance mixers published torque=0 while `effects.log` still grew. Current `g920ffb.dll` mixes all live instances and uses SHM **v7** (`Torque` + `AuxTorque`) so Steam/idle helpers cannot overwrite the game channel.
 
 For a stronger tire-follow / lighter arcade center on DD bases, raise **Constant** and lower **Spring** in the effect gains, then **Save As…** your own FFB profile. Default runtime path stays **Raw**.
 

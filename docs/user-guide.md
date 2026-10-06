@@ -18,6 +18,17 @@
 
 Approve UAC when prompted (WinUHid requires elevation to open the device).
 
+## Updating
+
+The window title and status bar show the app version (for example **v0.2.6**). With **Settings → Check for GitHub updates** on (default), a banner appears when a newer **published** GitHub release exists.
+
+1. Click **Update** — the zip downloads to **Downloads** and that folder opens.
+2. Close G920 Emulator if it is running.
+3. Unzip the new `G920Emulator` folder **over** the folder you already use (same place you put it the first time).
+4. Run the new `G920Emulator.exe`. Bindings stay in `%AppData%\G920Emulator\` unless you use `portable.txt`.
+
+**Later** hides that version until a newer tag. You can turn the check off in Settings. The app does not overwrite files itself.
+
 ## First-time setup
 
 1. Open **Dependencies** (header **Settings** → **Manage dependencies**, or the **Fix** banner if something is missing).
@@ -165,7 +176,7 @@ Forza Horizon 6 refuses to launch while Windows **test signing** is on. It exits
 
 ## Getting help / diagnostics
 
-Leave status-bar **Debug** **off** during normal play. It turns on OEM / HID++ file logging inside the game process; on Forza and similar titles that can add enough I/O to freeze the game or drop the virtual G920 while the emulator UI stays responsive. Current builds rate-limit and keep the log file open, but Debug is still for short captures only — not full races.
+Leave status-bar **Debug** **off** during normal play. It turns on OEM / HID++ file logging inside the game process; on Forza and similar titles that can add enough I/O to freeze the game or drop the virtual G920 while the emulator UI stays responsive. Current builds rate-limit and keep the log file open, but Debug is still for short captures only — not full races. **Settings → Debug Overlay** is separate (live meters, no extra game-thread log I/O).
 
 1. Click **Debug** (status bar, bottom-right) — clears prior session logs in `%TEMP%` and starts OEM / HID++ file logging.
 2. Reproduce briefly (Start bridge, launch the game, hit a wall, etc.). Prefer a short run over a long session with Debug left on.

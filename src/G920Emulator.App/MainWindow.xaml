@@ -132,7 +132,7 @@
                   Click="ExportDebugLogButton_Click"
                   ToolTip="Export diagnostics after you stop a Debug session"/>
           <TextBlock x:Name="AppVersionText" VerticalAlignment="Center" Margin="0,0,12,0"
-                     Opacity="0.55" FontSize="12" Cursor="Hand" Text="v0.2.5"
+                     Opacity="0.55" FontSize="12" Cursor="Hand" Text="v0.2.6"
                      ToolTip="Application version — click for About"
                      MouseLeftButtonDown="AboutButton_Click"/>
           <Button Style="{StaticResource AppButton}" Content="About" Padding="10,4" Margin="0"
