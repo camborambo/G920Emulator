@@ -13,6 +13,9 @@ third_party/
 tools/wdk-nuget/
 *.log
 
+# Cursor IDE (local rules / agent config)
+.cursor/
+
 # Local probe dumps / vendored forks (not part of the app source)
 artifacts/xinput-ffb-driver/
 artifacts/lghub-probe/g920_extracted/
