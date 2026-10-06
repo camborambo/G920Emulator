@@ -80,7 +80,7 @@ All of these are **user optional**. On **Raw**, everything below is at the “of
 
 ### Effect gains
 
-Scale each DirectInput effect type **in the mixer** before summing (0% mutes that type; up to **200%**). On the Force Feedback tab, **Bind** opens a dialog to assign hardware buttons for lower / raise while you drive (stored on the **input** profile; 5% steps, hold repeats). These binds are not virtual G920 controls.
+Scale each DirectInput effect type **in the mixer** before summing (0% mutes that type; up to **200%**). On the Force Feedback tab, **Bind** on any slider (Master, effect gains including Custom, output feel, torque shaping, centering, advanced mix) opens a dialog to assign hardware buttons for lower / raise while you drive (stored on the **input** profile; not virtual G920 controls). A filled green **Bind** button means that slider already has a − or + bind; **Clear** on each row removes it. Gain sliders step 1% per tap and 5% if you hold; other sliders use a matching small / faster step in their own units.
 
 | Slider | Typical use |
 |--------|-------------|
@@ -91,6 +91,7 @@ Scale each DirectInput effect type **in the mixer** before summing (0% mutes tha
 | **Inertia** | Acceleration-related condition |
 | **Periodic** | Sine / square / triangle / sawtooth rumble |
 | **Ramp** | Ramp force |
+| **Custom** | Downloaded custom-force effects |
 
 ### Advanced mix (inside `g920ffb.dll`)
 

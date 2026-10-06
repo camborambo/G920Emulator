@@ -47,6 +47,34 @@ public enum G920Control
     FfbPeriodicPlus,
     FfbRampMinus,
     FfbRampPlus,
+    FfbMasterMinus,
+    FfbMasterPlus,
+    FfbCustomMinus,
+    FfbCustomPlus,
+    FfbSmoothingMinus,
+    FfbSmoothingPlus,
+    FfbPeakSoftMinus,
+    FfbPeakSoftPlus,
+    FfbSoftStartMinus,
+    FfbSoftStartPlus,
+    FfbDeadbandMinus,
+    FfbDeadbandPlus,
+    FfbSlewMinus,
+    FfbSlewPlus,
+    FfbSpikeMinus,
+    FfbSpikePlus,
+    FfbEpsilonMinus,
+    FfbEpsilonPlus,
+    FfbCenterStrengthMinus,
+    FfbCenterStrengthPlus,
+    FfbCenterRangeMinus,
+    FfbCenterRangePlus,
+    FfbCenterDeadzoneMinus,
+    FfbCenterDeadzonePlus,
+    FfbDampVelMinus,
+    FfbDampVelPlus,
+    FfbDampDeadMinus,
+    FfbDampDeadPlus,
 }
 
 public static class G920ControlInfo
@@ -96,36 +124,70 @@ public static class G920ControlInfo
         ..GearControls,
     ];
 
-    /// <summary>Per-effect −/+ binds stored on the input profile; not shown in the G920 binding list.</summary>
-    public static readonly G920Control[] FfbNudgeControls =
+    /// <summary>Input-profile FFB slider binds (not virtual G920 controls).</summary>
+    public readonly record struct FfbSliderBind(
+        string Id,
+        string Category,
+        string Display,
+        G920Control Minus,
+        G920Control Plus,
+        double FineStep,
+        double CoarseStep);
+
+    public static readonly FfbSliderBind[] FfbSliderBinds =
     [
-        G920Control.FfbConstantMinus,
-        G920Control.FfbConstantPlus,
-        G920Control.FfbSpringMinus,
-        G920Control.FfbSpringPlus,
-        G920Control.FfbDamperMinus,
-        G920Control.FfbDamperPlus,
-        G920Control.FfbFrictionMinus,
-        G920Control.FfbFrictionPlus,
-        G920Control.FfbInertiaMinus,
-        G920Control.FfbInertiaPlus,
-        G920Control.FfbPeriodicMinus,
-        G920Control.FfbPeriodicPlus,
-        G920Control.FfbRampMinus,
-        G920Control.FfbRampPlus,
+        new("Master", "FFB profile", "Master", G920Control.FfbMasterMinus, G920Control.FfbMasterPlus, 0.01, 0.05),
+        new("Constant", "Effect gains", "Constant", G920Control.FfbConstantMinus, G920Control.FfbConstantPlus, 0.01, 0.05),
+        new("Spring", "Effect gains", "Spring", G920Control.FfbSpringMinus, G920Control.FfbSpringPlus, 0.01, 0.05),
+        new("Damper", "Effect gains", "Damper", G920Control.FfbDamperMinus, G920Control.FfbDamperPlus, 0.01, 0.05),
+        new("Friction", "Effect gains", "Friction", G920Control.FfbFrictionMinus, G920Control.FfbFrictionPlus, 0.01, 0.05),
+        new("Inertia", "Effect gains", "Inertia", G920Control.FfbInertiaMinus, G920Control.FfbInertiaPlus, 0.01, 0.05),
+        new("Periodic", "Effect gains", "Periodic", G920Control.FfbPeriodicMinus, G920Control.FfbPeriodicPlus, 0.01, 0.05),
+        new("Ramp", "Effect gains", "Ramp", G920Control.FfbRampMinus, G920Control.FfbRampPlus, 0.01, 0.05),
+        new("Custom", "Effect gains", "Custom", G920Control.FfbCustomMinus, G920Control.FfbCustomPlus, 0.01, 0.05),
+        new("Smoothing", "Output feel", "Smoothing", G920Control.FfbSmoothingMinus, G920Control.FfbSmoothingPlus, 1, 5),
+        new("PeakSoft", "Output feel", "Peak soft", G920Control.FfbPeakSoftMinus, G920Control.FfbPeakSoftPlus, 0.01, 0.05),
+        new("SoftStart", "Output feel", "Soft start", G920Control.FfbSoftStartMinus, G920Control.FfbSoftStartPlus, 10, 50),
+        new("Deadband", "Torque shaping", "Deadband", G920Control.FfbDeadbandMinus, G920Control.FfbDeadbandPlus, 0.001, 0.005),
+        new("Slew", "Torque shaping", "Slew", G920Control.FfbSlewMinus, G920Control.FfbSlewPlus, 1, 5),
+        new("Spike", "Torque shaping", "Spike cap", G920Control.FfbSpikeMinus, G920Control.FfbSpikePlus, 0.01, 0.05),
+        new("Epsilon", "Torque shaping", "DI epsilon", G920Control.FfbEpsilonMinus, G920Control.FfbEpsilonPlus, 1, 5),
+        new("CenterStrength", "Centering", "Strength", G920Control.FfbCenterStrengthMinus, G920Control.FfbCenterStrengthPlus, 0.01, 0.05),
+        new("CenterRange", "Centering", "Range", G920Control.FfbCenterRangeMinus, G920Control.FfbCenterRangePlus, 0.01, 0.05),
+        new("CenterDeadzone", "Centering", "Deadzone", G920Control.FfbCenterDeadzoneMinus, G920Control.FfbCenterDeadzonePlus, 0.001, 0.005),
+        new("DampVel", "Advanced mix", "Damp vel", G920Control.FfbDampVelMinus, G920Control.FfbDampVelPlus, 0.01, 0.05),
+        new("DampDead", "Advanced mix", "Damp dead", G920Control.FfbDampDeadMinus, G920Control.FfbDampDeadPlus, 0.01, 0.05),
     ];
 
-    /// <summary>Effect gain rows: display name → lower / raise bind targets.</summary>
+    public static readonly G920Control[] FfbNudgeControls = BuildNudgeControls();
+
+    /// <summary>Legacy alias: bind dialog id → lower / raise.</summary>
     public static readonly (string Effect, G920Control Minus, G920Control Plus)[] FfbEffectNudgePairs =
-    [
-        ("Constant", G920Control.FfbConstantMinus, G920Control.FfbConstantPlus),
-        ("Spring", G920Control.FfbSpringMinus, G920Control.FfbSpringPlus),
-        ("Damper", G920Control.FfbDamperMinus, G920Control.FfbDamperPlus),
-        ("Friction", G920Control.FfbFrictionMinus, G920Control.FfbFrictionPlus),
-        ("Inertia", G920Control.FfbInertiaMinus, G920Control.FfbInertiaPlus),
-        ("Periodic", G920Control.FfbPeriodicMinus, G920Control.FfbPeriodicPlus),
-        ("Ramp", G920Control.FfbRampMinus, G920Control.FfbRampPlus),
-    ];
+        FfbSliderBinds.Select(b => (b.Id, b.Minus, b.Plus)).ToArray();
+
+    private static G920Control[] BuildNudgeControls()
+    {
+        var list = new G920Control[FfbSliderBinds.Length * 2];
+        for (var i = 0; i < FfbSliderBinds.Length; i++)
+        {
+            list[i * 2] = FfbSliderBinds[i].Minus;
+            list[i * 2 + 1] = FfbSliderBinds[i].Plus;
+        }
+        return list;
+    }
+
+    public static bool TryGetSliderBindById(string id, out FfbSliderBind bind)
+    {
+        foreach (var candidate in FfbSliderBinds)
+        {
+            if (!string.Equals(candidate.Id, id, StringComparison.OrdinalIgnoreCase))
+                continue;
+            bind = candidate;
+            return true;
+        }
+        bind = default;
+        return false;
+    }
 
     public static bool TryGetFfbEffectNudgePair(string effect, out G920Control minus, out G920Control plus)
     {
@@ -173,16 +235,30 @@ public static class G920ControlInfo
 
     public static bool IsFfbNudge(G920Control control) => FfbNudgeControls.Contains(control);
 
-    public static double FfbNudgeDelta(G920Control control) => control switch
+    public static double FfbNudgeDelta(G920Control control, bool coarse = false)
     {
-        G920Control.FfbConstantPlus or G920Control.FfbSpringPlus or G920Control.FfbDamperPlus
-            or G920Control.FfbFrictionPlus or G920Control.FfbInertiaPlus
-            or G920Control.FfbPeriodicPlus or G920Control.FfbRampPlus => 0.05,
-        G920Control.FfbConstantMinus or G920Control.FfbSpringMinus or G920Control.FfbDamperMinus
-            or G920Control.FfbFrictionMinus or G920Control.FfbInertiaMinus
-            or G920Control.FfbPeriodicMinus or G920Control.FfbRampMinus => -0.05,
-        _ => 0,
-    };
+        foreach (var bind in FfbSliderBinds)
+        {
+            if (control == bind.Plus)
+                return coarse ? bind.CoarseStep : bind.FineStep;
+            if (control == bind.Minus)
+                return -(coarse ? bind.CoarseStep : bind.FineStep);
+        }
+        return 0;
+    }
+
+    public static bool TryGetSliderBind(G920Control control, out FfbSliderBind bind)
+    {
+        foreach (var candidate in FfbSliderBinds)
+        {
+            if (control != candidate.Minus && control != candidate.Plus)
+                continue;
+            bind = candidate;
+            return true;
+        }
+        bind = default;
+        return false;
+    }
 
     public static string DisplayName(G920Control control) => control switch
     {
@@ -230,6 +306,34 @@ public static class G920ControlInfo
         G920Control.FfbPeriodicPlus => "Periodic +",
         G920Control.FfbRampMinus => "Ramp −",
         G920Control.FfbRampPlus => "Ramp +",
+        G920Control.FfbMasterMinus => "Master −",
+        G920Control.FfbMasterPlus => "Master +",
+        G920Control.FfbCustomMinus => "Custom −",
+        G920Control.FfbCustomPlus => "Custom +",
+        G920Control.FfbSmoothingMinus => "Smoothing −",
+        G920Control.FfbSmoothingPlus => "Smoothing +",
+        G920Control.FfbPeakSoftMinus => "Peak soft −",
+        G920Control.FfbPeakSoftPlus => "Peak soft +",
+        G920Control.FfbSoftStartMinus => "Soft start −",
+        G920Control.FfbSoftStartPlus => "Soft start +",
+        G920Control.FfbDeadbandMinus => "Deadband −",
+        G920Control.FfbDeadbandPlus => "Deadband +",
+        G920Control.FfbSlewMinus => "Slew −",
+        G920Control.FfbSlewPlus => "Slew +",
+        G920Control.FfbSpikeMinus => "Spike cap −",
+        G920Control.FfbSpikePlus => "Spike cap +",
+        G920Control.FfbEpsilonMinus => "DI epsilon −",
+        G920Control.FfbEpsilonPlus => "DI epsilon +",
+        G920Control.FfbCenterStrengthMinus => "Strength −",
+        G920Control.FfbCenterStrengthPlus => "Strength +",
+        G920Control.FfbCenterRangeMinus => "Range −",
+        G920Control.FfbCenterRangePlus => "Range +",
+        G920Control.FfbCenterDeadzoneMinus => "Deadzone −",
+        G920Control.FfbCenterDeadzonePlus => "Deadzone +",
+        G920Control.FfbDampVelMinus => "Damp vel −",
+        G920Control.FfbDampVelPlus => "Damp vel +",
+        G920Control.FfbDampDeadMinus => "Damp dead −",
+        G920Control.FfbDampDeadPlus => "Damp dead +",
         _ => control.ToString(),
     };
 }

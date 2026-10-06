@@ -623,7 +623,7 @@
 
   <Style x:Key="FfbBindButton" TargetType="Button" BasedOn="{StaticResource AppButton}">
     <Setter Property="Padding" Value="8,0"/>
-    <Setter Property="MinWidth" Value="44"/>
+    <Setter Property="MinWidth" Value="56"/>
     <Setter Property="Height" Value="24"/>
     <Setter Property="Margin" Value="8,0,0,0"/>
     <Setter Property="FontSize" Value="11"/>
@@ -667,6 +667,15 @@
         </ControlTemplate>
       </Setter.Value>
     </Setter>
+  </Style>
+
+  <Style x:Key="FfbBindButtonBound" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+    <Setter Property="Padding" Value="8,0"/>
+    <Setter Property="MinWidth" Value="56"/>
+    <Setter Property="Height" Value="24"/>
+    <Setter Property="Margin" Value="8,0,0,0"/>
+    <Setter Property="FontSize" Value="11"/>
+    <Setter Property="FontWeight" Value="SemiBold"/>
   </Style>
 
   <Style x:Key="PrimaryWrapButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">

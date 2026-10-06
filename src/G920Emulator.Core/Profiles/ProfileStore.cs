@@ -458,4 +458,13 @@ public sealed class AppSettings
     public bool DebugOverlay { get; set; }
     public double? DebugOverlayLeft { get; set; }
     public double? DebugOverlayTop { get; set; }
+
+    /// <summary>Brief top-center HUD when hardware FFB effect-gain binds fire.</summary>
+    public bool EffectChangesOverlay { get; set; } = true;
+
+    /// <summary>Ask GitHub at launch whether a newer published release exists.</summary>
+    public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>Release tag the user chose Later for (e.g. v0.2.6). A newer tag notifies again.</summary>
+    public string? DismissedUpdateTag { get; set; }
 }

@@ -11,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using MahApps.Metro.IconPacks;
 using Microsoft.Win32;
+using G920Emulator.Core;
 using G920Emulator.Core.Bridge;
 using G920Emulator.Core.Mapping;
 using G920Emulator.Core.Models;
@@ -39,6 +40,7 @@ public partial class MainWindow : Window
     private bool _effectGainSliderSilent;
     private readonly bool[] _ffbNudgePressed = new bool[G920ControlInfo.FfbNudgeControls.Length];
     private readonly long[] _ffbNudgeLastFire = new long[G920ControlInfo.FfbNudgeControls.Length];
+    private readonly long[] _ffbNudgeHoldStart = new long[G920ControlInfo.FfbNudgeControls.Length];
     private TextBox? _ffbValueEditBox;
     private TextBlock? _ffbValueEditLabel;
     private string? _shownLinkStatus;
@@ -52,6 +54,10 @@ public partial class MainWindow : Window
     private WindowState _restoreWindowState = WindowState.Normal;
     private TrayIcon? _trayIcon;
     private DebugOverlayWindow? _debugOverlay;
+    private EffectChangesOverlayWindow? _effectChangesOverlay;
+    private bool _effectChangesOverlayEnabled = true;
+    private readonly CancellationTokenSource _updateCheckCts = new();
+    private GitHubReleaseInfo? _pendingRelease;
 
     public MainWindow()
     {
@@ -65,6 +71,9 @@ public partial class MainWindow : Window
 
         InitializeComponent();
         DarkTitleBar.Apply(this);
+        Title = "G920 Emulator " + AppVersion.Display;
+        if (AppVersionText is not null)
+            AppVersionText.Text = "v" + AppVersion.Display;
         DeviceList.ItemsSource = _devices;
         BindingList.ItemsSource = _bindings;
         FfbDeviceCombo.ItemsSource = _devices;
@@ -90,6 +99,7 @@ public partial class MainWindow : Window
             _ = RefreshDevicesAsync(restoreHidden: false);
             UpdateDependencyUi();
             RefreshDebugSessionUi();
+            _ = CheckForGitHubUpdateAsync(force: false);
         };
         Activated += (_, _) =>
         {
@@ -123,6 +133,8 @@ public partial class MainWindow : Window
 
         DisposeTrayIcon();
         CloseDebugOverlay(saveEnabled: false);
+        CloseEffectChangesOverlay();
+        try { _updateCheckCts.Cancel(); } catch { /* ignore */ }
         e.Cancel = true;
         _exitTeardownStarted = true;
         _bridgeBusy = true;
@@ -295,7 +307,210 @@ public partial class MainWindow : Window
             MinimizeToTrayMenuItem.IsChecked = _minimizeToTray;
         if (DebugOverlayMenuItem is not null)
             DebugOverlayMenuItem.IsChecked = settings.DebugOverlay;
+        _effectChangesOverlayEnabled = settings.EffectChangesOverlay;
+        if (EffectChangesOverlayMenuItem is not null)
+            EffectChangesOverlayMenuItem.IsChecked = _effectChangesOverlayEnabled;
+        if (CheckForUpdatesMenuItem is not null)
+            CheckForUpdatesMenuItem.IsChecked = settings.CheckForUpdates;
+        if (!_effectChangesOverlayEnabled)
+            CloseEffectChangesOverlay();
         ApplyDebugOverlay(settings.DebugOverlay);
+    }
+
+    private void CheckForUpdatesMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var enabled = CheckForUpdatesMenuItem?.IsChecked == true;
+        UpdateAppSettings(s => s.CheckForUpdates = enabled);
+        if (!enabled)
+        {
+            HideUpdateBanner();
+            StatusText.Text = "GitHub update check off.";
+            return;
+        }
+
+        StatusText.Text = "Checking GitHub for a newer release…";
+        _ = CheckForGitHubUpdateAsync(force: true);
+    }
+
+    private async Task CheckForGitHubUpdateAsync(bool force)
+    {
+        var settings = _profiles.LoadSettings();
+        if (!force && !settings.CheckForUpdates)
+            return;
+
+        GitHubReleaseInfo? latest;
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_updateCheckCts.Token);
+            cts.CancelAfter(TimeSpan.FromSeconds(6));
+            latest = await GitHubUpdateChecker.TryGetLatestAsync(AppVersion.Display, cts.Token).ConfigureAwait(true);
+        }
+        catch
+        {
+            latest = null;
+        }
+
+        if (!IsLoaded || _exitTeardownStarted)
+            return;
+
+        if (latest is null)
+        {
+            if (force)
+                StatusText.Text = "Could not reach GitHub for updates.";
+            return;
+        }
+
+        if (!latest.IsNewer)
+        {
+            HideUpdateBanner();
+            if (force)
+                StatusText.Text = $"You're on the latest release ({AppVersion.Display}).";
+            return;
+        }
+
+        if (!force && string.Equals(settings.DismissedUpdateTag, latest.Tag, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _pendingRelease = latest;
+        if (UpdateBannerText is not null)
+            UpdateBannerText.Text = $"Update {latest.VersionLabel} is available — you have {AppVersion.Display}.";
+        if (UpdateBanner is not null)
+            UpdateBanner.Visibility = Visibility.Visible;
+        if (force)
+            StatusText.Text = $"Update {latest.VersionLabel} is on GitHub.";
+    }
+
+    private bool _updateBusy;
+
+    private void UpdateLater_Click(object sender, RoutedEventArgs e)
+    {
+        if (_updateBusy)
+            return;
+        var tag = _pendingRelease?.Tag;
+        if (!string.IsNullOrWhiteSpace(tag))
+            UpdateAppSettings(s => s.DismissedUpdateTag = tag);
+        HideUpdateBanner();
+    }
+
+    private async void UpdateApply_Click(object sender, RoutedEventArgs e)
+    {
+        if (_updateBusy)
+            return;
+        var release = _pendingRelease;
+        if (release is null)
+            return;
+
+        if (string.IsNullOrWhiteSpace(release.ZipUrl))
+        {
+            OpenReleasePage(release.HtmlUrl);
+            StatusText.Text = "This GitHub release has no zip asset — opened the release page.";
+            return;
+        }
+
+        _updateBusy = true;
+        SetUpdateButtonsEnabled(false);
+        var progress = new Progress<double>(p =>
+        {
+            if (UpdateBannerText is not null)
+                UpdateBannerText.Text = $"Downloading {release.VersionLabel}… {(int)(p * 100)}%";
+        });
+
+        try
+        {
+            var folder = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Downloads");
+            if (!Directory.Exists(folder))
+                folder = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+            Directory.CreateDirectory(folder);
+            var zipPath = Path.Combine(folder, $"G920Emulator-{release.VersionLabel}-win-x64.zip");
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_updateCheckCts.Token);
+            cts.CancelAfter(TimeSpan.FromMinutes(10));
+            await GitHubUpdateChecker.DownloadAsync(release.ZipUrl, zipPath, progress, cts.Token).ConfigureAwait(true);
+
+            if (UpdateBannerText is not null)
+                UpdateBannerText.Text = $"Downloaded {release.VersionLabel} — unzip over your G920 Emulator folder.";
+            StatusText.Text = "Saved " + zipPath;
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = "/select,\"" + zipPath + "\"",
+                    UseShellExecute = true,
+                });
+            }
+            catch { /* ignore */ }
+        }
+        catch (Exception ex)
+        {
+            if (UpdateBannerText is not null)
+                UpdateBannerText.Text = $"Update {release.VersionLabel} is available — you have {AppVersion.Display}.";
+            StatusText.Text = "Download failed: " + ex.Message;
+            try { OpenReleasePage(release.HtmlUrl); } catch { /* ignore */ }
+        }
+        finally
+        {
+            _updateBusy = false;
+            SetUpdateButtonsEnabled(true);
+        }
+    }
+
+    private void SetUpdateButtonsEnabled(bool enabled)
+    {
+        if (UpdateApplyButton is not null)
+            UpdateApplyButton.IsEnabled = enabled;
+        if (UpdateLaterButton is not null)
+            UpdateLaterButton.IsEnabled = enabled;
+    }
+
+    private static void OpenReleasePage(string? url)
+    {
+        url = string.IsNullOrWhiteSpace(url) ? GitHubUpdateChecker.ReleasesPageUrl : url;
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
+    private void HideUpdateBanner()
+    {
+        _pendingRelease = null;
+        if (UpdateBanner is not null)
+            UpdateBanner.Visibility = Visibility.Collapsed;
+    }
+
+    private void EffectChangesOverlayMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var enabled = EffectChangesOverlayMenuItem?.IsChecked == true;
+        UpdateAppSettings(s => s.EffectChangesOverlay = enabled);
+        StatusText.Text = enabled
+            ? "Effect Changes Overlay on — bind buttons flash the category, name, and value while you drive."
+            : "Effect Changes Overlay off.";
+    }
+
+    private void ShowEffectChangeToast(string category, string effectName, string value)
+    {
+        if (!_effectChangesOverlayEnabled)
+            return;
+        try
+        {
+            _effectChangesOverlay ??= new EffectChangesOverlayWindow();
+            _effectChangesOverlay.ShowChange(category, effectName, value);
+        }
+        catch { /* ignore HUD failures */ }
+    }
+
+    private void CloseEffectChangesOverlay()
+    {
+        var window = _effectChangesOverlay;
+        _effectChangesOverlay = null;
+        if (window is null)
+            return;
+        try
+        {
+            window.Dismiss();
+            window.Close();
+        }
+        catch { /* ignore */ }
     }
 
     private void DebugOverlayMenuItem_Click(object sender, RoutedEventArgs e)
@@ -476,7 +691,7 @@ public partial class MainWindow : Window
         if (_trayIcon is not null) return;
         try
         {
-            _trayIcon = new TrayIcon(this, "G920 Emulator");
+            _trayIcon = new TrayIcon(this, "G920 Emulator v" + AppVersion.Display);
             _trayIcon.Clicked += TrayIcon_Clicked;
             _trayIcon.RightClicked += TrayIcon_RightClicked;
         }
@@ -548,8 +763,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-        var versionLabel = version is null ? "unknown" : $"{version.Major}.{version.Minor}.{version.Build}";
+        var versionLabel = AppVersion.Display;
 
         var dialog = new SaveFileDialog
         {
@@ -1758,14 +1972,14 @@ public partial class MainWindow : Window
     {
         if (sender is not Button button || button.Tag is not string effect)
             return;
-        if (!G920ControlInfo.TryGetFfbEffectNudgePair(effect, out var minus, out var plus))
+        if (!G920ControlInfo.TryGetSliderBindById(effect, out var bind))
             return;
 
         FfbEffectBindWindow? dlg = null;
         dlg = new FfbEffectBindWindow(
-            effect,
-            minus,
-            plus,
+            bind.Display,
+            bind.Minus,
+            bind.Plus,
             _profile,
             ResolveDeviceName,
             target => OpenBindDialog(target, dlg))
@@ -1773,52 +1987,58 @@ public partial class MainWindow : Window
             Owner = this,
         };
         dlg.ShowDialog();
-        if (dlg.Changed)
-            RefreshFfbBindButtons();
+        if (!dlg.Changed)
+            return;
+        _bridge.Profile = _profile;
+        RefreshFfbBindButtons();
     }
 
     private void RefreshFfbBindButtons()
     {
-        if (BindFfbConstant is null) return;
-        var accent = (Brush)FindResource("AccentPrimary");
-        var subtle = (Brush)FindResource("BorderSubtle");
-        foreach (var (effect, minus, plus) in G920ControlInfo.FfbEffectNudgePairs)
+        if (BindFfbConstant is null && BindFfbMaster is null) return;
+        var unboundStyle = (Style)FindResource("FfbBindButton");
+        var boundStyle = (Style)FindResource("FfbBindButtonBound");
+        foreach (var bind in G920ControlInfo.FfbSliderBinds)
         {
-            if (FindName("BindFfb" + effect) is not Button button)
+            if (FindName("BindFfb" + bind.Id) is not Button button)
                 continue;
 
-            var minusSources = _profile.GetOrCreate(minus).EffectiveSources;
-            var plusSources = _profile.GetOrCreate(plus).EffectiveSources;
-            var bound = minusSources.Count > 0 || plusSources.Count > 0;
-            button.BorderBrush = bound ? accent : subtle;
+            var minusSources = _profile.GetOrCreate(bind.Minus).EffectiveSources;
+            var plusSources = _profile.GetOrCreate(bind.Plus).EffectiveSources;
+            var minusBound = minusSources.Count > 0;
+            var plusBound = plusSources.Count > 0;
+            var bound = minusBound || plusBound;
+            button.Style = bound ? boundStyle : unboundStyle;
+            button.Content = "Bind";
 
             if (!bound)
             {
-                button.ToolTip = $"Assign hardware buttons to lower / raise {effect} while you drive.";
+                button.ToolTip = $"Assign hardware buttons to lower / raise {bind.Display} while you drive.";
                 continue;
             }
 
-            var minusLabel = minusSources.Count == 0
-                ? "− unbound"
-                : minusSources.Count == 1
+            var minusLabel = minusBound
+                ? minusSources.Count == 1
                     ? "− " + FormatSource(minusSources[0], ResolveDeviceName, axisTarget: false)
-                    : $"− {minusSources.Count} sources";
-            var plusLabel = plusSources.Count == 0
-                ? "+ unbound"
-                : plusSources.Count == 1
+                    : $"− {minusSources.Count} sources"
+                : "− not bound";
+            var plusLabel = plusBound
+                ? plusSources.Count == 1
                     ? "+ " + FormatSource(plusSources[0], ResolveDeviceName, axisTarget: false)
-                    : $"+ {plusSources.Count} sources";
-            button.ToolTip = $"{minusLabel}\n{plusLabel}\nClick to change.";
+                    : $"+ {plusSources.Count} sources"
+                : "+ not bound";
+            button.ToolTip = $"{minusLabel}\n{plusLabel}\nClick to change or clear.";
         }
     }
 
     private void ProcessFfbEffectNudges(IReadOnlyDictionary<string, DeviceState> devices)
     {
-        if (!AreEffectGainControlsReady() || devices.Count == 0)
+        if (devices.Count == 0)
             return;
 
         var now = Environment.TickCount64;
-        const long repeatMs = 280;
+        const long coarseAfterMs = 550;
+        const long coarseRepeatMs = 200;
         var controls = G920ControlInfo.FfbNudgeControls;
         for (var i = 0; i < controls.Length; i++)
         {
@@ -1831,22 +2051,45 @@ public partial class MainWindow : Window
             }
 
             var pressed = MapperEngine.IsPressed(_profile, devices, target);
-            var rising = pressed && !_ffbNudgePressed[i];
-            var holdRepeat = pressed && _ffbNudgePressed[i] && now - _ffbNudgeLastFire[i] >= repeatMs;
-            _ffbNudgePressed[i] = pressed;
-            if (!rising && !holdRepeat)
+            if (!pressed)
+            {
+                _ffbNudgePressed[i] = false;
+                continue;
+            }
+
+            if (!_ffbNudgePressed[i])
+            {
+                _ffbNudgePressed[i] = true;
+                _ffbNudgeHoldStart[i] = now;
+                ApplyFfbEffectNudge(target, coarse: false);
+                _ffbNudgeLastFire[i] = now;
+                continue;
+            }
+
+            if (now - _ffbNudgeHoldStart[i] < coarseAfterMs)
+                continue;
+            if (now - _ffbNudgeLastFire[i] < coarseRepeatMs)
                 continue;
 
-            ApplyFfbEffectNudge(target);
+            ApplyFfbEffectNudge(target, coarse: true);
             _ffbNudgeLastFire[i] = now;
         }
     }
 
-    private void ApplyFfbEffectNudge(G920Control target)
+    private void ApplyFfbEffectNudge(G920Control target, bool coarse)
     {
         var slider = EffectGainSliderFor(target);
-        if (slider is null) return;
-        slider.Value = Math.Clamp(slider.Value + G920ControlInfo.FfbNudgeDelta(target), 0, 2);
+        if (slider is null || !slider.IsEnabled)
+            return;
+        var delta = G920ControlInfo.FfbNudgeDelta(target, coarse);
+        var step = Math.Abs(delta);
+        var decimals = step >= 1 ? 0 : step >= 0.01 ? 2 : 3;
+        var next = Math.Clamp(slider.Value + delta, slider.Minimum, slider.Maximum);
+        slider.Value = Math.Round(next, decimals, MidpointRounding.AwayFromZero);
+        if (!G920ControlInfo.TryGetSliderBind(target, out var bind))
+            return;
+        var valueText = NudgeValueTextFor(target)?.Text;
+        ShowEffectChangeToast(bind.Category, bind.Display, string.IsNullOrWhiteSpace(valueText) ? slider.Value.ToString("0.##") : valueText);
     }
 
     private Slider? EffectGainSliderFor(G920Control target) => target switch
@@ -1858,6 +2101,46 @@ public partial class MainWindow : Window
         G920Control.FfbInertiaMinus or G920Control.FfbInertiaPlus => GainInertiaSlider,
         G920Control.FfbPeriodicMinus or G920Control.FfbPeriodicPlus => GainPeriodicSlider,
         G920Control.FfbRampMinus or G920Control.FfbRampPlus => GainRampSlider,
+        G920Control.FfbCustomMinus or G920Control.FfbCustomPlus => GainCustomSlider,
+        G920Control.FfbMasterMinus or G920Control.FfbMasterPlus => GainSlider,
+        G920Control.FfbSmoothingMinus or G920Control.FfbSmoothingPlus => FeelSmoothingSlider,
+        G920Control.FfbPeakSoftMinus or G920Control.FfbPeakSoftPlus => FeelPeakSoftSlider,
+        G920Control.FfbSoftStartMinus or G920Control.FfbSoftStartPlus => FeelSoftStartSlider,
+        G920Control.FfbDeadbandMinus or G920Control.FfbDeadbandPlus => FeelDeadbandSlider,
+        G920Control.FfbSlewMinus or G920Control.FfbSlewPlus => FeelSlewSlider,
+        G920Control.FfbSpikeMinus or G920Control.FfbSpikePlus => FeelSpikeSlider,
+        G920Control.FfbEpsilonMinus or G920Control.FfbEpsilonPlus => FeelEpsilonSlider,
+        G920Control.FfbCenterStrengthMinus or G920Control.FfbCenterStrengthPlus => CenterStrengthSlider,
+        G920Control.FfbCenterRangeMinus or G920Control.FfbCenterRangePlus => CenterRangeSlider,
+        G920Control.FfbCenterDeadzoneMinus or G920Control.FfbCenterDeadzonePlus => CenterDeadzoneSlider,
+        G920Control.FfbDampVelMinus or G920Control.FfbDampVelPlus => DamperVelScaleSlider,
+        G920Control.FfbDampDeadMinus or G920Control.FfbDampDeadPlus => DamperDeadbandScaleSlider,
+        _ => null,
+    };
+
+    private TextBlock? NudgeValueTextFor(G920Control target) => target switch
+    {
+        G920Control.FfbConstantMinus or G920Control.FfbConstantPlus => GainConstantValueText,
+        G920Control.FfbSpringMinus or G920Control.FfbSpringPlus => GainSpringValueText,
+        G920Control.FfbDamperMinus or G920Control.FfbDamperPlus => GainDamperValueText,
+        G920Control.FfbFrictionMinus or G920Control.FfbFrictionPlus => GainFrictionValueText,
+        G920Control.FfbInertiaMinus or G920Control.FfbInertiaPlus => GainInertiaValueText,
+        G920Control.FfbPeriodicMinus or G920Control.FfbPeriodicPlus => GainPeriodicValueText,
+        G920Control.FfbRampMinus or G920Control.FfbRampPlus => GainRampValueText,
+        G920Control.FfbCustomMinus or G920Control.FfbCustomPlus => GainCustomValueText,
+        G920Control.FfbMasterMinus or G920Control.FfbMasterPlus => GainValueText,
+        G920Control.FfbSmoothingMinus or G920Control.FfbSmoothingPlus => FeelSmoothingValueText,
+        G920Control.FfbPeakSoftMinus or G920Control.FfbPeakSoftPlus => FeelPeakSoftValueText,
+        G920Control.FfbSoftStartMinus or G920Control.FfbSoftStartPlus => FeelSoftStartValueText,
+        G920Control.FfbDeadbandMinus or G920Control.FfbDeadbandPlus => FeelDeadbandValueText,
+        G920Control.FfbSlewMinus or G920Control.FfbSlewPlus => FeelSlewValueText,
+        G920Control.FfbSpikeMinus or G920Control.FfbSpikePlus => FeelSpikeValueText,
+        G920Control.FfbEpsilonMinus or G920Control.FfbEpsilonPlus => FeelEpsilonValueText,
+        G920Control.FfbCenterStrengthMinus or G920Control.FfbCenterStrengthPlus => CenterStrengthValueText,
+        G920Control.FfbCenterRangeMinus or G920Control.FfbCenterRangePlus => CenterRangeValueText,
+        G920Control.FfbCenterDeadzoneMinus or G920Control.FfbCenterDeadzonePlus => CenterDeadzoneValueText,
+        G920Control.FfbDampVelMinus or G920Control.FfbDampVelPlus => DamperVelScaleValueText,
+        G920Control.FfbDampDeadMinus or G920Control.FfbDampDeadPlus => DamperDeadbandScaleValueText,
         _ => null,
     };
 
@@ -1898,10 +2181,10 @@ public partial class MainWindow : Window
     private bool AreEffectGainControlsReady() =>
         GainConstantSlider is not null && GainSpringSlider is not null && GainDamperSlider is not null &&
         GainFrictionSlider is not null && GainInertiaSlider is not null && GainPeriodicSlider is not null &&
-        GainRampSlider is not null &&
+        GainRampSlider is not null && GainCustomSlider is not null &&
         GainConstantValueText is not null && GainSpringValueText is not null && GainDamperValueText is not null &&
         GainFrictionValueText is not null && GainInertiaValueText is not null && GainPeriodicValueText is not null &&
-        GainRampValueText is not null;
+        GainRampValueText is not null && GainCustomValueText is not null;
 
     private void LoadEffectGainsIntoUi(FfbEffectGains? gains)
     {
@@ -1918,6 +2201,7 @@ public partial class MainWindow : Window
             GainInertiaSlider.Value = gains.InertiaForce;
             GainPeriodicSlider.Value = gains.Periodic;
             GainRampSlider.Value = gains.RampForce;
+            GainCustomSlider.Value = gains.CustomForce;
             SyncEffectGainLabels();
         }
         finally
@@ -1938,6 +2222,7 @@ public partial class MainWindow : Window
         g.InertiaForce = GainInertiaSlider.Value;
         g.Periodic = GainPeriodicSlider.Value;
         g.RampForce = GainRampSlider.Value;
+        g.CustomForce = GainCustomSlider.Value;
         g.Clamp();
     }
 
@@ -1951,6 +2236,7 @@ public partial class MainWindow : Window
         GainInertiaValueText.Text = $"{GainInertiaSlider.Value:P0}";
         GainPeriodicValueText.Text = $"{GainPeriodicSlider.Value:P0}";
         GainRampValueText.Text = $"{GainRampSlider.Value:P0}";
+        GainCustomValueText.Text = $"{GainCustomSlider.Value:P0}";
     }
 
     private bool AreFeelControlsReady() =>
@@ -2097,6 +2383,7 @@ public partial class MainWindow : Window
         if (ReferenceEquals(label, GainInertiaValueText)) { slider = GainInertiaSlider; kind = FfbValueEditKind.Percent01to2; return true; }
         if (ReferenceEquals(label, GainPeriodicValueText)) { slider = GainPeriodicSlider; kind = FfbValueEditKind.Percent01to2; return true; }
         if (ReferenceEquals(label, GainRampValueText)) { slider = GainRampSlider; kind = FfbValueEditKind.Percent01to2; return true; }
+        if (ReferenceEquals(label, GainCustomValueText)) { slider = GainCustomSlider; kind = FfbValueEditKind.Percent01to2; return true; }
         if (ReferenceEquals(label, FeelSmoothingValueText)) { slider = FeelSmoothingSlider; kind = FfbValueEditKind.Milliseconds; return true; }
         if (ReferenceEquals(label, FeelPeakSoftValueText)) { slider = FeelPeakSoftSlider; kind = FfbValueEditKind.Percent0to1; return true; }
         if (ReferenceEquals(label, FeelSoftStartValueText)) { slider = FeelSoftStartSlider; kind = FfbValueEditKind.SoftStartMs; return true; }

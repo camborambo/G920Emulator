@@ -4,9 +4,9 @@
         Title="Bind effect buttons"
         Icon="pack://application:,,,/Assets/app.ico"
         SizeToContent="Height"
-        Width="460"
+        Width="500"
         MinHeight="360"
-        MinWidth="420"
+        MinWidth="460"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#121418"
@@ -28,26 +28,46 @@
     <StackPanel>
       <TextBlock x:Name="TitleText" FontSize="20" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
       <TextBlock Opacity="0.7" Margin="0,6,0,16" TextWrapping="Wrap"
-                 Text="Assign hardware buttons that lower or raise this effect gain by 5% while you drive. These binds are saved on the input profile."/>
+                 Text="Assign hardware buttons that lower or raise this slider while you drive. A tap is a small step; hold for a faster step. These binds are saved on the input profile."/>
 
-      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6" Margin="0,0,0,8">
+      <Border x:Name="MinusRow" Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6" Margin="0,0,0,8">
         <DockPanel>
-          <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Assign"
-                  MinWidth="72" Click="AssignMinus_Click"/>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button x:Name="ClearMinus" Style="{StaticResource AppButton}" Content="Clear"
+                    MinWidth="64" Margin="0,0,8,0" Click="ClearMinus_Click"
+                    ToolTip="Remove the lower (−) bind"/>
+            <Button Style="{StaticResource AppButton}" Content="Assign" MinWidth="72" Margin="0"
+                    Click="AssignMinus_Click"/>
+          </StackPanel>
           <StackPanel Margin="0,0,12,0">
-            <TextBlock Text="Lower (−)" FontWeight="SemiBold"/>
+            <DockPanel LastChildFill="False">
+              <TextBlock Text="Lower (−)" FontWeight="SemiBold" VerticalAlignment="Center"/>
+              <TextBlock x:Name="MinusBoundBadge" DockPanel.Dock="Right" Text="Bound" Margin="10,0,0,0"
+                         FontSize="11" FontWeight="SemiBold" Foreground="#2F9E6B" VerticalAlignment="Center"
+                         Visibility="Collapsed"/>
+            </DockPanel>
             <TextBlock x:Name="MinusBindingText" Opacity="0.75" Margin="0,4,0,0" TextWrapping="Wrap"
                        Text="Not bound"/>
           </StackPanel>
         </DockPanel>
       </Border>
 
-      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6">
+      <Border x:Name="PlusRow" Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6">
         <DockPanel>
-          <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Assign"
-                  MinWidth="72" Click="AssignPlus_Click"/>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button x:Name="ClearPlus" Style="{StaticResource AppButton}" Content="Clear"
+                    MinWidth="64" Margin="0,0,8,0" Click="ClearPlus_Click"
+                    ToolTip="Remove the raise (+) bind"/>
+            <Button Style="{StaticResource AppButton}" Content="Assign" MinWidth="72" Margin="0"
+                    Click="AssignPlus_Click"/>
+          </StackPanel>
           <StackPanel Margin="0,0,12,0">
-            <TextBlock Text="Raise (+)" FontWeight="SemiBold"/>
+            <DockPanel LastChildFill="False">
+              <TextBlock Text="Raise (+)" FontWeight="SemiBold" VerticalAlignment="Center"/>
+              <TextBlock x:Name="PlusBoundBadge" DockPanel.Dock="Right" Text="Bound" Margin="10,0,0,0"
+                         FontSize="11" FontWeight="SemiBold" Foreground="#2F9E6B" VerticalAlignment="Center"
+                         Visibility="Collapsed"/>
+            </DockPanel>
             <TextBlock x:Name="PlusBindingText" Opacity="0.75" Margin="0,4,0,0" TextWrapping="Wrap"
                        Text="Not bound"/>
           </StackPanel>

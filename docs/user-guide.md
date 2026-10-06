@@ -32,7 +32,7 @@ Details and troubleshooting: [driver-install.md](driver-install.md).
 - **Input** — detected devices, G920 bindings, shifter mode, and live virtual G920 preview (including buttons).
 - **Force Feedback** — FFB profile, output device, gains, and feel controls (full workspace).
 
-Shared chrome: Input / Force Feedback tabs, input profile, **Start** (toggles to **Stop** while running), and **Settings**. Settings (including **Minimize to system tray** and **Debug Overlay**) save immediately in `settings.json`. Live meters sit on the Input tab. A warning strip appears if required pieces are missing.
+Shared chrome: Input / Force Feedback tabs, input profile, **Start** (toggles to **Stop** while running), and **Settings**. Settings (including **Minimize to system tray**, **Debug Overlay**, **Effect Changes Overlay**, and **Check for GitHub updates**) save immediately in `settings.json`. Live meters sit on the Input tab. A warning strip appears if required pieces are missing. With update checks on, a banner appears when GitHub has a newer published release. **Update** saves the zip to Downloads (then opens that folder); unzip it over your G920 Emulator folder like a first install. **Later** skips that version.
 
 ## Detected devices
 
@@ -83,8 +83,8 @@ On the **Force Feedback** tab:
 1. Select **FFB output device** (your physical base — not DualSense).
 2. Pick an **FFB profile** in the dropdown (default **Raw** = exact game mix, the only built-in). Use **Save As…** to make your own per-game presets.
 3. Adjust sliders as needed, then use the FFB profile icons (Save / Save As / Reset to Raw defaults / Delete):
-   - **Master** + **Invert FFB**
-   - **Effect gains** — Constant, Spring, Damper, Friction, Inertia, Periodic, Ramp (0% mutes that DI type). **Bind** assigns hardware buttons that step that gain while you drive (saved on the input profile, not sent to the virtual G920).
+   - **Master** + **Invert FFB** — **Bind** on Master assigns hardware buttons that step overall gain while you drive (1% per tap, 5% if you hold; saved on the input profile). Green fill means a − or + is already assigned; open it to **Clear**.
+   - **Effect gains** — Constant, Spring, Damper, Friction, Inertia, Periodic, Ramp, Custom (0% mutes that DI type). **Bind** on every FFB slider (gains, feel, shaping, centering, advanced mix) assigns hardware buttons that step that slider while you drive (small tap / faster hold; saved on the input profile, not sent to the virtual G920). With **Settings → Effect Changes Overlay** on, those binds flash the category (e.g. Effect gains), slider name, and value at the top of the screen for a moment.
    - **Output feel** — Smoothing (ms), Peak soft, Soft start (all off on Raw)
    - **Advanced mix** — Invert Constant Force, damper velocity / deadband scales (all off on Raw)
    - **Torque shaping** — Deadband, Slew, Spike cap, DI epsilon (all off on Raw; optional ShapeGameTorque path)

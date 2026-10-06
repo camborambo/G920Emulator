@@ -65,6 +65,12 @@
                 <MenuItem x:Name="DebugOverlayMenuItem" Header="Debug Overlay"
                           IsCheckable="True" Click="DebugOverlayMenuItem_Click"
                           ToolTip="Show a topmost overlay with live G920 inputs and FFB diagnostics while you drive."/>
+                <MenuItem x:Name="EffectChangesOverlayMenuItem" Header="Effect Changes Overlay"
+                          IsCheckable="True" Click="EffectChangesOverlayMenuItem_Click"
+                          ToolTip="Flash the effect name and gain percent at the top of the screen when you press FFB bind buttons."/>
+                <MenuItem x:Name="CheckForUpdatesMenuItem" Header="Check for GitHub updates"
+                          IsCheckable="True" Click="CheckForUpdatesMenuItem_Click"
+                          ToolTip="At launch, ask GitHub if a newer release is published. Off means no network check."/>
                 <Separator/>
                 <MenuItem Header="Exit" Click="ExitApp_Click" ToolTip="Quit G920 Emulator."/>
               </ContextMenu>
@@ -125,11 +131,31 @@
                   Padding="10,4" Margin="0,0,6,0" FontSize="12" IsEnabled="False"
                   Click="ExportDebugLogButton_Click"
                   ToolTip="Export diagnostics after you stop a Debug session"/>
+          <TextBlock x:Name="AppVersionText" VerticalAlignment="Center" Margin="0,0,12,0"
+                     Opacity="0.55" FontSize="12" Cursor="Hand" Text="v0.2.5"
+                     ToolTip="Application version — click for About"
+                     MouseLeftButtonDown="AboutButton_Click"/>
           <Button Style="{StaticResource AppButton}" Content="About" Padding="10,4" Margin="0"
                   FontSize="12" Click="AboutButton_Click" ToolTip="Credits and disclaimer"/>
         </StackPanel>
       </StatusBarItem>
     </StatusBar>
+
+    <Border x:Name="UpdateBanner" DockPanel.Dock="Bottom" Style="{StaticResource CardBorder}"
+            Padding="10,8" Margin="0,8,0,0" Visibility="Collapsed"
+            Background="#2A2218" BorderBrush="#8A6A3A">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button x:Name="UpdateLaterButton" Style="{StaticResource AppButton}" Content="Later" Click="UpdateLater_Click" Padding="10,5"
+                  ToolTip="Hide this release until a newer one is published."/>
+          <Button x:Name="UpdateApplyButton" Style="{StaticResource AccentButton}" Content="Update"
+                  Click="UpdateApply_Click" Margin="0" Padding="10,5"
+                  ToolTip="Download the GitHub zip. Unzip it over your G920 Emulator folder yourself."/>
+        </StackPanel>
+        <TextBlock x:Name="UpdateBannerText" VerticalAlignment="Center" TextWrapping="Wrap" FontSize="12"
+                   Margin="0,0,12,0"/>
+      </DockPanel>
+    </Border>
 
     <!-- Dependencies — compact strip above status bar -->
     <Border x:Name="DependenciesBanner" DockPanel.Dock="Bottom" Style="{StaticResource CardBorder}" Padding="10,8" Margin="0,8,0,0">
@@ -337,10 +363,15 @@
                         <ComboBox x:Name="FfbDeviceCombo" DisplayMemberPath="Display" SelectionChanged="FfbDeviceCombo_SelectionChanged"
                                   ToolTip="Physical wheel base that plays force feedback."/>
                         <DockPanel Margin="0,12,0,0"
-                                   ToolTip="Overall force feedback strength. 100% matches the game; higher values boost output.">
+                                   ToolTip="Overall force feedback strength. 100% matches the game; higher values boost output. Bind assigns hardware buttons that change Master while you drive.">
                           <TextBlock Text="Master" Width="88" VerticalAlignment="Center"/>
-                          <TextBlock x:Name="GainValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
-                                     Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="GainValueText" Width="40" Text="100%" VerticalAlignment="Center"
+                                       TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                       MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Button x:Name="BindFfbMaster" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                    Tag="Master" Click="FfbEffectBind_Click"/>
+                          </StackPanel>
                           <Slider x:Name="GainSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1" IsSnapToTickEnabled="False" ValueChanged="GainSlider_ValueChanged"/>
                         </DockPanel>
                         <CheckBox x:Name="InvertFfbCheck" Content="Invert FFB" Margin="0,10,0,0"
@@ -444,6 +475,19 @@
                           <Slider x:Name="GainRampSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
                                   ValueChanged="EffectGainSlider_ValueChanged"/>
                         </DockPanel>
+                        <DockPanel Margin="0,4,0,0"
+                                   ToolTip="Custom force-feedback effects a game downloads besides the standard types.">
+                          <TextBlock Text="Custom" Width="88" VerticalAlignment="Center"/>
+                          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock x:Name="GainCustomValueText" Width="40" Text="100%" VerticalAlignment="Center"
+                                       TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                       MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <Button x:Name="BindFfbCustom" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                    Tag="Custom" Click="FfbEffectBind_Click"/>
+                          </StackPanel>
+                          <Slider x:Name="GainCustomSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
+                                  ValueChanged="EffectGainSlider_ValueChanged"/>
+                        </DockPanel>
                       </StackPanel>
                     </Border>
                   </StackPanel>
@@ -457,24 +501,39 @@
                           <DockPanel Margin="0,2,0,0"
                                      ToolTip="Softens harsh detail. Higher values feel smoother but add a little delay. 0 = off.">
                             <TextBlock Text="Smoothing" Width="88" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FeelSmoothingValueText" DockPanel.Dock="Right" Width="40" Text="0 ms" VerticalAlignment="Center"
-                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                              <TextBlock x:Name="FeelSmoothingValueText" Width="48" Text="0 ms" VerticalAlignment="Center"
+                                         TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                         MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Button x:Name="BindFfbSmoothing" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                      Tag="Smoothing" Click="FfbEffectBind_Click"/>
+                            </StackPanel>
                             <Slider x:Name="FeelSmoothingSlider" Minimum="0" Maximum="40" Value="0" TickFrequency="1"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                           <DockPanel Margin="0,4,0,0"
                                      ToolTip="Softens the strongest peaks (crashes, big curbs). 100% = off; lower = gentler peaks.">
                             <TextBlock Text="Peak soft" Width="88" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FeelPeakSoftValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
-                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                              <TextBlock x:Name="FeelPeakSoftValueText" Width="48" Text="100%" VerticalAlignment="Center"
+                                         TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                         MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Button x:Name="BindFfbPeakSoft" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                      Tag="PeakSoft" Click="FfbEffectBind_Click"/>
+                            </StackPanel>
                             <Slider x:Name="FeelPeakSoftSlider" Minimum="0.5" Maximum="1" Value="1" TickFrequency="0.01"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                           <DockPanel Margin="0,4,0,0"
                                      ToolTip="Fades force in when FFB first starts, instead of a sudden jolt. 0 = off.">
                             <TextBlock Text="Soft start" Width="88" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FeelSoftStartValueText" DockPanel.Dock="Right" Width="40" Text="0" VerticalAlignment="Center"
-                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                              <TextBlock x:Name="FeelSoftStartValueText" Width="48" Text="0" VerticalAlignment="Center"
+                                         TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                         MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Button x:Name="BindFfbSoftStart" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                      Tag="SoftStart" Click="FfbEffectBind_Click"/>
+                            </StackPanel>
                             <Slider x:Name="FeelSoftStartSlider" Minimum="0" Maximum="2000" Value="0" TickFrequency="50"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
@@ -489,32 +548,52 @@
                           <DockPanel Margin="0,2,0,0"
                                      ToolTip="Ignores very small forces near center so the wheel does not twitch. 0 = off.">
                             <TextBlock Text="Deadband" Width="88" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FeelDeadbandValueText" DockPanel.Dock="Right" Width="48" Text="0" VerticalAlignment="Center"
-                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                              <TextBlock x:Name="FeelDeadbandValueText" Width="48" Text="0" VerticalAlignment="Center"
+                                         TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                         MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Button x:Name="BindFfbDeadband" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                      Tag="Deadband" Click="FfbEffectBind_Click"/>
+                            </StackPanel>
                             <Slider x:Name="FeelDeadbandSlider" Minimum="0" Maximum="0.05" Value="0" TickFrequency="0.001"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                           <DockPanel Margin="0,4,0,0"
                                      ToolTip="Limits how fast force can change. Lower is smoother; 0 = unlimited.">
                             <TextBlock Text="Slew" Width="88" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FeelSlewValueText" DockPanel.Dock="Right" Width="48" Text="off" VerticalAlignment="Center"
-                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                              <TextBlock x:Name="FeelSlewValueText" Width="48" Text="off" VerticalAlignment="Center"
+                                         TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                         MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Button x:Name="BindFfbSlew" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                      Tag="Slew" Click="FfbEffectBind_Click"/>
+                            </StackPanel>
                             <Slider x:Name="FeelSlewSlider" Minimum="0" Maximum="200" Value="0" TickFrequency="1"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                           <DockPanel Margin="0,4,0,0"
                                      ToolTip="Caps the largest force jump in one update. 100% = off.">
                             <TextBlock Text="Spike cap" Width="88" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FeelSpikeValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
-                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                              <TextBlock x:Name="FeelSpikeValueText" Width="48" Text="100%" VerticalAlignment="Center"
+                                         TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                         MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Button x:Name="BindFfbSpike" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                      Tag="Spike" Click="FfbEffectBind_Click"/>
+                            </StackPanel>
                             <Slider x:Name="FeelSpikeSlider" Minimum="0.05" Maximum="1" Value="1" TickFrequency="0.01"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                           <DockPanel Margin="0,4,0,0"
                                      ToolTip="Ignores tiny force changes to reduce chatter or buzzing. 0 = off.">
                             <TextBlock Text="DI epsilon" Width="88" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FeelEpsilonValueText" DockPanel.Dock="Right" Width="48" Text="0" VerticalAlignment="Center"
-                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                              <TextBlock x:Name="FeelEpsilonValueText" Width="48" Text="0" VerticalAlignment="Center"
+                                         TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                         MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Button x:Name="BindFfbEpsilon" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                      Tag="Epsilon" Click="FfbEffectBind_Click"/>
+                            </StackPanel>
                             <Slider x:Name="FeelEpsilonSlider" Minimum="0" Maximum="64" Value="0" TickFrequency="1"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
@@ -533,24 +612,39 @@
                             <DockPanel Margin="0,2,0,0"
                                        ToolTip="Maximum centering force. Scaled by Master.">
                               <TextBlock Text="Strength" Width="88" VerticalAlignment="Center"/>
-                              <TextBlock x:Name="CenterStrengthValueText" DockPanel.Dock="Right" Width="48" Text="30%" VerticalAlignment="Center"
-                                         Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock x:Name="CenterStrengthValueText" Width="48" Text="30%" VerticalAlignment="Center"
+                                           TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                           MouseLeftButtonDown="FfbValueLabel_Click"/>
+                                <Button x:Name="BindFfbCenterStrength" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                        Tag="CenterStrength" Click="FfbEffectBind_Click"/>
+                              </StackPanel>
                               <Slider x:Name="CenterStrengthSlider" Minimum="0.05" Maximum="1" Value="0.3" TickFrequency="0.01"
                                       ValueChanged="FeelSlider_ValueChanged"/>
                             </DockPanel>
                             <DockPanel Margin="0,4,0,0"
                                        ToolTip="How far from center the spring reaches full strength. Lower is stiffer near center.">
                               <TextBlock Text="Range" Width="88" VerticalAlignment="Center"/>
-                              <TextBlock x:Name="CenterRangeValueText" DockPanel.Dock="Right" Width="48" Text="25%" VerticalAlignment="Center"
-                                         Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock x:Name="CenterRangeValueText" Width="48" Text="25%" VerticalAlignment="Center"
+                                           TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                           MouseLeftButtonDown="FfbValueLabel_Click"/>
+                                <Button x:Name="BindFfbCenterRange" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                        Tag="CenterRange" Click="FfbEffectBind_Click"/>
+                              </StackPanel>
                               <Slider x:Name="CenterRangeSlider" Minimum="0.05" Maximum="0.5" Value="0.25" TickFrequency="0.01"
                                       ValueChanged="FeelSlider_ValueChanged"/>
                             </DockPanel>
                             <DockPanel Margin="0,4,0,0"
                                        ToolTip="Free zone around center where the spring does not push. 0 = off.">
                               <TextBlock Text="Deadzone" Width="88" VerticalAlignment="Center"/>
-                              <TextBlock x:Name="CenterDeadzoneValueText" DockPanel.Dock="Right" Width="48" Text="off" VerticalAlignment="Center"
-                                         Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock x:Name="CenterDeadzoneValueText" Width="48" Text="off" VerticalAlignment="Center"
+                                           TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                           MouseLeftButtonDown="FfbValueLabel_Click"/>
+                                <Button x:Name="BindFfbCenterDeadzone" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                        Tag="CenterDeadzone" Click="FfbEffectBind_Click"/>
+                              </StackPanel>
                               <Slider x:Name="CenterDeadzoneSlider" Minimum="0" Maximum="0.05" Value="0" TickFrequency="0.001"
                                       ValueChanged="FeelSlider_ValueChanged"/>
                             </DockPanel>
@@ -569,16 +663,26 @@
                           <DockPanel Margin="0,2,0,0"
                                      ToolTip="How strongly wheel speed feeds into damper and inertia. 100% = as the game sent it.">
                             <TextBlock Text="Damp vel" Width="88" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="DamperVelScaleValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
-                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                              <TextBlock x:Name="DamperVelScaleValueText" Width="48" Text="100%" VerticalAlignment="Center"
+                                         TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                         MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Button x:Name="BindFfbDampVel" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                      Tag="DampVel" Click="FfbEffectBind_Click"/>
+                            </StackPanel>
                             <Slider x:Name="DamperVelScaleSlider" Minimum="0.25" Maximum="4" Value="1" TickFrequency="0.05"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                           <DockPanel Margin="0,4,0,0"
                                      ToolTip="How soon damper engages near zero speed. Lower engages sooner. 100% = as the game sent it.">
                             <TextBlock Text="Damp dead" Width="88" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="DamperDeadbandScaleValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
-                                       Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                              <TextBlock x:Name="DamperDeadbandScaleValueText" Width="48" Text="100%" VerticalAlignment="Center"
+                                         TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                                         MouseLeftButtonDown="FfbValueLabel_Click"/>
+                              <Button x:Name="BindFfbDampDead" Style="{StaticResource FfbBindButton}" Content="Bind"
+                                      Tag="DampDead" Click="FfbEffectBind_Click"/>
+                            </StackPanel>
                             <Slider x:Name="DamperDeadbandScaleSlider" Minimum="0.1" Maximum="1" Value="1" TickFrequency="0.01"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
