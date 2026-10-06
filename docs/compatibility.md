@@ -31,6 +31,12 @@ Same DirectInput constant-force path for all of these:
 | Need for Speed Heat | **Tested** | Virtual G920 | OEM path used | Gears 1–6 = buttons 13–18. **Reverse: default button 19** (LGS / Driving Force Shifter). |
 | Need for Speed Unbound | **Tested** | Virtual G920 | OEM path (multi-instance mixer + SHM v6) on Fanatec DD2 and Simucube | ConstantForce, Spring, Sine, Damper, Triangle. Gears 1–6 = 13–18. **Reverse: Bind Gear R → button 12**. Centering spring needs physical rim angle. **Controller Vibration must be On** (Accessibility → Controls) or race rumble magnitudes stay 0. |
 
+### Forza Horizon series (test signing)
+
+Forza Horizon games (confirmed on FH6) **do not launch while Windows test signing is on**. They exit at the splash screen (Steam exit code 100) — likely an integrity / anti-cheat check. OEM/SDK session pins are not the cause.
+
+Test signing is only required to *install* the test-signed WinUHid driver. **Install WinUHid** turns test signing on temporarily, installs the driver, then turns it **off** again. After the final reboot, FH6 can launch and WinUHid usually keeps working. Secure Boot only needs to be off during that install — you can turn Secure Boot back on afterward. If test signing was left on: **Disable test signing** → reboot (no need to uninstall WinUHid).
+
 ### Gear R quick reference
 
 | Game | Bind Gear R → G920 reverse button |
@@ -44,7 +50,6 @@ See [user guide — H-pattern gears](user-guide.md#h-pattern-gears).
 
 Add rows above when confirmed. Candidates often requested:
 
-- Forza Horizon series (DirectInput wheel path, if G920 is selected)
 - Other EA / Codemasters titles with Logitech wheel profiles
 - iRacing / ACC / AMS2 (typically stronger native wheel support; G920 path may still work)
 

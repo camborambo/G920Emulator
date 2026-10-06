@@ -7,6 +7,31 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-05
+
+### Added
+
+- **Dependencies → Windows test signing** as its own step (Enabled / Disabled / Reboot required / Off OK) with Enable/Disable actions and a Secure Boot warning
+- **Forza-friendly WinUHid install:** enable test signing only for install → install driver → turn test signing off automatically (WinUHid usually keeps working; FH6 can launch)
+- **Uninstall WinUHid** removes the driver **and** turns off Windows test signing, then offers a reboot
+- **Dependencies → Full clean restore…** — optional nuclear wipe of app system leftovers (OEM/SDK, SDK cache, WinUHid, test signing, etc.)
+- Session-scoped OEM / Logitech SDK pins on Start bridge with **SessionWatch** crash restore; Dependencies status card (Active / Idle / Needs restore)
+- Docs / README: Forza Horizon + Secure Boot guidance (Secure Boot can be re-enabled after install)
+
+### Changed
+
+- Dependencies UI: numbered setup (test signing → WinUHid → HidHide); OEM/SDK is a session status card like G HUB guard
+- Main window dependency chips show test signing instead of OEM/SDK
+- Test signing shows **Off (OK)** when WinUHid is installed and test mode is off — not permanently required
+
+### Fixed
+
+- **Steam crash** (`steam.exe` / `g920ffb.dll_unloaded` ACCESS_VIOLATION): pin OEM FFB DLL for process lifetime; `DllCanUnloadNow` refuses unload
+- Forza Horizon 6 splash exit (code 100): Windows **test signing** left on (not OEM/SDK pins)
+- WinUHid Install no longer stops after enabling test signing without installing the driver (avoids duplicate enumerators / false “Not installed”)
+- WinUHid status distinguishes **Reboot required** / **Not responding** from **Not installed**
+- OEM restore deletes the whole `VID_046D&PID_C262` OEM tree when needed; stronger WinUHid uninstall for leftovers
+
 ## [0.2.3] - 2026-10-04
 
 ### Added
@@ -74,7 +99,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Initial public build: virtual Logitech G920 (WinUHid), binding UI, HidHide helpers, OEM `g920ffb.dll` path, bundled WinUHid + Logitech Steering Wheel SDK
 - NFS Heat / Unbound gear mapping (reverse button 19 vs 12)
 
-[Unreleased]: https://github.com/camborambo/G920Emulator/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/camborambo/G920Emulator/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/camborambo/G920Emulator/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/camborambo/G920Emulator/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/camborambo/G920Emulator/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/camborambo/G920Emulator/compare/v0.2.0...v0.2.1

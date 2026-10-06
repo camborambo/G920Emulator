@@ -8,6 +8,12 @@ DEFINE_GUID(ClassID_G920FFB,
 
 extern CRITICAL_SECTION CriticalSection;
 
+// COM inproc lifetime — see DllCanUnloadNow / LockServer in extension.cpp + com.cpp.
+extern LONG g_cObjects;
+extern LONG g_cLocks;
+void G920FfbAddObject(void);
+void G920FfbReleaseObject(void);
+
 // Shared memory: virtual-G920 OEM effects <-> G920Emulator bridge.
 // Contract: anything downloaded against our OEM CLSID must reach the base.
 // Game process owns Torque.*; Steam/overlay may only fill Aux* (rumble layer)

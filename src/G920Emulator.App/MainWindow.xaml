@@ -208,14 +208,14 @@
         <StackPanel Margin="0,0,12,0">
           <TextBlock Text="Dependencies" FontWeight="SemiBold" Margin="0,0,0,8"/>
           <StackPanel Orientation="Horizontal">
+            <Border x:Name="TestSigningChip" CornerRadius="4" Padding="10,5" Margin="0,0,8,0">
+              <TextBlock x:Name="TestSigningChipText" FontWeight="SemiBold"/>
+            </Border>
             <Border x:Name="WinUHidChip" CornerRadius="4" Padding="10,5" Margin="0,0,8,0">
               <TextBlock x:Name="WinUHidChipText" FontWeight="SemiBold"/>
             </Border>
-            <Border x:Name="HidHideChip" CornerRadius="4" Padding="10,5" Margin="0,0,8,0">
+            <Border x:Name="HidHideChip" CornerRadius="4" Padding="10,5">
               <TextBlock x:Name="HidHideChipText" FontWeight="SemiBold"/>
-            </Border>
-            <Border x:Name="LogiSdkChip" CornerRadius="4" Padding="10,5">
-              <TextBlock x:Name="LogiSdkChipText" FontWeight="SemiBold"/>
             </Border>
           </StackPanel>
           <TextBlock x:Name="DependenciesSummaryText" Opacity="0.7" Margin="0,8,0,0" TextWrapping="Wrap"/>
@@ -376,7 +376,7 @@
               <DockPanel Margin="0,2,0,0"
                          ToolTip="Constant force (tire load): the main steering torque most games send — tyre load, self-aligning force, road surface, curb and crash hits.">
                 <TextBlock Text="Constant" Width="72" VerticalAlignment="Center"/>
-                <TextBlock x:Name="GainConstantValueText" DockPanel.Dock="Right" Width="48" Text="100%" VerticalAlignment="Center"
+                <TextBlock x:Name="GainConstantValueText" DockPanel.Dock="Right" Width="40" Text="100%" VerticalAlignment="Center"
                            Cursor="Hand" ToolTip="Click to type a value" MouseLeftButtonDown="FfbValueLabel_Click"/>
                 <Slider x:Name="GainConstantSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1"
                         ValueChanged="EffectGainSlider_ValueChanged"/>

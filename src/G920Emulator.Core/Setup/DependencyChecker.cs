@@ -32,7 +32,7 @@ public sealed class DependencyReport
         .Where(i => i.Requirement == DependencyRequirement.Required)
         .All(i => i.IsInstalled);
 
-    /// <summary>True when all Required dependencies are installed (WinUHid, HidHide, Logitech SDK).</summary>
+    /// <summary>True when all Required dependencies are installed (WinUHid, HidHide). SDK pins are session-scoped on Start bridge.</summary>
     public bool ReadyForGames => AllRequiredInstalled;
 
     public IReadOnlyList<string> MissingRequiredNames => Items
@@ -40,6 +40,7 @@ public sealed class DependencyReport
         .Select(i => i.Name)
         .ToList();
 
+    public DependencyInfo? TestSigning => Items.FirstOrDefault(i => i.Id == "testsigning");
     public DependencyInfo? WinUHid => Items.FirstOrDefault(i => i.Id == "winuhid");
     public DependencyInfo? HidHide => Items.FirstOrDefault(i => i.Id == "hidhide");
     public DependencyInfo? LogitechSdk => Items.FirstOrDefault(i => i.Id == "logisdk");
@@ -53,99 +54,147 @@ public static class DependencyChecker
     /// <param name="probeWinUHid">Returns (installed, detailMessage).</param>
     public static DependencyReport CheckAll(Func<(bool Installed, string Detail)> probeWinUHid)
     {
+        var winUHid = CheckWinUHid(probeWinUHid);
         return new DependencyReport
         {
             Items =
             [
-                CheckWinUHid(probeWinUHid),
+                CheckTestSigning(winUHidReady: winUHid.IsInstalled),
+                winUHid,
                 CheckHidHide(),
-                CheckLogitechSteeringSdk(),
             ],
+        };
+    }
+
+    /// <summary>
+    /// Test signing is only required to *install* the test-signed WinUHid package.
+    /// After install it can stay off — WinUHid (UMDF) usually keeps working and Forza can launch.
+    /// </summary>
+    public static DependencyInfo CheckTestSigning(bool winUHidReady = false)
+    {
+        var setup = new WinUHidSetupService();
+        var (live, bcd) = setup.QueryTestSigningDetail();
+        var pendingInstall = BundledWinUHidInstaller.HasPendingInstall;
+
+        string statusLabel;
+        string hint;
+        string detail;
+        bool ready;
+        var requirement = winUHidReady ? DependencyRequirement.Recommended : DependencyRequirement.Required;
+
+        if (winUHidReady && !live)
+        {
+            // Ideal Forza-friendly state after Install finishes and disables test signing.
+            ready = true;
+            statusLabel = "Off (OK)";
+            hint = "Best state: WinUHid installed, test signing off — Forza and the emulator can both work. You can re-enable Secure Boot in UEFI/BIOS.";
+            detail = bcd == true
+                ? "Current boot OFF · BCD still Yes (reboot once to finish leaving test mode)."
+                : "Test signing OFF. Secure Boot may be re-enabled if you disabled it for install.";
+        }
+        else if (winUHidReady && live)
+        {
+            ready = true; // emulator works; warn that Forza will not
+            statusLabel = "Enabled";
+            hint = "WinUHid is already installed — Disable test signing and reboot so Forza can launch. The emulator usually keeps working with test signing off.";
+            detail = "Windows is in test mode. Forza Horizon 6 will not launch until you disable and reboot.";
+        }
+        else if (live)
+        {
+            ready = true;
+            statusLabel = "Enabled";
+            hint = pendingInstall
+                ? "Test mode is on. Click Install WinUHid once — it will install the driver and turn test signing back off."
+                : "Ready for Install WinUHid. Install turns test signing back off afterwards (Forza-safe).";
+            detail = "Windows is running in test mode (testsigning ON).";
+        }
+        else if (bcd == true || pendingInstall)
+        {
+            ready = false;
+            statusLabel = "Reboot required";
+            hint = pendingInstall
+                ? "Test signing was staged for WinUHid install. Reboot, then click Install WinUHid once more (installs driver + turns test signing off)."
+                : "Test signing is staged in BCD but not active yet. Reboot once, then Install WinUHid.";
+            detail = pendingInstall
+                ? "Pending WinUHid install after reboot."
+                : "bcdedit testsigning=Yes · current boot still OFF.";
+        }
+        else
+        {
+            ready = false;
+            statusLabel = "Disabled";
+            hint = "Needed only to install WinUHid. Secure Boot must be off in UEFI/BIOS for that step (you can turn Secure Boot back on afterward). Install WinUHid enables test signing temporarily, then turns it off again.";
+            detail = bcd == false
+                ? "Test signing OFF (current boot and BCD)."
+                : "Test signing OFF (current boot).";
+        }
+
+        return new DependencyInfo
+        {
+            Id = "testsigning",
+            Name = "Windows test signing",
+            Requirement = requirement,
+            IsInstalled = ready,
+            StatusLabel = statusLabel,
+            Detail = detail,
+            InstallOrSetupHint = hint,
         };
     }
 
     public const string LogitechSteeringSdkClsid = "{63BD165D-1584-4E75-AB56-08330350545F}";
 
-    /// <summary>Where the app installs its private SDK copy (must match G920OemRegistration).</summary>
+    /// <summary>Where the app caches its private SDK copy (pinned only while the bridge session is active).</summary>
     public static string LogitechSteeringSdkDir => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "G920Emulator", "LogitechSDK");
-
-    /// <summary>
-    /// NFS Heat and other Logitech-SDK games load the wheel SDK via this CLSID's ServerBinary.
-    /// Missing (e.g. after a G HUB uninstall) or pointed at G HUB's SDK means the game never
-    /// shows a wheel layout, so only our own installed copy counts.
-    /// </summary>
-    public static DependencyInfo CheckLogitechSteeringSdk()
-    {
-        var ok64 = IsPinnedToOurSdk(RegistryView.Registry64, "x64", out var x64);
-        var ok86 = IsPinnedToOurSdk(RegistryView.Registry32, "x86", out var x86);
-        var installed = ok64 && ok86;
-
-        return new DependencyInfo
-        {
-            Id = "logisdk",
-            Name = "Logitech Steering Wheel SDK",
-            Requirement = DependencyRequirement.Required,
-            IsInstalled = installed,
-            StatusLabel = installed ? "Installed" : "Not installed",
-            Detail = $"x64: {Describe(ok64, x64)} · x86: {Describe(ok86, x86)}",
-            InstallOrSetupHint = installed
-                ? "Required for games built on the Logitech SDK (NFS Heat, etc.) to show a wheel layout. Kept in place by the G HUB guard."
-                : "Required. Without it Logitech-SDK games treat the wheel as a generic controller. Click Install (bundled — no Logitech software needed).",
-        };
-
-        static string Describe(bool ok, string? path) =>
-            ok ? "OK" : path is null ? "not registered" : $"points elsewhere ({path})";
-    }
-
-    private static bool IsPinnedToOurSdk(RegistryView view, string arch, out string? current)
-    {
-        current = ReadServerBinary(view);
-        var expected = Path.Combine(LogitechSteeringSdkDir, arch, "LogitechSteeringWheel.dll");
-        return current is not null &&
-               File.Exists(expected) &&
-               string.Equals(Path.GetFullPath(current), expected, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static string? ReadServerBinary(RegistryView view)
-    {
-        try
-        {
-            using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
-            using var key = hklm.OpenSubKey($@"SOFTWARE\Classes\CLSID\{LogitechSteeringSdkClsid}\ServerBinary");
-            return key?.GetValue("") as string;
-        }
-        catch
-        {
-            return null;
-        }
-    }
 
     public static DependencyInfo CheckWinUHid(Func<(bool Installed, string Detail)> probeWinUHid)
     {
         var setup = new WinUHidSetupService();
         var dllPresent = File.Exists(setup.LocalDllPath);
         var testSigning = setup.IsTestSigningEnabled();
+        var nodePresent = setup.IsDeviceNodePresent();
         var (driverOk, probeMsg) = probeWinUHid();
 
         var detailParts = new List<string>
         {
             dllPresent ? "WinUHid.dll present" : "WinUHid.dll missing next to app",
-            testSigning ? "test signing ON" : "test signing OFF",
+            nodePresent ? "device node present" : "device node missing",
             probeMsg,
         };
+
+        string statusLabel;
+        string hint;
+        if (driverOk)
+        {
+            statusLabel = "Installed";
+            hint = "Required for exposing the virtual G920 to games. Test signing can stay off after install (Forza-friendly).";
+        }
+        else if (nodePresent && !testSigning && BundledWinUHidInstaller.HasPendingInstall)
+        {
+            statusLabel = "Reboot required";
+            hint = "Finish setup: reboot into test mode if needed, then click Install WinUHid once more.";
+        }
+        else if (nodePresent)
+        {
+            statusLabel = "Not responding";
+            hint = "A WinUHid device is present but the app cannot open it (often a duplicate enumerator). Prefer Uninstall WinUHid, then Install once — or Recheck after a reboot.";
+        }
+        else
+        {
+            statusLabel = "Not installed";
+            hint = "Required. Install WinUHid (enables test signing only for the install, then turns it off). Secure Boot must be off during install; you can re-enable it afterward.";
+        }
 
         return new DependencyInfo
         {
             Id = "winuhid",
             Name = "WinUHid",
             Requirement = DependencyRequirement.Required,
+            // Only treat as ready when the user-mode probe works (needed to create the virtual G920).
             IsInstalled = driverOk,
-            StatusLabel = driverOk ? "Installed" : "Not installed",
+            StatusLabel = statusLabel,
             Detail = string.Join(" · ", detailParts),
-            InstallOrSetupHint = driverOk
-                ? "Required for exposing the virtual G920 to games."
-                : "Required. Games cannot see the virtual G920 without this driver.",
+            InstallOrSetupHint = hint,
         };
     }
 

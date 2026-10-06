@@ -46,13 +46,70 @@ public static class G920OemRegistration
         ForceOemFfbClsid(Registry.LocalMachine);
 
         if (installSdk)
-            InstallSteeringWheelSdk();
+        {
+            EnsureSdkFilesCached();
+            PinSteeringWheelSdk();
+        }
         else
-            RepinSteeringWheelSdk();
+            PinSteeringWheelSdk();
 
         LastMessage = dll is null
             ? "OEM registry written; g920ffb.dll not found beside EXE."
             : $"OEM + COM registered → {dll}";
+    }
+
+    /// <summary>Copy bundled SDK DLLs to ProgramData only — does not write registry.</summary>
+    public static string EnsureSdkFilesCached()
+    {
+        var errors = new List<string>();
+        foreach (var x64 in new[] { true, false })
+        {
+            var arch = x64 ? "x64" : "x86";
+            var cached = CachedSdkPath(x64);
+            var source = FindStandaloneSdkDll(x64);
+            try
+            {
+                if (source is not null && !SameFile(source, cached))
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(cached)!);
+                    File.Copy(source, cached, overwrite: true);
+                }
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"{arch} copy: {ex.Message}");
+            }
+
+            if (!File.Exists(cached))
+                errors.Add($"{arch}: no SDK DLL found (bundled logisdk\\{arch} missing)");
+        }
+
+        return errors.Count == 0
+            ? $"Logitech SDK files cached → {SteeringWheelSdkCacheDir}"
+            : "Logitech SDK cache incomplete: " + string.Join("; ", errors);
+    }
+
+    /// <summary>Pin HKLM ServerBinary to our cached SDK (session only).</summary>
+    public static string PinSteeringWheelSdk()
+    {
+        var errors = new List<string>();
+        foreach (var x64 in new[] { true, false })
+        {
+            var arch = x64 ? "x64" : "x86";
+            var cached = CachedSdkPath(x64);
+            if (!File.Exists(cached))
+            {
+                errors.Add($"{arch}: cached DLL missing");
+                continue;
+            }
+
+            if (!WriteServerBinary(x64 ? RegistryView.Registry64 : RegistryView.Registry32, cached, out var err))
+                errors.Add($"{arch} registry: {err}");
+        }
+
+        return errors.Count == 0
+            ? $"Logitech SDK pinned → {SteeringWheelSdkCacheDir}"
+            : "Logitech SDK pin incomplete: " + string.Join("; ", errors);
     }
 
     /// <summary>
@@ -76,63 +133,133 @@ public static class G920OemRegistration
     public static bool IsSteeringWheelSdkInstalled =>
         File.Exists(CachedSdkPath(x64: true)) && File.Exists(CachedSdkPath(x64: false));
 
-    /// <summary>
-    /// True when the SDK isn't installed yet (nothing to guard) or both registry views point at our copy.
-    /// </summary>
+    /// <summary>True when both registry views point at our cached SDK copy.</summary>
     public static bool IsSteeringWheelSdkPinned() =>
-        !IsSteeringWheelSdkInstalled ||
-        (IsServerBinaryPinned(RegistryView.Registry64, x64: true) &&
-         IsServerBinaryPinned(RegistryView.Registry32, x64: false));
+        IsSteeringWheelSdkInstalled &&
+        IsServerBinaryPinned(RegistryView.Registry64, x64: true) &&
+        IsServerBinaryPinned(RegistryView.Registry32, x64: false);
 
     /// <summary>
-    /// Copies the bundled SDK (or a standalone LGS SDK on disk) to ProgramData and registers it
-    /// for 64- and 32-bit games. Requires elevation.
+    /// Legacy name: cache files + pin. Prefer session <see cref="OemRegistrationSession.BeginSession"/>;
+    /// kept for any remaining call sites.
     /// </summary>
     public static string InstallSteeringWheelSdk()
     {
-        var errors = new List<string>();
-        foreach (var x64 in new[] { true, false })
+        var cache = EnsureSdkFilesCached();
+        var pin = PinSteeringWheelSdk();
+        return cache + " · " + pin;
+    }
+
+    /// <summary>Re-points the registry at our copy if something (G HUB) changed or deleted it.</summary>
+    public static void RepinSteeringWheelSdk() => PinSteeringWheelSdk();
+
+    /// <summary>
+    /// Deletes our private Logitech SDK DLL cache under ProgramData (files only; registry via restore).
+    /// </summary>
+    public static string RemoveCachedSdkFiles()
+    {
+        try
         {
-            var arch = x64 ? "x64" : "x86";
-            var cached = CachedSdkPath(x64);
-            var source = FindStandaloneSdkDll(x64);
+            var dir = SteeringWheelSdkCacheDir;
+            if (!Directory.Exists(dir))
+                return "SDK cache: already absent";
+
+            Directory.Delete(dir, recursive: true);
+
+            // Remove empty ProgramData\G920Emulator if nothing else remains.
+            var parent = Path.GetDirectoryName(dir);
+            if (!string.IsNullOrEmpty(parent) &&
+                Directory.Exists(parent) &&
+                !Directory.EnumerateFileSystemEntries(parent).Any())
+            {
+                try { Directory.Delete(parent); } catch { /* ignore */ }
+            }
+
+            return "SDK cache removed: " + dir;
+        }
+        catch (Exception ex)
+        {
+            return "SDK cache: " + ex.Message;
+        }
+    }
+
+    /// <summary>
+    /// Undoes global OEM FFB + Logitech SDK pins left by <see cref="EnsureRegistered"/>.
+    /// Removes the whole G920 OEM tree we write (not just CLSID), unregisters g920ffb COM,
+    /// and clears SDK ServerBinary. Needed for Forza Horizon and similar titles.
+    /// </summary>
+    public static string RestoreSystemLogitechRegistration(bool restoreLogitechOemClsid = false)
+    {
+        const string logitechOemFfbClsid = "{62B43F0E-E7DB-4329-8C13-A966D84A289F}";
+        var parts = new List<string>();
+
+        foreach (var root in new[] { Registry.CurrentUser, Registry.LocalMachine })
+        {
             try
             {
-                if (source is not null && !SameFile(source, cached))
+                if (restoreLogitechOemClsid)
                 {
-                    Directory.CreateDirectory(Path.GetDirectoryName(cached)!);
-                    File.Copy(source, cached, overwrite: true);
+                    using var ff = root.CreateSubKey(RelativeOem + @"\OEMForceFeedback", writable: true);
+                    ff?.SetValue("CLSID", logitechOemFfbClsid, RegistryValueKind.String);
+                    parts.Add($"{root.Name} OEM CLSID → Logitech");
+                }
+                else
+                {
+                    // Delete the entire OEM VID/PID tree we created — leaving Axes/Effects
+                    // with a blank CLSID can still break games that probe G920 OEM data.
+                    var parentPath =
+                        @"System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM";
+                    using var parent = root.OpenSubKey(parentPath, writable: true);
+                    if (parent is not null)
+                    {
+                        parent.DeleteSubKeyTree(OemKeyName, throwOnMissingSubKey: false);
+                        parts.Add($"{root.Name} OEM tree {OemKeyName} removed");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                errors.Add($"{arch} copy: {ex.Message}");
+                parts.Add($"{root.Name} OEM: {ex.Message}");
             }
-
-            if (!File.Exists(cached))
-            {
-                errors.Add($"{arch}: no SDK DLL found (bundled logisdk\\{arch} missing)");
-                continue;
-            }
-
-            if (!WriteServerBinary(x64 ? RegistryView.Registry64 : RegistryView.Registry32, cached, out var err))
-                errors.Add($"{arch} registry: {err}");
         }
 
-        return errors.Count == 0
-            ? $"Logitech Steering Wheel SDK installed → {SteeringWheelSdkCacheDir}"
-            : "Logitech Steering Wheel SDK install incomplete: " + string.Join("; ", errors);
-    }
+        foreach (var root in new[] { Registry.CurrentUser, Registry.LocalMachine })
+        {
+            try
+            {
+                var clsidRoot = root == Registry.LocalMachine
+                    ? @"SOFTWARE\Classes\CLSID\"
+                    : @"Software\Classes\CLSID\";
+                root.DeleteSubKeyTree(clsidRoot + OemFfbClsid, throwOnMissingSubKey: false);
+                parts.Add($"{root.Name} g920ffb COM removed");
+            }
+            catch (Exception ex)
+            {
+                parts.Add($"{root.Name} COM: {ex.Message}");
+            }
+        }
 
-    /// <summary>Re-points the registry at our copy if something (G HUB) changed or deleted it.</summary>
-    public static void RepinSteeringWheelSdk()
-    {
-        if (!IsSteeringWheelSdkInstalled)
-            return;
-        if (!IsServerBinaryPinned(RegistryView.Registry64, x64: true))
-            WriteServerBinary(RegistryView.Registry64, CachedSdkPath(x64: true), out _);
-        if (!IsServerBinaryPinned(RegistryView.Registry32, x64: false))
-            WriteServerBinary(RegistryView.Registry32, CachedSdkPath(x64: false), out _);
+        foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+        {
+            try
+            {
+                using var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
+                using var parent = hklm.OpenSubKey($@"SOFTWARE\Classes\CLSID\{SteeringWheelSdkClsid}", writable: true);
+                if (parent is null)
+                {
+                    parts.Add($"SDK {view}: already absent");
+                    continue;
+                }
+                parent.DeleteSubKeyTree("ServerBinary", throwOnMissingSubKey: false);
+                parts.Add($"SDK {view}: ServerBinary removed");
+            }
+            catch (Exception ex)
+            {
+                parts.Add($"SDK {view}: {ex.Message}");
+            }
+        }
+
+        return string.Join("; ", parts);
     }
 
     private static bool SameFile(string a, string b)

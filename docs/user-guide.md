@@ -5,7 +5,7 @@
 - Windows 10/11
 - [WinUHid](driver-install.md) (bundled installer in the app)
 - [HidHide](https://github.com/nefarius/HidHide) (**required**)
-- [Logitech Steering Wheel SDK](driver-install.md#logitech-steering-wheel-sdk-required) (**required**, bundled — installed from the app; needed for NFS Heat and other Logitech-SDK games to show a wheel layout)
+- [Logitech Steering Wheel SDK + OEM FFB](driver-install.md#logitech-steering-wheel-sdk--oem-ffb-session-scoped) (bundled; pinned only while the bridge runs for NFS Heat / Unbound-style games, then restored)
 - A physical DirectInput controller / wheel / pedals / shifter to bind
 - Optional: DirectInput FFB wheel base for force feedback
 
@@ -146,6 +146,12 @@ If Heat shows a **controller / D-pad** layout or ghost presses:
 3. Steam → Heat / Unbound → Properties → Controller → **Disable Steam Input** (Steam can inject pads and also open the virtual G920 for FFB; OEM torque is accepted only from the game process, so Steam Input must be off for walls/rumble).
 4. Fully quit Heat, keep the bridge running, launch Heat again.
 5. Use **Dependencies → Repair G HUB leftovers** if OEM still points at Logitech.
+
+## Forza Horizon 6 after using the emulator
+
+Forza Horizon 6 refuses to launch while Windows **test signing** is on. It exits at the splash with Steam code **100** — likely an integrity / anti-cheat check. OEM/SDK session pins are not the cause.
+
+**Install WinUHid** only needs test signing for the install step, then turns it off again — so FH6 and the emulator can coexist. Secure Boot can be re-enabled in UEFI/BIOS after install (with test signing off). If test signing is still on: **Dependencies → Disable test signing** → reboot (keep WinUHid installed). Details: [driver-install.md](driver-install.md#forza-horizon-6-and-test-signing).
 
 ## Getting help / diagnostics
 

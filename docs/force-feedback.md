@@ -40,7 +40,7 @@ Game → DirectInput → g920ffb.dll (IDirectInputEffectDriver)
 |-------|--------|
 | COM CLSID | `{A920FFB0-E7DB-4329-8C13-A966D84A289F}` |
 | DLL | `g920ffb.dll` next to `G920Emulator.exe` (built from `native/g920ffb`) |
-| Registration | `G920OemRegistration.EnsureRegistered()` on Start |
+| Registration | Session-scoped: `OemRegistrationSession.BeginSession()` on Start bridge; restored on Stop/Close/crash (`EndSession` / SessionWatch) |
 | Shared memory | Magic `G9FF`, version 6 (`…FfbTorque.v6`): game `Torque` + optional `AuxTorque` (Steam/overlay), playing, steering in/out, type bitmasks, per-type gains, OEM mix flags/scales. Each process mixes its own OEM instances; bridge sums game + aux. |
 | Effect gains | Per-type sliders applied in `g920ffb.dll` before mix; master gain applies on the physical base |
 | Advanced mix options | Optional inside `g920ffb.dll`: Invert Constant Force, damper velocity scale, damper deadband scale (see below). Defaults = pass-through |

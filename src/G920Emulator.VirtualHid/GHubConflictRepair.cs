@@ -42,17 +42,8 @@ public static class GHubConflictRepair
             log.Add("Device cleanup: " + ex.Message);
         }
 
-        try
-        {
-            G920OemRegistration.EnsureRegistered(forceRewrite: true);
-            log.Add(G920OemRegistration.LastMessage ?? "OEM registered.");
-            var oemCheck = VerifyOemPointsToUs();
-            log.Add(oemCheck);
-        }
-        catch (Exception ex)
-        {
-            log.Add("OEM register: " + ex.Message);
-        }
+        // Do not apply OEM/SDK pins while idle — those are session-scoped (Start bridge).
+        log.Add("OEM/SDK pins: skipped (applied only while bridge is running). Start bridge for games that need them.");
 
         try
         {
@@ -141,38 +132,8 @@ public static class GHubConflictRepair
             notes.Add($"delete-driver {oem}: {(string.IsNullOrWhiteSpace(output) ? "ok" : output.Trim().Split('\n')[0])}");
         }
 
-        // 3) Neutralize leftover Logitech DI FFB COM DLL path if still on disk (G HUB gone).
-        //    Games/SDK probes sometimes find this even when CLSID points at g920ffb.
-        try
-        {
-            var ffbDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                "Logitech", "Direct Input Force Feedback");
-            var dll = Path.Combine(ffbDir, "1_1_13", "hidpp_forcefeedback_x64.dll");
-            if (File.Exists(dll))
-            {
-                var disabled = dll + ".g920emulator-disabled";
-                if (File.Exists(disabled))
-                    File.Delete(disabled);
-                File.Move(dll, disabled);
-                notes.Add("renamed hidpp_forcefeedback_x64.dll (disabled)");
-            }
-        }
-        catch (Exception ex)
-        {
-            notes.Add("hidpp_forcefeedback: " + ex.Message);
-        }
-
-        // 4) Drop stale LGHUB machine keys (uninstall leftovers).
-        try
-        {
-            Registry.LocalMachine.DeleteSubKeyTree(@"SOFTWARE\Logitech\LGHUB", throwOnMissingSubKey: false);
-            notes.Add("cleared HKLM\\SOFTWARE\\Logitech\\LGHUB");
-        }
-        catch
-        {
-            // ignore
-        }
+        // Do NOT rename hidpp_forcefeedback_x64.dll or delete LGHUB keys here.
+        // Those mutations broke Forza on multi-PC installs and are undone by FullCleanRestore.
 
         return notes.Count == 0
             ? "No G HUB leftover packages found."
@@ -180,10 +141,66 @@ public static class GHubConflictRepair
     }
 
     /// <summary>
+    /// Undoes destructive G HUB "repair" leftovers (hidpp DLL rename).
+    /// Safe to call from FullCleanRestore; no-op when files are already stock.
+    /// </summary>
+    public static string RestoreDestructiveGHubRepairs()
+    {
+        var notes = new List<string>();
+        try
+        {
+            var ffbDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "Logitech", "Direct Input Force Feedback", "1_1_13");
+            var active = Path.Combine(ffbDir, "hidpp_forcefeedback_x64.dll");
+            var disabled = active + ".g920emulator-disabled";
+
+            if (File.Exists(disabled) && !File.Exists(active))
+            {
+                File.Move(disabled, active);
+                notes.Add("restored hidpp_forcefeedback_x64.dll");
+            }
+            else if (File.Exists(disabled) && File.Exists(active))
+            {
+                File.Delete(disabled);
+                notes.Add("removed duplicate hidpp .g920emulator-disabled");
+            }
+            else if (File.Exists(active))
+            {
+                notes.Add("hidpp_forcefeedback_x64.dll already active");
+            }
+            else
+            {
+                notes.Add("hidpp_forcefeedback_x64.dll not present (G HUB / Logitech DI FFB may be uninstalled)");
+            }
+        }
+        catch (Exception ex)
+        {
+            notes.Add("hidpp restore: " + ex.Message);
+        }
+
+        return string.Join("; ", notes);
+    }
+
+    /// <summary>
     /// Remove disconnected virtual C262 nodes left after failed disable/enable cycles.
     /// Safe to call on every Start — never touches Status=Started devices.
     /// </summary>
     public static string RemoveDisconnectedVirtualNodes() => RemoveOrphanVirtualC262Nodes();
+
+    /// <summary>
+    /// Purges DirectInput cache keys and dead virtual C262 nodes left by the emulator.
+    /// Used by <see cref="FullCleanRestore"/> — does not touch WinUHid root or HidHide.
+    /// </summary>
+    public static string PurgeEmulatorDeviceCaches()
+    {
+        var parts = new List<string>();
+        try { parts.Add(ClearStaleDirectInputCache()); }
+        catch (Exception ex) { parts.Add("DI cache: " + ex.Message); }
+        try { parts.Add(RemoveOrphanVirtualC262Nodes()); }
+        catch (Exception ex) { parts.Add("Orphan C262: " + ex.Message); }
+        return string.Join("; ", parts);
+    }
 
     /// <summary>
     /// Remove disconnected/Unknown virtual C262 nodes left after failed restarts so the next

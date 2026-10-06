@@ -11,7 +11,7 @@
     <Product>G920 Emulator</Product>
     <Company>G920 Emulator</Company>
     <Description>Map any wheel, pedals, and H-shifter to a virtual Logitech G920</Description>
-    <Version>0.2.3</Version>
+    <Version>0.2.4</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
@@ -26,7 +26,24 @@
   <ItemGroup>
     <ProjectReference Include="..\G920Emulator.Core\G920Emulator.Core.csproj" />
     <ProjectReference Include="..\G920Emulator.VirtualHid\G920Emulator.VirtualHid.csproj" />
+    <ProjectReference Include="..\G920Emulator.SessionWatch\G920Emulator.SessionWatch.csproj"
+                      ReferenceOutputAssembly="false"
+                      SkipGetTargetFrameworkProperties="true" />
   </ItemGroup>
+
+  <!-- Ship session crash-watchdog beside the main EXE -->
+  <Target Name="CopySessionWatch" AfterTargets="Build">
+    <PropertyGroup>
+      <_WatchOut>$(MSBuildThisFileDirectory)..\G920Emulator.SessionWatch\bin\$(Configuration)\$(TargetFramework)\</_WatchOut>
+    </PropertyGroup>
+    <ItemGroup>
+      <_WatchFiles Include="$(_WatchOut)G920Emulator.SessionWatch.exe" Condition="Exists('$(_WatchOut)G920Emulator.SessionWatch.exe')" />
+      <_WatchFiles Include="$(_WatchOut)G920Emulator.SessionWatch.dll" Condition="Exists('$(_WatchOut)G920Emulator.SessionWatch.dll')" />
+      <_WatchFiles Include="$(_WatchOut)G920Emulator.SessionWatch.runtimeconfig.json" Condition="Exists('$(_WatchOut)G920Emulator.SessionWatch.runtimeconfig.json')" />
+      <_WatchFiles Include="$(_WatchOut)G920Emulator.SessionWatch.deps.json" Condition="Exists('$(_WatchOut)G920Emulator.SessionWatch.deps.json')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_WatchFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" Condition="'@(_WatchFiles)' != ''" />
+  </Target>
 
   <ItemGroup>
     <Resource Include="Assets\app.ico" />

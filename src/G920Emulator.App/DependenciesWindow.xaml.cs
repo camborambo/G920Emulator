@@ -10,6 +10,7 @@ public partial class DependenciesWindow : Window
 {
     private static readonly Brush OkBrush = new SolidColorBrush(Color.FromRgb(0x1F, 0x6F, 0x4A));
     private static readonly Brush BadBrush = new SolidColorBrush(Color.FromRgb(0x6F, 0x1F, 0x2A));
+    private static readonly Brush WarnBrush = new SolidColorBrush(Color.FromRgb(0x6F, 0x5A, 0x1F));
 
     public DependenciesWindow()
     {
@@ -25,30 +26,280 @@ public partial class DependenciesWindow : Window
             return (ok, msg);
         });
 
+        Apply(report.TestSigning, TestSigningStatusBadge, TestSigningStatusText, TestSigningHint, TestSigningDetail);
+        var tsLabel = report.TestSigning?.StatusLabel ?? "";
+        TestSigningStatusBadge.Background = tsLabel switch
+        {
+            "Off (OK)" => OkBrush,
+            "Enabled" => report.WinUHid?.IsInstalled == true ? WarnBrush : OkBrush,
+            "Reboot required" => WarnBrush,
+            _ => BadBrush,
+        };
+        TestSigningRequiredText.Text = report.WinUHid?.IsInstalled == true ? "OPTIONAL" : "FOR INSTALL";
+        TestSigningRequiredBadge.Background = report.WinUHid?.IsInstalled == true
+            ? WarnBrush
+            : new SolidColorBrush(Color.FromRgb(0x6F, 0x3A, 0x1F));
+
+        var testSigningLive = tsLabel.Equals("Enabled", StringComparison.OrdinalIgnoreCase);
+        EnableTestSigningButton.IsEnabled = tsLabel.Equals("Disabled", StringComparison.OrdinalIgnoreCase);
+        DisableTestSigningButton.IsEnabled = testSigningLive;
+
         Apply(report.WinUHid, WinUHidStatusBadge, WinUHidStatusText, WinUHidHint, WinUHidDetail);
-        Apply(report.HidHide, HidHideStatusBadge, HidHideStatusText, HidHideHint, HidHideDetail);
-        Apply(report.LogitechSdk, LogiSdkStatusBadge, LogiSdkStatusText, LogiSdkHint, LogiSdkDetail);
-        InstallLogiSdkButton.Content = report.LogitechSdk?.IsInstalled == true ? "Reinstall Logitech SDK" : "Install Logitech SDK";
+        if (report.WinUHid is { StatusLabel: "Reboot required" or "Not responding" })
+            WinUHidStatusBadge.Background = WarnBrush;
+
+        var oemState = OemRegistrationSession.GetUiState();
+        OemSdkStatusText.Text = oemState switch
+        {
+            OemSessionUiState.Active => "ACTIVE",
+            OemSessionUiState.NeedsRestore => "NEEDS RESTORE",
+            _ => "IDLE",
+        };
+        OemSdkStatusBadge.Background = oemState switch
+        {
+            OemSessionUiState.Active => OkBrush,
+            OemSessionUiState.NeedsRestore => BadBrush,
+            _ => OkBrush,
+        };
+        OemSdkDetail.Text = oemState switch
+        {
+            OemSessionUiState.Active => "Pins applied for this bridge session. Stop bridge to restore system registration.",
+            OemSessionUiState.NeedsRestore => "Leftover pins detected. Click Restore system registration (stop the bridge first if it is running).",
+            _ => "Idle — session pins restored. Nothing to do.",
+        };
+        RestoreOemSdkButton.IsEnabled = oemState == OemSessionUiState.NeedsRestore;
+        FullCleanRestoreButton.IsEnabled = oemState != OemSessionUiState.Active;
 
         var guardOn = GHubGuard.IsAppWatchRunning;
-        GHubGuardBadge.Background = guardOn ? OkBrush : BadBrush;
+        GHubGuardBadge.Background = guardOn ? OkBrush : WarnBrush;
         GHubGuardStatusText.Text = guardOn ? "ACTIVE" : "OFF";
-        GHubGuardDetail.Text = $"Repairs since launch: {GHubGuard.AppWatchRestoreCount}";
+        GHubGuardDetail.Text = guardOn
+            ? $"Guarding while bridge runs. Repairs since launch: {GHubGuard.AppWatchRestoreCount}"
+            : "Off while bridge is stopped.";
 
-        FooterText.Text = report.ReadyForGames
-            ? "Ready for games. Configure HidHide yourself if needed, then Start bridge."
-            : $"{string.Join(", ", report.MissingRequiredNames)} required and missing. Install before playing games.";
-        }
+        Apply(report.HidHide, HidHideStatusBadge, HidHideStatusText, HidHideHint, HidHideDetail);
 
-    private void InstallLogiSdk_Click(object sender, RoutedEventArgs e)
-    {
-        var message = G920OemRegistration.InstallSteeringWheelSdk();
-        Refresh();
-        MessageBox.Show(this, message, "Logitech Steering Wheel SDK", MessageBoxButton.OK,
-            DependencyChecker.CheckLogitechSteeringSdk().IsInstalled ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        if (tsLabel.Equals("Reboot required", StringComparison.OrdinalIgnoreCase))
+            FooterText.Text = BundledWinUHidInstaller.HasPendingInstall
+                ? "Reboot, then click Install WinUHid once more (installs driver + turns test signing off)."
+                : "Test signing staged — reboot once, then continue setup.";
+        else if (testSigningLive && report.WinUHid?.IsInstalled == true)
+            FooterText.Text = "Test signing still ON — Disable and reboot for Forza. WinUHid can stay installed.";
+        else if (testSigningLive)
+            FooterText.Text = "Test signing ON — click Install WinUHid (it will turn test signing off afterwards).";
+        else if (oemState == OemSessionUiState.NeedsRestore)
+            FooterText.Text = "OEM/SDK leftovers from a previous session — click Restore system registration.";
+        else if (report.ReadyForGames)
+            FooterText.Text = "Ready for games (including Forza if test signing is off). Configure HidHide if needed, then Start bridge.";
+        else
+            FooterText.Text = $"{string.Join(", ", report.MissingRequiredNames)} required and missing. Finish setup before playing.";
     }
 
-    private static readonly Brush WarnBrush = new SolidColorBrush(Color.FromRgb(0x6F, 0x5A, 0x1F));
+    private void RestoreOemSdk_Click(object sender, RoutedEventArgs e)
+    {
+        if (OemRegistrationSession.IsActive)
+        {
+            MessageBox.Show(this, "Stop the bridge first, then restore.", "Restore system registration",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        try
+        {
+            OemRegistrationSession.EndSession();
+            var msg = G920OemRegistration.RestoreSystemLogitechRegistration(restoreLogitechOemClsid: false);
+            Refresh();
+            MessageBox.Show(this, msg, "Restore system registration", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Restore system registration", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void EnableTestSigning_Click(object sender, RoutedEventArgs e)
+    {
+        var confirm = MessageBox.Show(this,
+            "Enable Windows test signing (test mode)?\n\n" +
+            "Only needed to install WinUHid. Prefer Install WinUHid — it enables test signing, installs the driver, then turns test signing off again.\n\n" +
+            "IMPORTANT — Secure Boot:\n" +
+            "• Secure Boot must be DISABLED in UEFI/BIOS for this step\n" +
+            "• If Secure Boot is still on, Enable will fail\n" +
+            "• After WinUHid is installed and test signing is off, you can turn Secure Boot back on\n\n" +
+            "After Enable you must reboot, then Install WinUHid (which turns test signing off again).\n" +
+            "Forza Horizon 6 will not launch while test mode stays on.\n\n" +
+            "Continue?",
+            "Enable test signing",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.Yes)
+            return;
+
+        try
+        {
+            FooterText.Text = "Enabling test signing…";
+            EnableTestSigningButton.IsEnabled = false;
+            var setup = new WinUHidSetupService();
+            var msg = setup.EnableTestSigningElevated();
+            Refresh();
+
+            var reboot = MessageBox.Show(this,
+                msg + "\n\nReboot now so test signing takes effect?\n\n" +
+                "After reboot: click Install WinUHid (it installs the driver and turns test signing back off).",
+                "Reboot required",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (reboot == MessageBoxResult.Yes)
+                StartReboot();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Enable test signing", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Refresh();
+        }
+    }
+
+    private void DisableTestSigning_Click(object sender, RoutedEventArgs e)
+    {
+        var confirm = MessageBox.Show(this,
+            "Disable Windows test signing?\n\n" +
+            "• Needed so Forza Horizon 6 can launch\n" +
+            "• Reboot required afterwards\n" +
+            "• WinUHid will stop working until you Enable test signing again\n\n" +
+            "Continue?",
+            "Disable test signing",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.Yes)
+            return;
+
+        try
+        {
+            FooterText.Text = "Disabling test signing…";
+            DisableTestSigningButton.IsEnabled = false;
+            var msg = new WinUHidSetupService().DisableTestSigningElevated();
+            Refresh();
+
+            var reboot = MessageBox.Show(this,
+                msg + "\n\nReboot now?",
+                "Reboot required",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (reboot == MessageBoxResult.Yes)
+                StartReboot();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Disable test signing", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Refresh();
+        }
+    }
+
+    private void FullCleanRestore_Click(object sender, RoutedEventArgs e)
+    {
+        if (OemRegistrationSession.IsActive)
+        {
+            MessageBox.Show(this, "Stop the bridge first, then run Full clean restore.", "Full clean restore",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var confirm = MessageBox.Show(this,
+            "Optional nuclear cleanup — not required for Forza Horizon 6.\n" +
+            "(For FH6 splash exit, use Disable test signing or Uninstall WinUHid instead.)\n\n" +
+            "This removes:\n" +
+            "• App OEM / Logitech SDK leftovers and COM\n" +
+            "• ProgramData SDK cache\n" +
+            "• Stale DirectInput / orphan virtual G920 nodes\n" +
+            "• Restores Logitech hidpp_forcefeedback DLL if renamed by older repair\n" +
+            "• WinUHid device + driver package\n" +
+            "• Windows test signing (turned off — reboot required)\n\n" +
+            "Not changed: HidHide, Secure Boot (BIOS), or your profiles.\n\n" +
+            "Approve UAC if prompted. Continue?",
+            "Full clean restore",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.Yes)
+            return;
+
+        try
+        {
+            FooterText.Text = "Running full clean restore…";
+            FullCleanRestoreButton.IsEnabled = false;
+            var result = FullCleanRestore.Run(uninstallWinUHid: true);
+            Refresh();
+            var detail = result.Summary + "\n\n" + string.Join("\n", result.Steps.Select(s => "• " + s));
+            MessageBox.Show(this, detail, "Full clean restore",
+                MessageBoxButton.OK,
+                result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Full clean restore", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Refresh();
+        }
+    }
+
+    private void UninstallWinUHid_Click(object sender, RoutedEventArgs e)
+    {
+        if (OemRegistrationSession.IsActive)
+        {
+            MessageBox.Show(this, "Stop the bridge first.", "Uninstall WinUHid",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        var confirm = MessageBox.Show(this,
+            "Remove WinUHid and turn off Windows test signing?\n\n" +
+            "• Needed so Forza Horizon 6 can launch after using the emulator\n" +
+            "• Reboot required after test signing is turned off\n" +
+            "• HidHide is left alone\n\n" +
+            "Approve UAC if prompted. Continue?",
+            "Uninstall WinUHid",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.Yes)
+            return;
+
+        try
+        {
+            FooterText.Text = "Uninstalling WinUHid and disabling test signing…";
+            var result = new BundledWinUHidInstaller().Uninstall(disableTestSigning: true);
+            Refresh();
+            if (result.NeedsReboot && result.Success)
+            {
+                var reboot = MessageBox.Show(this,
+                    result.Message + "\n\nReboot now?",
+                    "Uninstall WinUHid",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+                if (reboot == MessageBoxResult.Yes)
+                    StartReboot();
+            }
+            else
+            {
+                MessageBox.Show(this, result.Message, "Uninstall WinUHid",
+                    MessageBoxButton.OK,
+                    result.Success ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Uninstall WinUHid", MessageBoxButton.OK, MessageBoxImage.Warning);
+            Refresh();
+        }
+    }
+
+    private static void StartReboot()
+    {
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = "shutdown",
+            Arguments = "/r /t 0",
+            UseShellExecute = true,
+            Verb = "runas",
+        });
+    }
 
     private static void Apply(
         DependencyInfo? info,
@@ -67,7 +318,6 @@ public partial class DependenciesWindow : Window
     }
 
     private void Recheck_Click(object sender, RoutedEventArgs e) => Refresh();
-
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
     private void SetupWinUHid_Click(object sender, RoutedEventArgs e)

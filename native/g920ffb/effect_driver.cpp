@@ -138,6 +138,7 @@ CEffectDriver::CEffectDriver(VOID)
 	LastFlags = 0;
 	LastReportedState = 0;
 	LastUnknownStatusLogTick = 0;
+	G920FfbAddObject();
 	RegisterDriver(this);
 }
 
@@ -170,6 +171,7 @@ ULONG STDMETHODCALLTYPE CEffectDriver::Release(VOID)
 		for (LONG i = 0; i < EffectCount; i++)
 			delete EffectList[i];
 		free(EffectList);
+		G920FfbReleaseObject();
 		delete this;
 		return 0;
 	}

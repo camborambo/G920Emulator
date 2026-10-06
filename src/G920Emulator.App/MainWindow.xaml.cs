@@ -74,7 +74,7 @@ public partial class MainWindow : Window
         {
             var hwnd = new WindowInteropHelper(this).Handle;
             _bridge.BindFfbWindow(hwnd);
-            GHubGuard.StartAppWatch();
+            try { OemRegistrationSession.RecoverIfDirty(); } catch { /* ignore */ }
             _ = RefreshDevicesAsync(restoreHidden: false);
             UpdateDependencyUi();
             ApplyFfbDebugVisibility();
@@ -137,6 +137,7 @@ public partial class MainWindow : Window
         _ = Task.Run(() =>
         {
             try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
+            try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
 
             var dispose = Task.Run(() =>
             {
@@ -171,25 +172,41 @@ public partial class MainWindow : Window
     private void UpdateDependencyUi()
     {
         var report = ProbeDependencies();
+        var ts = report.TestSigning;
         var win = report.WinUHid;
         var hide = report.HidHide;
+        var winReady = win?.IsInstalled == true;
+
+        if (ts is not null)
+        {
+            TestSigningChip.Background = ts.StatusLabel.Equals("Off (OK)", StringComparison.OrdinalIgnoreCase) ? OkChipBrush
+                : ts.StatusLabel.Equals("Enabled", StringComparison.OrdinalIgnoreCase)
+                    ? (winReady ? SoftChipBrush : OkChipBrush)
+                : ts.StatusLabel.Equals("Reboot required", StringComparison.OrdinalIgnoreCase) ? SoftChipBrush
+                : BadChipBrush;
+            TestSigningChipText.Text = ts.StatusLabel.Equals("Off (OK)", StringComparison.OrdinalIgnoreCase)
+                ? "Test signing · Off (OK)"
+                : ts.StatusLabel.Equals("Enabled", StringComparison.OrdinalIgnoreCase)
+                    ? (winReady ? "Test signing · On (disable for Forza)" : "Test signing · On")
+                : ts.StatusLabel.Equals("Reboot required", StringComparison.OrdinalIgnoreCase)
+                    ? "Test signing · Reboot required"
+                    : "Test signing · Off (for install)";
+        }
 
         if (win is not null)
         {
-            WinUHidChip.Background = win.IsInstalled ? OkChipBrush : BadChipBrush;
-            WinUHidChipText.Text = win.IsInstalled ? "WinUHid · Installed (required)" : "WinUHid · Missing (required)";
+            WinUHidChip.Background = winReady ? OkChipBrush
+                : win.StatusLabel.Equals("Reboot required", StringComparison.OrdinalIgnoreCase) ? SoftChipBrush
+                : BadChipBrush;
+            WinUHidChipText.Text = winReady
+                ? "WinUHid · Installed (required)"
+                : $"WinUHid · {win.StatusLabel} (required)";
         }
 
         if (hide is not null)
         {
             HidHideChip.Background = hide.IsInstalled ? OkChipBrush : BadChipBrush;
             HidHideChipText.Text = hide.IsInstalled ? "HidHide · Installed (required)" : "HidHide · Missing (required)";
-        }
-
-        if (report.LogitechSdk is { } sdk)
-        {
-            LogiSdkChip.Background = sdk.IsInstalled ? OkChipBrush : BadChipBrush;
-            LogiSdkChipText.Text = sdk.IsInstalled ? "Logitech SDK · Installed (required)" : "Logitech SDK · Missing (required)";
         }
 
         DependenciesBanner.Background = report.ReadyForGames ? OkBannerBrush : WarnBannerBrush;
@@ -199,14 +216,15 @@ public partial class MainWindow : Window
         if (report.ReadyForGames)
         {
             DependenciesSummaryText.Text =
-                "WinUHid, HidHide and Logitech SDK ready. G HUB guard active. Configure HidHide yourself (Dependencies or HidHide Client), then Start bridge.";
-            StatusText.Text = "Dependencies OK. Map controls, then Start bridge.";
+                "WinUHid and HidHide ready. Test signing can stay off after WinUHid install (Forza-friendly); Secure Boot can be re-enabled too. Configure HidHide if needed, then Start bridge.";
+            if (!_bridgeBusy && !_exitTeardownStarted && StatusText.Text.StartsWith("Dependencies", StringComparison.Ordinal))
+                StatusText.Text = "Dependencies OK. Map controls, then Start bridge.";
         }
         else
         {
             var missing = report.MissingRequiredNames;
             DependenciesSummaryText.Text =
-                $"{string.Join(", ", missing)} required and missing. Mapping preview still works, but install them before playing.";
+                $"{string.Join(", ", missing)} required and missing. Mapping preview still works, but finish setup before playing.";
             StatusText.Text = $"{string.Join(" + ", missing)} missing — open Dependencies…";
         }
     }
@@ -986,10 +1004,6 @@ public partial class MainWindow : Window
     {
         try
         {
-            // The Logitech SDK is bundled, so install it rather than nag.
-            if (!DependencyChecker.CheckLogitechSteeringSdk().IsInstalled)
-                G920OemRegistration.InstallSteeringWheelSdk();
-
             var deps = ProbeDependencies();
             if (!deps.ReadyForGames)
             {
@@ -997,7 +1011,7 @@ public partial class MainWindow : Window
                     $"{string.Join(", ", deps.MissingRequiredNames)} required and not installed.\n\n" +
                     "WinUHid exposes the virtual G920 to games.\n" +
                     "HidHide hides your physical pad so the game only sees the G920.\n" +
-                    "Logitech SDK lets SDK games (NFS Heat, etc.) recognise it as a wheel.\n\n" +
+                    "OEM/SDK registry pins are applied automatically while the bridge runs.\n\n" +
                     "Start anyway (preview / incomplete setup)?",
                     "Required dependencies missing",
                     MessageBoxButton.YesNo,
@@ -1035,20 +1049,27 @@ public partial class MainWindow : Window
             // Do not auto-configure HidHide — leave whitelist / hide lists to the user
             // (Dependencies → Configure HidHide, or HidHide Client).
             // Do NOT run full GHubConflictRepair here — it previously removed WinUHid enumerators.
+            var sessionStarted = false;
             try
             {
                 await Task.Run(() =>
                 {
-                    try
-                    {
-                        // Safe leftovers only: OEM + Logi Col01 + disconnected C262 orphans.
-                        LogiJoyHidBinder.TryRemoveLogitechCol01();
-                        G920OemRegistration.EnsureRegistered();
-                        _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes();
-                    }
-                    catch { /* ignore */ }
+                    try { LogiJoyHidBinder.TryRemoveLogitechCol01(); } catch { /* ignore */ }
+                    OemRegistrationSession.BeginSession();
+                    sessionStarted = true;
+                    GHubGuard.StartAppWatch();
+                    try { _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes(); } catch { /* ignore */ }
                     _bridge.Start();
                 }).ConfigureAwait(true);
+            }
+            catch
+            {
+                if (sessionStarted)
+                {
+                    try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
+                    try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
+                }
+                throw;
             }
             finally
             {
@@ -1057,6 +1078,7 @@ public partial class MainWindow : Window
 
             // Re-enumerate DI after Start so bind/preview still see physical pads (whitelist).
             try { RefreshDevices(restoreHidden: false); } catch { /* ignore */ }
+            try { UpdateDependencyUi(); } catch { /* ignore */ }
 
             StopButton.IsEnabled = true;
 
@@ -1118,7 +1140,12 @@ public partial class MainWindow : Window
         try
         {
             // Tear down off the UI thread — WinUHid stop + FFB detach must not freeze the window.
-            var stop = Task.Run(() => _bridge.Stop());
+            var stop = Task.Run(() =>
+            {
+                try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
+                try { _bridge.Stop(); } catch { /* ignore */ }
+                try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
+            });
             var finished = await Task.WhenAny(stop, Task.Delay(5000)).ConfigureAwait(true);
             if (finished != stop)
             {
@@ -1141,7 +1168,8 @@ public partial class MainWindow : Window
 
         StartButton.IsEnabled = true;
         StopButton.IsEnabled = false;
-        StatusText.Text = "Bridge stopped.";
+        StatusText.Text = "Bridge stopped. OEM/SDK restored (Forza-safe).";
+        try { UpdateDependencyUi(); } catch { /* ignore */ }
         try { RefreshDevices(restoreHidden: false); } catch { /* ignore */ }
     }
 

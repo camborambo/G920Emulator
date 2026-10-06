@@ -35,6 +35,15 @@ dotnet publish ".\src\G920Emulator.App\G920Emulator.App.csproj" `
     -p:PublishReadyToRun=true `
     -o $outDir
 
+Write-Host "Publishing session watchdog..." -ForegroundColor Cyan
+dotnet publish ".\src\G920Emulator.SessionWatch\G920Emulator.SessionWatch.csproj" `
+    -c Release `
+    -r win-x64 `
+    --self-contained true `
+    -p:PublishSingleFile=false `
+    -o $outDir
+Write-Host "Bundled G920Emulator.SessionWatch.exe (OEM/SDK crash restore)."
+
 # Ensure bundled WinUHid package is present beside the EXE
 $destWinuhid = Join-Path $outDir "winuhid"
 New-Item -ItemType Directory -Force -Path $destWinuhid | Out-Null
@@ -45,7 +54,7 @@ if (Test-Path $winuhid) {
     }
 }
 
-# Logitech Steering Wheel SDK runtime (registered by the app so SDK games detect the wheel)
+# Logitech Steering Wheel SDK runtime (cached on Start bridge; pinned only while session active)
 $logisdk = Join-Path $root "native\logisdk"
 if (Test-Path (Join-Path $logisdk "x64\LogitechSteeringWheel.dll")) {
     $destLogisdk = Join-Path $outDir "logisdk"

@@ -48,7 +48,8 @@ public sealed class GHubGuard : IDisposable
             {
                 try
                 {
-                    if (!G920OemRegistration.IsIntact())
+                    // Only repair while a bridge OEM/SDK session is active.
+                    if (OemRegistrationSession.IsActive && !G920OemRegistration.IsIntact())
                     {
                         G920OemRegistration.EnsureRegistered(installSdk: false);
                         Interlocked.Increment(ref _appWatchRestores);
@@ -112,9 +113,8 @@ public sealed class GHubGuard : IDisposable
 
         var parts = new List<string>();
 
-        // 1) Registry identity: OEM tree, FFB CLSID, COM server and Logitech SDK pin.
-        //    G HUB installs rewrite these and its uninstaller deletes them; independent of Col01.
-        if (!G920OemRegistration.IsIntact())
+        // 1) Registry identity only while an OEM/SDK bridge session is active.
+        if (OemRegistrationSession.IsActive && !G920OemRegistration.IsIntact())
         {
             G920OemRegistration.EnsureRegistered(installSdk: false);
             parts.Add("registry identity restored");

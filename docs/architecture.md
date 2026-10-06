@@ -45,7 +45,7 @@ Gear packing:
 
 Games that support a Logitech G920 via DirectInput OEM do **not** rely on Logitech HID++ WriteReports for our virtual device. Instead:
 
-1. On Start, the app registers OEM joystick identity and points `OEMForceFeedback` at **`g920ffb.dll`** (CLSID `{A920FFB0-E7DB-4329-8C13-A966D84A289F}`).
+1. On Start bridge, a session registers OEM joystick identity and points `OEMForceFeedback` at **`g920ffb.dll`** (CLSID `{A920FFB0-E7DB-4329-8C13-A966D84A289F}`), and pins the Logitech SDK ServerBinary. Stop/Close/crash restore the previous system values.
 2. The game (and any helper that opens the same OEM device) downloads/starts DI effects (constant, spring, damper, sine, triangle, …) on that virtual G920.
 3. `g920ffb.dll` mixes effects per process and publishes into `Local\G920Emulator.FfbTorque.v6`:
    - **Torque** — game process (primary)

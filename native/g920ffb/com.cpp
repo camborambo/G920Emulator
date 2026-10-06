@@ -1,9 +1,11 @@
 #include "com.h"
 #include "effect_driver.h"
+#include "extension.h"
 
 CClassFactory::CClassFactory(VOID)
 {
 	ReferenceCount = 1;
+	G920FfbAddObject();
 }
 
 HRESULT STDMETHODCALLTYPE CClassFactory::QueryInterface(REFIID InterfaceID, PVOID* Interface)
@@ -27,6 +29,7 @@ ULONG STDMETHODCALLTYPE CClassFactory::Release(VOID)
 {
 	if (InterlockedDecrement(&ReferenceCount) == 0)
 	{
+		G920FfbReleaseObject();
 		delete this;
 		return 0;
 	}
@@ -46,6 +49,9 @@ HRESULT STDMETHODCALLTYPE CClassFactory::CreateInstance(IUnknown* UnknownInterfa
 
 HRESULT STDMETHODCALLTYPE CClassFactory::LockServer(BOOL Lock)
 {
-	UNREFERENCED_PARAMETER(Lock);
+	if (Lock)
+		InterlockedIncrement(&g_cLocks);
+	else
+		InterlockedDecrement(&g_cLocks);
 	return S_OK;
 }

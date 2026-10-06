@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Dependencies"
         Icon="pack://application:,,,/Assets/app.ico"
-        Height="780" Width="720"
+        Height="900" Width="720"
         WindowStartupLocation="CenterOwner"
         Background="#121418"
         Foreground="#E8EAED"
@@ -31,12 +31,40 @@
     <StackPanel>
       <TextBlock Text="Dependencies" FontSize="24" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
       <TextBlock Margin="0,4,0,16" Opacity="0.7" TextWrapping="Wrap"
-                 Text="WinUHid, the Logitech Steering Wheel SDK and HidHide are all required. WinUHid exposes the virtual G920; the Logitech SDK lets SDK games (NFS Heat, etc.) recognise it as a wheel; HidHide hides your physical pad from games."/>
+                 Text="Set these up once. Install WinUHid (uses test signing only for that install, then turns it off), configure HidHide, then Start bridge. Forza Horizon 6 can run with WinUHid installed while test signing stays off."/>
 
       <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6" Margin="0,0,0,14">
         <StackPanel>
           <StackPanel Orientation="Horizontal">
-            <TextBlock Text="WinUHid" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <TextBlock Text="1. Windows test signing" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Border x:Name="TestSigningRequiredBadge" Background="#6F3A1F" CornerRadius="3" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
+              <TextBlock x:Name="TestSigningRequiredText" Text="FOR INSTALL" FontSize="11" FontWeight="Bold"/>
+            </Border>
+            <Border x:Name="TestSigningStatusBadge" CornerRadius="3" Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
+              <TextBlock x:Name="TestSigningStatusText" FontSize="12" FontWeight="SemiBold"/>
+            </Border>
+          </StackPanel>
+          <TextBlock x:Name="TestSigningHint" Margin="0,10,0,0" TextWrapping="Wrap"/>
+          <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Foreground="#E8B45A"
+                     Text="Needed only while installing WinUHid. Secure Boot must be off in UEFI/BIOS for that install step (or Enable / Install will fail). After WinUHid is installed and test signing is off, you can turn Secure Boot back on — Forza and the emulator keep working."/>
+          <TextBlock x:Name="TestSigningDetail" Margin="0,6,0,0" Opacity="0.65" TextWrapping="Wrap"/>
+          <WrapPanel Margin="0,14,0,-8">
+            <Button x:Name="EnableTestSigningButton" Style="{StaticResource PrimaryWrapButton}"
+                    Click="EnableTestSigning_Click"
+                    Content="Enable test signing"
+                    ToolTip="Turns on Windows testsigning (bcdedit). Secure Boot must be off. Usually handled automatically by Install WinUHid."/>
+            <Button x:Name="DisableTestSigningButton" Style="{StaticResource AccentWrapButton}"
+                    Click="DisableTestSigning_Click"
+                    Content="Disable test signing"
+                    ToolTip="Turns off Windows testsigning. Install WinUHid does this automatically after the driver is installed."/>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6" Margin="0,0,0,14">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="2. WinUHid" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
             <Border x:Name="WinUHidRequiredBadge" Background="#6F3A1F" CornerRadius="3" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
               <TextBlock Text="REQUIRED" FontSize="11" FontWeight="Bold"/>
             </Border>
@@ -49,7 +77,10 @@
           <WrapPanel Margin="0,14,0,-8">
             <Button Style="{StaticResource PrimaryWrapButton}" Click="SetupWinUHid_Click"
                     Content="Install WinUHid"
-                    ToolTip="Open the bundled WinUHid installer"/>
+                    ToolTip="Install bundled WinUHid: enable test signing if needed, install driver, then turn test signing off (Forza-friendly)"/>
+            <Button Style="{StaticResource AccentWrapButton}" Click="UninstallWinUHid_Click"
+                    Content="Uninstall WinUHid"
+                    ToolTip="Remove WinUHid and turn off Windows test signing"/>
           </WrapPanel>
         </StackPanel>
       </Border>
@@ -57,47 +88,7 @@
       <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6" Margin="0,0,0,14">
         <StackPanel>
           <StackPanel Orientation="Horizontal">
-            <TextBlock Text="Logitech Steering Wheel SDK" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
-            <Border Background="#6F3A1F" CornerRadius="3" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
-              <TextBlock Text="REQUIRED" FontSize="11" FontWeight="Bold"/>
-            </Border>
-            <Border x:Name="LogiSdkStatusBadge" CornerRadius="3" Padding="8,2" Margin="8,0,0,0" VerticalAlignment="Center">
-              <TextBlock x:Name="LogiSdkStatusText" FontSize="12" FontWeight="SemiBold"/>
-            </Border>
-          </StackPanel>
-          <TextBlock x:Name="LogiSdkHint" Margin="0,10,0,0" TextWrapping="Wrap"/>
-          <TextBlock x:Name="LogiSdkDetail" Margin="0,6,0,0" Opacity="0.65" TextWrapping="Wrap"/>
-          <WrapPanel Margin="0,14,0,-8">
-            <Button x:Name="InstallLogiSdkButton" Style="{StaticResource PrimaryWrapButton}" Click="InstallLogiSdk_Click"
-                    Content="Install Logitech SDK"
-                    ToolTip="Installs the bundled Logitech Steering Wheel SDK to ProgramData and registers it for 64- and 32-bit games. No G HUB or Logitech Gaming Software needed."/>
-          </WrapPanel>
-        </StackPanel>
-      </Border>
-
-      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6" Margin="0,0,0,14">
-        <StackPanel>
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="G HUB guard" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
-            <Border x:Name="GHubGuardBadge" CornerRadius="3" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
-              <TextBlock x:Name="GHubGuardStatusText" FontSize="12" FontWeight="SemiBold"/>
-            </Border>
-          </StackPanel>
-          <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Opacity="0.85"
-                     Text="Installing or uninstalling Logitech G HUB rewrites or deletes the wheel identity, force-feedback driver and Logitech SDK registration. While this app is open the guard checks every 2 seconds and puts them back; with the bridge running it also removes G HUB drivers from the virtual G920."/>
-          <TextBlock x:Name="GHubGuardDetail" Margin="0,6,0,0" Opacity="0.65" TextWrapping="Wrap"/>
-          <WrapPanel Margin="0,14,0,-8">
-            <Button Style="{StaticResource AccentWrapButton}" Content="Repair G HUB leftovers"
-                    Click="RepairGHub_Click"
-                    ToolTip="Clears Logitech HID filters on the G920 VID/PID, rewrites OEM FFB to g920ffb.dll, removes stale DirectInput cache"/>
-          </WrapPanel>
-        </StackPanel>
-      </Border>
-
-      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6">
-        <StackPanel>
-          <StackPanel Orientation="Horizontal">
-            <TextBlock Text="HidHide" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <TextBlock Text="3. HidHide" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
             <Border Background="#6F3A1F" CornerRadius="3" Padding="6,2" Margin="10,0,0,0" VerticalAlignment="Center">
               <TextBlock Text="REQUIRED" FontSize="11" FontWeight="Bold"/>
             </Border>
@@ -115,6 +106,59 @@
                     Click="DownloadHidHide_Click"/>
             <Button Style="{StaticResource WrapButton}" Content="Open HidHide Client" Click="OpenHidHideClient_Click"/>
             <Button Style="{StaticResource WrapButton}" Content="Open HidHide docs" Click="OpenHidHideDocs_Click"/>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6" Margin="0,0,0,14">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="OEM / Logitech SDK" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Border x:Name="OemSdkStatusBadge" CornerRadius="3" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+              <TextBlock x:Name="OemSdkStatusText" FontSize="12" FontWeight="SemiBold"/>
+            </Border>
+          </StackPanel>
+          <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Opacity="0.85"
+                     Text="Pinned automatically on Start bridge for NFS Heat / Unbound-style games; restored on Stop, app close, or crash (watchdog). No setup needed."/>
+          <TextBlock x:Name="OemSdkDetail" Margin="0,6,0,0" Opacity="0.65" TextWrapping="Wrap"/>
+          <WrapPanel Margin="0,14,0,-8">
+            <Button x:Name="RestoreOemSdkButton" Style="{StaticResource AccentWrapButton}"
+                    Content="Restore system registration"
+                    Click="RestoreOemSdk_Click"
+                    ToolTip="Clear leftover OEM/SDK pins if a previous session did not restore cleanly. Stop the bridge first."/>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6" Margin="0,0,0,14">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <TextBlock Text="G HUB guard" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            <Border x:Name="GHubGuardBadge" CornerRadius="3" Padding="8,2" Margin="10,0,0,0" VerticalAlignment="Center">
+              <TextBlock x:Name="GHubGuardStatusText" FontSize="12" FontWeight="SemiBold"/>
+            </Border>
+          </StackPanel>
+          <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Opacity="0.85"
+                     Text="While the bridge is running, the guard keeps the virtual G920 identity intact if G HUB rewrites it. It does not run while the bridge is stopped."/>
+          <TextBlock x:Name="GHubGuardDetail" Margin="0,6,0,0" Opacity="0.65" TextWrapping="Wrap"/>
+          <WrapPanel Margin="0,14,0,-8">
+            <Button Style="{StaticResource AccentWrapButton}" Content="Repair G HUB leftovers"
+                    Click="RepairGHub_Click"
+                    ToolTip="Clears Logitech HID filters on the G920 VID/PID and stale DirectInput cache."/>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="16" CornerRadius="6">
+        <StackPanel>
+          <TextBlock Text="Full clean restore (optional)" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Opacity="0.85"
+                     Text="Nuclear option: clears app leftovers, WinUHid, and turns off test signing. Not required for Forza — prefer Disable test signing if it was left on."/>
+          <WrapPanel Margin="0,14,0,-8">
+            <Button x:Name="FullCleanRestoreButton" Style="{StaticResource AccentWrapButton}"
+                    Content="Full clean restore…"
+                    Click="FullCleanRestore_Click"
+                    ToolTip="Optional full wipe of app system changes. For Forza splash exit, use Disable test signing or Uninstall WinUHid instead."/>
           </WrapPanel>
         </StackPanel>
       </Border>

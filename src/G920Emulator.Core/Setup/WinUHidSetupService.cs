@@ -25,6 +25,51 @@ public sealed class WinUHidSetupService
     public string AppDirectory => AppContext.BaseDirectory;
     public string LocalDllPath => Path.Combine(AppDirectory, "WinUHid.dll");
 
+    /// <summary>
+    /// True when a Root\WinUHid / ROOT\WINUHID PnP node exists (even if the user-mode probe fails).
+    /// </summary>
+    public bool IsDeviceNodePresent()
+    {
+        if (RegistryKeyExists(@"SYSTEM\CurrentControlSet\Enum\ROOT\WINUHID") ||
+            RegistryKeyExists(@"SYSTEM\CurrentControlSet\Enum\ROOT\WinUHid"))
+            return true;
+
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "pnputil.exe",
+                Arguments = "/enum-devices /deviceid Root\\WinUHid",
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+            using var p = Process.Start(psi);
+            if (p is null) return false;
+            var output = p.StandardOutput.ReadToEnd();
+            p.WaitForExit(8000);
+            if (string.IsNullOrWhiteSpace(output) || output.Contains("No devices were found", StringComparison.OrdinalIgnoreCase))
+                return false;
+            return output.Contains("WINUHID", StringComparison.OrdinalIgnoreCase)
+                   || output.Contains("WinUHid", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool RegistryKeyExists(string relativeHkLmPath)
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(relativeHkLmPath);
+            return key is not null;
+        }
+        catch { return false; }
+    }
+
     public WinUHidSetupStatus GetStatus(Func<bool> probeDriver)
     {
         var testSigning = IsTestSigningEnabled();
@@ -73,6 +118,55 @@ public sealed class WinUHidSetupService
             return enabled;
 
         return TryQueryBcdeditTestSigning();
+    }
+
+    /// <summary>
+    /// Live boot state vs BCD next-boot config. Useful when test signing was staged but
+    /// the machine has not rebooted yet (CI still OFF, bcdedit already Yes).
+    /// </summary>
+    public (bool LiveEnabled, bool? BcdConfigured) QueryTestSigningDetail()
+    {
+        var live = false;
+        if (!TryQueryCodeIntegrityTestSigning(out live))
+            live = TryQueryBcdeditTestSigning();
+
+        bool? bcd = null;
+        try
+        {
+            // Best-effort: non-elevated bcdedit may fail; leave null then.
+            var psi = new ProcessStartInfo
+            {
+                FileName = Path.Combine(Environment.SystemDirectory, "bcdedit.exe"),
+                Arguments = "/enum {current}",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            using var p = Process.Start(psi);
+            if (p is not null)
+            {
+                var output = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
+                p.WaitForExit(5000);
+                if (!output.Contains("Access is denied", StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (var raw in output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var line = raw.Trim();
+                        if (!line.StartsWith("testsigning", StringComparison.OrdinalIgnoreCase))
+                            continue;
+                        bcd = line.Contains("Yes", StringComparison.OrdinalIgnoreCase);
+                        break;
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return (live, bcd);
     }
 
     private static bool TryQueryCodeIntegrityTestSigning(out bool enabled)
@@ -269,13 +363,14 @@ try {
             if (detail.Contains("Secure Boot", StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
-                    "Secure Boot is blocking test signing (required for the bundled WinUHid driver).\n\n" +
+                    "Secure Boot is blocking test signing (needed only to install WinUHid).\n\n" +
                     "Do this:\n" +
                     "1. Restart PC → enter UEFI/BIOS (often Del, F2, or F10 at boot)\n" +
                     "2. Disable Secure Boot (Security / Boot menu)\n" +
                     "3. Save & exit, boot into Windows\n" +
-                    "4. In G920 Emulator click Install WinUHid again (enables test signing)\n" +
-                    "5. Reboot when prompted, then Install WinUHid once more\n\n" +
+                    "4. Install WinUHid (enables test signing, installs driver, turns test signing off)\n" +
+                    "5. Reboot when prompted, then Recheck — do not Install again\n" +
+                    "6. Optional: re-enable Secure Boot in UEFI/BIOS (WinUHid and Forza keep working)\n\n" +
                     "Admin CMD alone cannot override Secure Boot.\n\n" +
                     detail);
             }
@@ -292,6 +387,68 @@ try {
         }
 
         return "Test signing enabled. Reboot Windows, then reopen G920 Emulator and continue setup.";
+    }
+
+    /// <summary>
+    /// Turns Windows test signing off (needed to launch Forza Horizon 6 after using WinUHid).
+    /// Reboot required before the change takes effect.
+    /// </summary>
+    public string DisableTestSigningElevated()
+    {
+        var script = """
+$ErrorActionPreference = 'Continue'
+$log = Join-Path $env:TEMP 'g920emulator-testsigning-off.log'
+function Write-Log([string]$msg) {
+  $line = "[{0}] {1}" -f (Get-Date -Format 'HH:mm:ss'), $msg
+  Add-Content -LiteralPath $log -Value $line
+  Write-Host $line
+}
+try {
+  Set-Content -LiteralPath $log -Value 'G920 Emulator test-signing OFF log' -Encoding UTF8
+  $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+  $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+  if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw 'Not running elevated. Approve the UAC prompt.'
+  }
+  $bcd = Join-Path $env:SystemRoot 'System32\bcdedit.exe'
+  if (-not (Test-Path -LiteralPath $bcd)) { throw "bcdedit.exe not found at $bcd" }
+  Write-Log "Running: $bcd /set '{current}' testsigning off"
+  & $bcd /set '{current}' testsigning off
+  $code = $LASTEXITCODE
+  Write-Log "bcdedit exit code: $code"
+  if ($code -ne 0) {
+    Write-Log 'Retrying without {current}...'
+    & $bcd /set testsigning off
+    $code = $LASTEXITCODE
+    Write-Log "bcdedit exit code: $code"
+  }
+  if ($code -ne 0) {
+    throw "bcdedit failed (exit code $code)."
+  }
+  Write-Log 'SUCCESS: test signing disabled. Reboot required.'
+  exit 0
+} catch {
+  Write-Log $_.Exception.Message
+  Write-Host $_.Exception.Message
+  exit 1
+}
+""";
+
+        var result = RunElevatedScript(script);
+        if (!result.Success)
+        {
+            var logTail = ReadLogTail(Path.Combine(Path.GetTempPath(), "g920emulator-testsigning-off.log"));
+            var detail = string.IsNullOrWhiteSpace(logTail) ? result.Message : logTail;
+            throw new InvalidOperationException(
+                "Could not turn off Windows test signing.\n\n" +
+                "Do this manually in Admin Command Prompt:\n" +
+                "  bcdedit /set testsigning off\n" +
+                "Then reboot Windows.\n\n" +
+                detail);
+        }
+
+        return "Test signing turned off. Reboot Windows, then launch Forza Horizon 6. " +
+               "The virtual G920 will not work until you Install WinUHid again (that turns test signing back on).";
     }
 
     public void InstallPackageElevated(PackageInfo package)
@@ -322,6 +479,71 @@ try {
                 $"Log: {logPath}\n\n" +
                 detail);
         }
+    }
+
+    public void UninstallPackageElevated()
+    {
+        var result = RunElevatedScript(BuildUninstallScript());
+        if (!result.Success)
+        {
+            var logPath = Path.Combine(Path.GetTempPath(), "g920emulator-winuhid-uninstall.log");
+            var logTail = ReadLogTail(logPath, maxChars: 2500);
+            var detail = string.IsNullOrWhiteSpace(logTail)
+                ? (string.IsNullOrWhiteSpace(result.Message) ? $"Exit code {result.ExitCode}." : result.Message)
+                : logTail;
+
+            throw new InvalidOperationException(
+                "WinUHid uninstall did not finish.\n\n" +
+                "Stop the bridge, approve UAC, then try again.\n\n" +
+                $"Log: {logPath}\n\n" +
+                detail);
+        }
+    }
+
+    private static string BuildUninstallScript()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("$ErrorActionPreference = 'Continue'");
+        sb.AppendLine("$log = Join-Path $env:TEMP 'g920emulator-winuhid-uninstall.log'");
+        sb.AppendLine("Set-Content -LiteralPath $log -Value ('G920 Emulator WinUHid uninstall log ' + (Get-Date -Format o)) -Encoding UTF8");
+        sb.AppendLine("function Write-Log([string]$msg) { Add-Content -LiteralPath $log -Value $msg; Write-Host $msg }");
+        sb.AppendLine("try {");
+        sb.AppendLine("  $identity = [Security.Principal.WindowsIdentity]::GetCurrent()");
+        sb.AppendLine("  $principal = New-Object Security.Principal.WindowsPrincipal($identity)");
+        sb.AppendLine("  if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Administrator privileges are required.' }");
+        sb.AppendLine("  Write-Log 'Removing Root\\WinUHid / WinUHid PnP devices…'");
+        sb.AppendLine("  $ids = @()");
+        sb.AppendLine("  Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object {");
+        sb.AppendLine("    $_.InstanceId -like '*WinUHid*' -or $_.InstanceId -like '*WINUHID*' -or ($_.HardwareID -join ' ') -like '*WinUHid*'");
+        sb.AppendLine("  } | ForEach-Object { $ids += $_.InstanceId }");
+        sb.AppendLine("  foreach ($id in ($ids | Select-Object -Unique)) {");
+        sb.AppendLine("    Write-Log ('pnputil /remove-device ' + $id)");
+        sb.AppendLine("    & pnputil.exe /remove-device $id /subtree /force 2>&1 | ForEach-Object { Write-Log \"$_\" }");
+        sb.AppendLine("    try { Remove-PnpDevice -InstanceId $id -Confirm:$false -ErrorAction SilentlyContinue } catch {}");
+        sb.AppendLine("  }");
+        sb.AppendLine("  try {");
+        sb.AppendLine("    & pnputil.exe /remove-device 'ROOT\\WINUHID\\0000' /subtree /force 2>&1 | ForEach-Object { Write-Log \"$_\" }");
+        sb.AppendLine("    & pnputil.exe /remove-device 'Root\\WinUHid' /subtree /force 2>&1 | ForEach-Object { Write-Log \"$_\" }");
+        sb.AppendLine("  } catch { Write-Log \"pnputil remove-device: $($_.Exception.Message)\" }");
+        sb.AppendLine("  Write-Log 'Enumerating published drivers for WinUHid…'");
+        sb.AppendLine("  $enum = & pnputil.exe /enum-drivers 2>&1 | Out-String");
+        sb.AppendLine("  $blocks = $enum -split '(?=Published Name:)'");
+        sb.AppendLine("  foreach ($block in $blocks) {");
+        sb.AppendLine("    if ($block -notmatch 'WinUHid' -and $block -notmatch 'winuhid') { continue }");
+        sb.AppendLine("    if ($block -match 'Published Name:\\s*(\\S+)') {");
+        sb.AppendLine("      $oem = $Matches[1]");
+        sb.AppendLine("      Write-Log \"Deleting driver package $oem\"");
+        sb.AppendLine("      & pnputil.exe /delete-driver $oem /uninstall /force 2>&1 | ForEach-Object { Write-Log \"$_\" }");
+        sb.AppendLine("    }");
+        sb.AppendLine("  }");
+        sb.AppendLine("  Write-Log 'SUCCESS: WinUHid uninstall finished (test signing unchanged).'");
+        sb.AppendLine("  exit 0");
+        sb.AppendLine("} catch {");
+        sb.AppendLine("  Write-Log $_.Exception.Message");
+        sb.AppendLine("  Write-Host $_.Exception.Message");
+        sb.AppendLine("  exit 1");
+        sb.AppendLine("}");
+        return sb.ToString();
     }
 
     private static string BuildInstallScript(PackageInfo package)
@@ -369,6 +591,7 @@ try {
         sb.AppendLine("  & pnputil.exe /add-driver $inf /install 2>&1 | ForEach-Object { Write-Log \"$_\" }");
         sb.AppendLine("  try { & pnputil.exe /scan-devices 2>&1 | ForEach-Object { Write-Log \"$_\" } } catch { Write-Log \"scan-devices: $($_.Exception.Message)\" }");
         sb.AppendLine("  Start-Sleep -Seconds 2");
+        sb.AppendLine("  Remove-DuplicateWinUHidEnumerators");
         sb.AppendLine("  try {");
         sb.AppendLine("    Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object {");
         sb.AppendLine("      $_.InstanceId -like '*WinUHid*' -or $_.InstanceId -like '*WINUHID*'");
@@ -382,6 +605,7 @@ try {
         sb.AppendLine("  if (-not (Test-WinUHidDevicePresent)) {");
         sb.AppendLine("    throw \"WinUHid device node still missing after SetupAPI create. See log: $log\"");
         sb.AppendLine("  }");
+        sb.AppendLine("  try { & pnputil.exe /restart-device 'ROOT\\WINUHID\\0000' 2>&1 | ForEach-Object { Write-Log \"$_\" } } catch {}");
         sb.AppendLine("  Write-Log 'SUCCESS: WinUHid device node ready.'");
         sb.AppendLine("  exit 0");
         sb.AppendLine("} catch {");
@@ -418,16 +642,50 @@ try {
     return $false
   }
 
+  function Remove-DuplicateWinUHidEnumerators {
+    # SetupAPI DICD_GENERATE_ID can create ROOT\SYSTEM\#### clones alongside ROOT\WINUHID\0000.
+    # Two enumerators make WinUHidGetDriverInterfaceVersion return error 2 (device not found).
+    try {
+      $nodes = Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object {
+        ($_.InstanceId -like '*WINUHID*' -or $_.InstanceId -like '*WinUHid*' -or ($_.HardwareID -join ' ') -like '*WinUHid*') -and
+        $_.InstanceId -notlike 'ROOT\WINUHID\*'
+      }
+      foreach ($n in $nodes) {
+        Write-Log ('Removing duplicate WinUHid enumerator: ' + $n.InstanceId)
+        & pnputil.exe /remove-device $n.InstanceId /subtree /force 2>&1 | ForEach-Object { Write-Log "$_" }
+      }
+    } catch { Write-Log "Remove-DuplicateWinUHidEnumerators: $($_.Exception.Message)" }
+  }
+
   function Install-WinUHidDeviceNode {
     param([Parameter(Mandatory=$true)][string]$InfPath)
 
     if (Test-WinUHidDevicePresent) {
-      Write-Log 'WinUHid device node already present.'
-      # Still force-bind the INF in case the node exists without a driver.
+      Write-Log 'WinUHid device node already present — binding INF only (skip create to avoid duplicates).'
+      & pnputil.exe /add-driver $InfPath /install 2>&1 | ForEach-Object { Write-Log "$_" }
+      if (-not ('WinUHidDevNode' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class WinUHidDevNodeBind {
+  [DllImport("newdev.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+  public static extern bool UpdateDriverForPlugAndPlayDevices(IntPtr hwndParent, string HardwareId, string FullInfPath,
+    uint InstallFlags, out bool bRebootRequired);
+}
+'@
+      }
+      try {
+        $reboot = $false
+        [void][WinUHidDevNodeBind]::UpdateDriverForPlugAndPlayDevices([IntPtr]::Zero, 'Root\WinUHid', $InfPath, 5, [ref]$reboot)
+        Write-Log 'UpdateDriverForPlugAndPlayDevices (existing node) done.'
+      } catch { Write-Log "UpdateDriver existing: $($_.Exception.Message)" }
+      Remove-DuplicateWinUHidEnumerators
+      try { & pnputil.exe /restart-device 'ROOT\WINUHID\0000' 2>&1 | ForEach-Object { Write-Log "$_" } } catch {}
+      return
     }
 
     $help = (& pnputil.exe /? 2>&1 | Out-String)
-    if ($help -match '/add-device' -and -not (Test-WinUHidDevicePresent)) {
+    if ($help -match '/add-device') {
       Write-Log 'Trying pnputil /add-device Root\WinUHid'
       & pnputil.exe /add-device 'Root\WinUHid' 2>&1 | ForEach-Object { Write-Log "$_" }
     }
@@ -449,6 +707,14 @@ try {
         Write-Log "Trying devcon: $devconPath"
         & $devconPath install $InfPath 'Root\WinUHid' 2>&1 | ForEach-Object { Write-Log "$_" }
       }
+    }
+
+    # Only create via SetupAPI when no Root\WinUHid node exists yet.
+    # Calling Create when one already exists spawns ROOT\SYSTEM\#### duplicates and breaks the user-mode probe.
+    if (Test-WinUHidDevicePresent) {
+      Write-Log 'Device present after pnputil/devcon — skip SetupAPI create.'
+      Remove-DuplicateWinUHidEnumerators
+      return
     }
 
     Write-Log 'Creating/binding Root\WinUHid via SetupAPI (works on all Windows 10/11 builds)'

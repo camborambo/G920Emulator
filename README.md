@@ -34,6 +34,8 @@ Game FFB effects  →  g920ffb.dll    →  Physical base
 
 **Unbound tip:** Accessibility → Controls → **Controller Vibration** must be **On**, or the game streams spring-only (walls/rumble stay at magnitude 0).
 
+> **Forza Horizon / Secure Boot:** FH6 won't launch while Windows test signing is on (splash exit 100). **Install WinUHid** only needs test signing (and Secure Boot off) for the install, then turns test signing off — emulator and Forza can coexist. After that you can **re-enable Secure Boot**. If test signing was left on: **Disable test signing** → reboot. Details: [driver-install](docs/driver-install.md#forza-horizon-6-and-test-signing).
+
 ## Quick start (download a release)
 
 No Visual Studio or .NET SDK required.
@@ -41,7 +43,7 @@ No Visual Studio or .NET SDK required.
 1. Download **`G920Emulator-win-x64.zip`** from the latest [**Releases**](https://github.com/camborambo/G920Emulator/releases) page.
 2. Extract the zip — you get a **`G920Emulator`** folder.
 3. Run **`G920Emulator.exe`** inside that folder.
-4. Open **Dependencies** → **Install WinUHid** (bundled; approve UAC; reboot if asked for test signing) → install **HidHide** from its download link → **Configure HidHide**.  
+4. Open **Dependencies** → **Install WinUHid** (bundled; approve UAC; may reboot once or twice — finishes with test signing **off** for Forza) → install **HidHide** from its download link → **Configure HidHide**.  
    Step-by-step: [driver install](docs/driver-install.md).
 5. **Refresh** devices, bind steering / pedals / buttons / gears **R–6** (and D-pad via hat or **D-pad Up/Down/Left/Right**), pick an **FFB output device** + **FFB profile**, then **Save** your input profile.
 6. **Start bridge**, then launch your game and select the G920.
@@ -80,7 +82,7 @@ Details: [user guide → Profiles](docs/user-guide.md#profiles).
 - Windows 10/11 (x64)
 - [WinUHid](https://github.com/cgutman/WinUHid) — **bundled** in the release; install from the app ([guide](docs/driver-install.md))
 - [HidHide](https://github.com/nefarius/HidHide) — **required** (separate download) so games don’t see both your real pad and the virtual G920
-- Logitech Steering Wheel SDK — **required**, **bundled**; installed from the app so NFS Heat and other Logitech-SDK games detect a wheel ([guide](docs/driver-install.md#logitech-steering-wheel-sdk-required)). G HUB / Logitech Gaming Software are **not** needed. The bundled `LogitechSteeringWheel.dll` is © Logitech and not covered by this project's license ([details](native/logisdk/README.md)).
+- Logitech Steering Wheel SDK — **bundled**; pinned only while the bridge is running so NFS Heat / Unbound-style games see a wheel, then restored on Stop/Close ([guide](docs/driver-install.md#logitech-steering-wheel-sdk--oem-ffb-session-scoped)). G HUB / Logitech Gaming Software are **not** needed. The bundled `LogitechSteeringWheel.dll` is © Logitech and not covered by this project's license ([details](native/logisdk/README.md)).
 
 ## Build from source
 
@@ -120,7 +122,7 @@ User bindings and FFB presets live in **`%AppData%\G920Emulator\`** at runtime �
 
 ## Version notes
 
-Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.3**.
+Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.4**.
 
 ## Support
 
