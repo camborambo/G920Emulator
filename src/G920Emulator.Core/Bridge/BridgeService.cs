@@ -61,6 +61,7 @@ public sealed class BridgeService : IDisposable
     private CancellationTokenSource? _cts;
     private Task? _loop;
     private Task? _ffbApplyLoop;
+    private Task? _telemetryLoop;
     private MappedG920State _latest = new();
     private IReadOnlyDictionary<string, DeviceState> _latestDevices =
         new Dictionary<string, DeviceState>(StringComparer.OrdinalIgnoreCase);
@@ -119,6 +120,14 @@ public sealed class BridgeService : IDisposable
     private double _telemetrySessionTime;
     private long _lastTelemetrySendTick;
     private string _telemetryStatus = "Telemetry: off";
+    /// <summary>0/1 - input thread skips telemetry queue when off (no synth/UDP/process scan).</summary>
+    private int _telemetryEnabledFlag;
+    /// <summary>Latest sample for the telemetry side thread (never blocks HID/FFB).</summary>
+    private MappedG920State? _telemetryQueuedMapped;
+    private float _telemetryQueuedSteer;
+    private int _telemetryQueuedHandbrake;
+    private int _telemetryQueuedNos;
+    private int _telemetryQueuedVersion;
 
     public InputHub InputHub => _inputHub;
     public FfbBridge Ffb => _ffb;
@@ -180,13 +189,15 @@ public sealed class BridgeService : IDisposable
         settings ??= new TelemetrySettings();
         var hz = SimHubPacket.ClampSendHz(settings.SendHz);
         var tuning = (settings.Tuning ?? TelemetryTuning.CreateDefault()).Clone();
+        var host = string.IsNullOrWhiteSpace(settings.Host) ? SimHubPacket.DefaultHost : settings.Host.Trim();
+        var port = settings.Port is < 1 or > 65535 ? SimHubPacket.DefaultPort : settings.Port;
         lock (_gate)
         {
             _telemetrySettings = new TelemetrySettings
             {
                 Enabled = settings.Enabled,
-                Host = string.IsNullOrWhiteSpace(settings.Host) ? SimHubPacket.DefaultHost : settings.Host.Trim(),
-                Port = settings.Port is < 1 or > 65535 ? SimHubPacket.DefaultPort : settings.Port,
+                Host = host,
+                Port = port,
                 SendHz = hz,
                 Tuning = tuning,
             };
@@ -195,10 +206,18 @@ public sealed class BridgeService : IDisposable
                 _telemetryStatus = "Telemetry: off";
         }
 
-        _telemetryUdp.Configure(
-            string.IsNullOrWhiteSpace(settings.Host) ? SimHubPacket.DefaultHost : settings.Host.Trim(),
-            settings.Port is < 1 or > 65535 ? SimHubPacket.DefaultPort : settings.Port);
-        EngineVibrationScaleBridge.Publish(tuning.EngineVibrationScale);
+        Volatile.Write(ref _telemetryEnabledFlag, settings.Enabled ? 1 : 0);
+
+        // UDP / DNS only when enabled - avoid host resolve cost while telemetry is off.
+        if (settings.Enabled)
+        {
+            _telemetryUdp.Configure(host, port);
+            EngineVibrationScaleBridge.Publish(tuning.EngineVibrationScale);
+        }
+        else
+        {
+            EngineVibrationScaleBridge.Publish(1f);
+        }
     }
 
     public void AttachVirtualDevice(IVirtualG920Device device)
@@ -339,10 +358,13 @@ public sealed class BridgeService : IDisposable
         _telemetryPackets = 0;
         _telemetrySessionTime = 0;
         _lastTelemetrySendTick = 0;
+        Volatile.Write(ref _telemetryQueuedVersion, 0);
+        Volatile.Write(ref _telemetryQueuedMapped, null);
 
         _cts = new CancellationTokenSource();
         _loop = Task.Factory.StartNew(() => RunLoop(_cts.Token), _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         _ffbApplyLoop = Task.Factory.StartNew(() => RunFfbApplyLoop(_cts.Token), _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        _telemetryLoop = Task.Factory.StartNew(() => RunTelemetryLoop(_cts.Token), _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     }
 
     public void Stop()
@@ -350,8 +372,10 @@ public sealed class BridgeService : IDisposable
         _cts?.Cancel();
         var loop = _loop;
         var ffbLoop = _ffbApplyLoop;
+        var telemetryLoop = _telemetryLoop;
         _loop = null;
         _ffbApplyLoop = null;
+        _telemetryLoop = null;
 
         // Drop test FFB loops first so they are not ApplyTorque'ing during detach.
         try { _ffb.ClearTestOverride(); } catch { /* ignore */ }
@@ -359,10 +383,13 @@ public sealed class BridgeService : IDisposable
         // Brief wait only - never hang Stop on a stuck loop iteration.
         try { loop?.Wait(400); } catch { /* ignore */ }
         try { ffbLoop?.Wait(400); } catch { /* ignore */ }
+        try { telemetryLoop?.Wait(400); } catch { /* ignore */ }
         if (loop is { IsCompleted: false })
             _ = loop.ContinueWith(_ => { /* observe */ }, TaskScheduler.Default);
         if (ffbLoop is { IsCompleted: false })
             _ = ffbLoop.ContinueWith(_ => { /* observe */ }, TaskScheduler.Default);
+        if (telemetryLoop is { IsCompleted: false })
+            _ = telemetryLoop.ContinueWith(_ => { /* observe */ }, TaskScheduler.Default);
 
         try { _cts?.Dispose(); } catch { /* ignore */ }
         _cts = null;
@@ -729,14 +756,8 @@ public sealed class BridgeService : IDisposable
                 try { mappedCallback?.Invoke(mapped); }
                 catch { /* add-on errors must not stop the bridge */ }
 
-                var handbrakeHeld = MapperEngine.IsPressed(profile, devices, G920Control.TelemetryHandbrake);
-                var nosHeld = MapperEngine.IsPressed(profile, devices, G920Control.TelemetryNos);
-                PublishTelemetry(
-                    mapped,
-                    ffbSteer,
-                    sw.Elapsed.TotalSeconds > 0 ? sw.Elapsed.TotalSeconds : InputTargetPeriodMs / 1000.0,
-                    handbrakeHeld,
-                    nosHeld);
+                // Telemetry synth/UDP/process probe run on a side thread - never stall HID here.
+                QueueTelemetrySample(profile, devices, mapped, ffbSteer);
             }
             catch
             {
@@ -1006,49 +1027,130 @@ public sealed class BridgeService : IDisposable
         _telemetryUdp.Dispose();
     }
 
-    private void PublishTelemetry(
+    /// <summary>
+    /// Input-thread enqueue only. When telemetry is off this is a single flag check.
+    /// </summary>
+    private void QueueTelemetrySample(
+        MappingProfile profile,
+        IReadOnlyDictionary<string, DeviceState> devices,
         MappedG920State mapped,
-        float steering,
-        double dtSec,
-        bool handbrakeHeld,
-        bool nosHeld)
+        float steering)
     {
-        TelemetrySettings settings;
-        lock (_gate) settings = _telemetrySettings;
-
-        var intervalTicks = Stopwatch.Frequency / Math.Max(1, settings.SendHz);
-        var now = Stopwatch.GetTimestamp();
-        if (_lastTelemetrySendTick != 0 && now - _lastTelemetrySendTick < intervalTicks)
+        if (Volatile.Read(ref _telemetryEnabledFlag) == 0)
             return;
-        if (_lastTelemetrySendTick != 0)
-            dtSec = (now - _lastTelemetrySendTick) / (double)Stopwatch.Frequency;
-        _lastTelemetrySendTick = now;
 
-        OemFfbSharedMemory.Snapshot? oem = null;
-        if (OemFfbSharedMemory.TryRead(out var snap, out _) && !snap.IsStale())
-            oem = snap;
+        var handbrakeHeld = MapperEngine.IsPressed(profile, devices, G920Control.TelemetryHandbrake);
+        var nosHeld = MapperEngine.IsPressed(profile, devices, G920Control.TelemetryNos);
+        Volatile.Write(ref _telemetryQueuedMapped, mapped);
+        Volatile.Write(ref _telemetryQueuedSteer, steering);
+        Volatile.Write(ref _telemetryQueuedHandbrake, handbrakeHeld ? 1 : 0);
+        Volatile.Write(ref _telemetryQueuedNos, nosHeld ? 1 : 0);
+        Interlocked.Increment(ref _telemetryQueuedVersion);
+    }
 
-        var knownGame = GameProcessProbe.IsKnownGameRunning();
-        var frame = _telemetrySynth.Update(mapped, steering, oem, knownGame, dtSec, handbrakeHeld, nosHeld);
-        lock (_gate) _latestTelemetry = frame;
+    /// <summary>
+    /// Synth + UDP + game-process probe. Kept off the input thread so SimHub I/O and
+    /// Process.GetProcessesByName cannot delay virtual G920 submits (Simucube hitch).
+    /// </summary>
+    private void RunTelemetryLoop(CancellationToken token)
+    {
+        try { Thread.CurrentThread.Priority = ThreadPriority.Normal; }
+        catch { /* best-effort */ }
 
-        if (!settings.Enabled)
+        var lastVersion = 0;
+        var sw = Stopwatch.StartNew();
+        while (!token.IsCancellationRequested)
         {
-            lock (_gate) _telemetryStatus = "Telemetry: off";
-            return;
-        }
-        _telemetrySessionTime += dtSec;
-        _telemetryPackets++;
-        EngineVibrationScaleBridge.Publish(settings.Tuning.EngineVibrationScale);
-        SimHubPacket.Write(_telemetryPacket, frame, _telemetryEmitterId, _telemetrySessionId, _telemetryPackets, _telemetrySessionTime);
-        var sent = _telemetryUdp.TrySend(_telemetryPacket);
-        lock (_gate)
-        {
-            _latestTelemetry = frame;
-            var err = _telemetryUdp.LastError;
-            _telemetryStatus = !sent && !string.IsNullOrWhiteSpace(err)
-                ? $"Telemetry: {err}"
-                : $"Telemetry: {_telemetryUdp.PacketsPerSecond:0} pkt/s → {settings.Host}:{settings.Port}";
+            sw.Restart();
+
+            TelemetrySettings settings;
+            lock (_gate) settings = _telemetrySettings;
+
+            if (!settings.Enabled || Volatile.Read(ref _telemetryEnabledFlag) == 0)
+            {
+                lock (_gate) _telemetryStatus = "Telemetry: off";
+                Thread.Sleep(50);
+                continue;
+            }
+
+            var version = Volatile.Read(ref _telemetryQueuedVersion);
+            var periodMs = 1000.0 / Math.Max(1, settings.SendHz);
+
+            if (version == lastVersion)
+            {
+                var idleRemain = periodMs - sw.Elapsed.TotalMilliseconds;
+                if (idleRemain >= 1.0)
+                    Thread.Sleep((int)Math.Min(idleRemain, 20));
+                else
+                    Thread.Sleep(1);
+                continue;
+            }
+
+            var mapped = Volatile.Read(ref _telemetryQueuedMapped);
+            var steering = Volatile.Read(ref _telemetryQueuedSteer);
+            var handbrakeHeld = Volatile.Read(ref _telemetryQueuedHandbrake) != 0;
+            var nosHeld = Volatile.Read(ref _telemetryQueuedNos) != 0;
+
+            if (mapped is null)
+            {
+                lastVersion = version;
+                continue;
+            }
+
+            var now = Stopwatch.GetTimestamp();
+            var intervalTicks = Stopwatch.Frequency / Math.Max(1, settings.SendHz);
+            if (_lastTelemetrySendTick != 0 && now - _lastTelemetrySendTick < intervalTicks)
+            {
+                // Keep lastVersion so the latest queued sample is still pending.
+                var waitTicks = _lastTelemetrySendTick + intervalTicks - now;
+                var waitMs = waitTicks * 1000.0 / Stopwatch.Frequency;
+                if (waitMs >= 1.0)
+                    Thread.Sleep((int)Math.Clamp(waitMs, 1, periodMs));
+                continue;
+            }
+
+            double dtSec = periodMs / 1000.0;
+            if (_lastTelemetrySendTick != 0)
+                dtSec = (now - _lastTelemetrySendTick) / (double)Stopwatch.Frequency;
+            _lastTelemetrySendTick = now;
+            lastVersion = version;
+
+            try
+            {
+                OemFfbSharedMemory.Snapshot? oem = null;
+                if (OemFfbSharedMemory.TryRead(out var snap, out _) && !snap.IsStale())
+                    oem = snap;
+
+                var knownGame = GameProcessProbe.IsKnownGameRunning();
+                var frame = _telemetrySynth.Update(
+                    mapped, steering, oem, knownGame, dtSec, handbrakeHeld, nosHeld);
+
+                _telemetrySessionTime += dtSec;
+                _telemetryPackets++;
+                EngineVibrationScaleBridge.Publish(settings.Tuning.EngineVibrationScale);
+                SimHubPacket.Write(
+                    _telemetryPacket, frame, _telemetryEmitterId, _telemetrySessionId,
+                    _telemetryPackets, _telemetrySessionTime);
+                var sent = _telemetryUdp.TrySend(_telemetryPacket);
+                lock (_gate)
+                {
+                    _latestTelemetry = frame;
+                    var err = _telemetryUdp.LastError;
+                    _telemetryStatus = !sent && !string.IsNullOrWhiteSpace(err)
+                        ? $"Telemetry: {err}"
+                        : $"Telemetry: {_telemetryUdp.PacketsPerSecond:0} pkt/s → {settings.Host}:{settings.Port}";
+                }
+            }
+            catch
+            {
+                // Keep the telemetry loop alive across transient socket/process errors.
+            }
+
+            var remain = periodMs - sw.Elapsed.TotalMilliseconds;
+            if (remain >= 1.0)
+                Thread.Sleep((int)remain);
+            else if (remain > 0.05)
+                Thread.SpinWait(20);
         }
     }
 

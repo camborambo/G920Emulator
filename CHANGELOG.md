@@ -13,6 +13,10 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Axis→button on standard Assign and custom Binding Wizard: capturing an axis for a button target converts automatically (**Activate on Axis** threshold + live meter). Checkbox label is **Invert**.
 - **Axis range** (start/end) for axis→axis bindings: dual-handle slider remaps the usable throw. Separate from **Activate on Axis** (single % for axis→button).
 
+### Fixed
+
+- Telemetry synth, UDP send, and game-process probe run on a **side thread** (same idea as Simucube FFB apply). When Telemetry is off, the input loop skips that work entirely so SimHub I/O cannot stall virtual G920 reports.
+
 ## [0.2.7] - 2026-10-07
 
 ### Added
