@@ -7,6 +7,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Added
+
+- **Custom bindings** after Gear 6: Binding Wizard with **Bind Button** + optional **Bind FN** popups, plus a **Toggle** checkbox (hold vs latch). If FN is bound, the button requires that key held. Remove with **X**.
+- Axis→button on standard Assign and custom Binding Wizard: capturing an axis for a button target converts automatically (**Activate on Axis** threshold + live meter). Checkbox label is **Invert**.
+- **Axis range** (start/end) for axis→axis bindings: dual-handle slider remaps the usable throw. Separate from **Activate on Axis** (single % for axis→button).
+
 ## [0.2.7] - 2026-10-07
 
 ### Added

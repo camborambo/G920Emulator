@@ -103,6 +103,8 @@ public sealed class BridgeService : IDisposable
     private bool _emittedSteerValid;
     private HashSet<string>? _pollDeviceIds;
     private MappingProfile? _pollDeviceIdsForProfile;
+    /// <summary>When true, <see cref="GetPollDeviceIds"/> returns null (poll every game control).</summary>
+    private bool _pollAllDevices;
     private const int InputTargetPeriodMs = 2;
     /// <summary>Background DI rescan interval. Hot-path RefreshDevices was hitching steering.</summary>
     private const int InputRefreshIntervalMs = 8000;
@@ -139,9 +141,23 @@ public sealed class BridgeService : IDisposable
                 // poll filter so newly bound device IDs are included next frame.
                 _pollDeviceIds = null;
                 _pollDeviceIdsForProfile = null;
+                _pollAllDevices = false;
             }
             _ffb.ApplyFromProfile(value);
             ApplyEffectGains(value);
+        }
+    }
+
+    /// <summary>Clears custom Toggle latches (call after load / custom binding edits).</summary>
+    public void ResetCustomBindingState()
+    {
+        _mapper.ResetCustomState();
+        lock (_gate)
+        {
+            // Customs may have added new device IDs - force poll filter rebuild.
+            _pollDeviceIds = null;
+            _pollDeviceIdsForProfile = null;
+            _pollAllDevices = false;
         }
     }
 
@@ -209,6 +225,37 @@ public sealed class BridgeService : IDisposable
 
         var devices = _inputHub.Poll();
         return OverlayPinnedFfbAxes(devices, ffbId);
+    }
+
+    /// <summary>
+    /// Map with the same <see cref="MapperEngine"/> used by the bridge loop so custom
+    /// Toggle latches persist across UI preview frames (and into Start).
+    /// When the bridge is running, returns <see cref="LatestState"/> — do not Map here or
+    /// rising edges are double-counted and Toggle latches desync from the virtual HID report.
+    /// </summary>
+    public MappedG920State MapForUi()
+    {
+        if (IsRunning)
+        {
+            lock (_gate) return _latest;
+        }
+
+        var devices = PollForUi();
+        lock (_gate)
+        {
+            // Bridge may have started while we polled.
+            if (_cts is not null)
+                return _latest;
+
+            var mapped = _mapper.Map(_profile, devices);
+            _latest = mapped;
+            _latestDevices = devices;
+            // Keep callback snapshot in sync so a subsequent Start already has the latched report.
+            var report = G920ReportBuilder.Build(mapped);
+            _latestReport = report;
+            Volatile.Write(ref _callbackReport, report);
+            return mapped;
+        }
     }
 
     public void BindFfbWindow(IntPtr hwnd) => _ffb.BindInputHub(_inputHub, hwnd);
@@ -511,7 +558,8 @@ public sealed class BridgeService : IDisposable
                 lock (_gate) profile = _profile;
                 var pollIds = GetPollDeviceIds(profile);
 
-                // Only bound devices (+ pinned FFB cache) - never USB-poll unused pads/shifters.
+                // Bound devices (+ pinned FFB cache). Null filter = poll all (used when
+                // custom bindings are present so Toggle/FN sources are never dropped).
                 var devices = _inputHub.Poll(pollIds);
                 devices = OverlayPinnedFfbAxes(devices, profile.FfbSourceDeviceId);
 
@@ -528,6 +576,8 @@ public sealed class BridgeService : IDisposable
                     _latest = mapped;
                     _latestDevices = devices;
                     report = G920ReportBuilder.Build(mapped);
+                    // Clone so WinUHid / ReadReport never share a buffer with the next frame.
+                    report = (byte[])report.Clone();
                     _latestReport = report;
                     mappedCallback = _onMappedFrame;
                 }
@@ -758,10 +808,25 @@ public sealed class BridgeService : IDisposable
         return _ffb.Invert ? -torque : torque;
     }
 
-    private HashSet<string> GetPollDeviceIds(MappingProfile profile)
+    /// <summary>
+    /// Device IDs to USB-poll, or <c>null</c> to poll every attached game control.
+    /// </summary>
+    private HashSet<string>? GetPollDeviceIds(MappingProfile profile)
     {
-        if (_pollDeviceIds is not null && ReferenceEquals(_pollDeviceIdsForProfile, profile))
-            return _pollDeviceIds;
+        if (ReferenceEquals(_pollDeviceIdsForProfile, profile) && (_pollAllDevices || _pollDeviceIds is not null))
+            return _pollAllDevices ? null : _pollDeviceIds;
+
+        profile.CustomBindings ??= [];
+        // Custom Toggle/FN must never be filtered out of the USB poll. Polling all
+        // attached game controls when customs exist keeps joy.cpl / games in sync with
+        // the in-app live Buttons line.
+        if (profile.CustomBindings.Count > 0)
+        {
+            _pollAllDevices = true;
+            _pollDeviceIds = null;
+            _pollDeviceIdsForProfile = profile;
+            return null;
+        }
 
         var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (!string.IsNullOrWhiteSpace(profile.FfbSourceDeviceId))
@@ -775,6 +840,7 @@ public sealed class BridgeService : IDisposable
             }
         }
 
+        _pollAllDevices = false;
         _pollDeviceIds = ids;
         _pollDeviceIdsForProfile = profile;
         return ids;

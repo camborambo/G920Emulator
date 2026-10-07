@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 using G920Emulator.Core.Models;
 
@@ -57,22 +58,28 @@ public partial class BindInputWindow : Window
             _sources.Add(new SourceRow(CloneSource(source)!, _resolveName, _wantsAxis));
 
         ConfigureGearReverseUi();
-        ConfigureThresholdUi(binding.Deadzone);
+        ConfigureAxisRangeUi(binding);
 
         HintText.Text = _wantsAxis
             ? "Move a stick, trigger, wheel, or pedal to add a source…"
             : _wantsHat
                 ? "Move a POV hat / D-pad to bind it. No hat on your pad? Use the D-pad Up/Down/Left/Right rows instead."
-                : "Press a button or move an axis to add a source (axis→button supported)…";
+                : "Press a button or move an axis to add a source (axes become digital presses for this button).";
         UpdateListeningText();
-        UpdateInvertLabel();
+        UpdateAxisUi();
 
         _listenTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
-        _listenTimer.Tick += (_, _) => PollListen();
+        _listenTimer.Tick += (_, _) =>
+        {
+            PollListen();
+            UpdateLiveAxisMeter();
+        };
 
         Loaded += OnLoaded;
         Closed += (_, _) => _listenTimer.Stop();
     }
+
+    private bool HasAxisSource => _sources.Any(s => s.Source.Axis is not null);
 
     private void ConfigureGearReverseUi()
     {
@@ -80,7 +87,7 @@ public partial class BindInputWindow : Window
             return;
 
         GearReversePanel.Visibility = Visibility.Visible;
-        Height = 580;
+        Height = 620;
 
         var items = new List<GearReverseOption>();
         for (var btn = 1; btn <= 19; btn++)
@@ -99,63 +106,42 @@ public partial class BindInputWindow : Window
         GearReverseButtonCombo.SelectedItem = items.First(i => i.Button == selected);
     }
 
-    private void ConfigureThresholdUi(double savedDeadzone)
+    private void ConfigureAxisRangeUi(Binding binding)
     {
         if (_wantsHat)
         {
-            DeadzonePanel.Visibility = Visibility.Collapsed;
+            if (AxisRangePanel is not null)
+                AxisRangePanel.Visibility = Visibility.Collapsed;
             return;
         }
 
-        if (_wantsAxis)
+        if (_wantsAxis && AxisRangePanel is not null && AxisRangeSlider is not null)
         {
-            DeadzonePanel.Visibility = Visibility.Visible;
-            DeadzoneLabelText.Text = "Deadzone";
-            DeadzoneHintText.Visibility = Visibility.Collapsed;
-            DeadzoneSlider.Minimum = 0;
-            DeadzoneSlider.Maximum = 0.5;
-            DeadzoneSlider.Value = Math.Clamp(savedDeadzone, 0, 0.5);
-            DeadzoneSlider.ToolTip = "Ignore small axis movement near rest, then rescale the rest of the throw";
-            DeadzoneValueText.Text = $"{DeadzoneSlider.Value:P0}";
-            return;
+            AxisRangePanel.Visibility = Visibility.Visible;
+            AxisRangeSlider.LowerValue = Math.Clamp(binding.AxisStart, 0, 0.95);
+            AxisRangeSlider.UpperValue = Math.Clamp(binding.AxisEnd <= 0 ? 1 : binding.AxisEnd, 0.05, 1);
+            if (AxisRangeSlider.UpperValue < AxisRangeSlider.LowerValue + 0.05)
+                AxisRangeSlider.UpperValue = Math.Min(1, AxisRangeSlider.LowerValue + 0.05);
+            UpdateAxisRangeLabel();
         }
 
-        // Button target: threshold shown when any axis source is present (or always, ready for axis capture).
-        DeadzonePanel.Visibility = Visibility.Visible;
-        DeadzoneLabelText.Text = "Axis threshold";
-        DeadzoneHintText.Visibility = Visibility.Visible;
-        DeadzoneSlider.Minimum = 0.05;
-        DeadzoneSlider.Maximum = 0.95;
-        var threshold = savedDeadzone > 0.001 ? savedDeadzone : 0.5;
-        DeadzoneSlider.Value = Math.Clamp(threshold, 0.05, 0.95);
-        DeadzoneSlider.ToolTip = "Axis→button activates at or above this value (after Invert)";
-        DeadzoneValueText.Text = $"{DeadzoneSlider.Value:P0}";
-        RefreshThresholdPanelVisibility();
+        if (_wantsButton && AxisThresholdSlider is not null)
+        {
+            var thr = binding.Deadzone > 0.001 ? binding.Deadzone : 0.5;
+            AxisThresholdSlider.Value = Math.Clamp(thr, 0.05, 0.95);
+            AxisThresholdValueText.Text = $"{AxisThresholdSlider.Value:P0}";
+        }
     }
 
-    private void RefreshThresholdPanelVisibility()
-    {
-        if (!_wantsButton) return;
-        // Keep visible so users know they can bind axes; hint explains it.
-        DeadzonePanel.Visibility = Visibility.Visible;
-    }
+    private void SourcesList_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+        UpdateLiveAxisMeter();
 
-    private void UpdateInvertLabel()
+    private void UpdateAxisUi()
     {
-        if (_wantsHat) return;
-        if (_wantsAxis)
-        {
-            InvertCheck.Content = "Invert axis";
+        if (!_wantsButton || AxisDetectedPanel is null)
             return;
-        }
 
-        var hasAxis = _sources.Any(s => s.Source.Axis is not null);
-        InvertCheck.Content = hasAxis
-            ? "Invert axis→button (rest-high)"
-            : "Invert button";
-        InvertCheck.ToolTip = hasAxis
-            ? "For rest-high axes (some pedals/shifters), invert so resting is released and pull/press activates."
-            : "Invert digital button sense for this binding.";
+        AxisDetectedPanel.Visibility = HasAxisSource ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -163,6 +149,7 @@ public partial class BindInputWindow : Window
         try { _refreshDevices(); } catch { /* ignore */ }
         _baseline = _poll().ToDictionary(kv => kv.Key, kv => CloneState(kv.Value));
         _listenTimer.Start();
+        UpdateLiveAxisMeter();
     }
 
     private void PollListen()
@@ -200,7 +187,6 @@ public partial class BindInputWindow : Window
                 continue;
             }
 
-            // Button targets: accept digital buttons OR axes (axis→button).
             for (var i = 0; i < state.Buttons.Length; i++)
             {
                 var was = baseline is not null && i < baseline.Buttons.Length && baseline.Buttons[i];
@@ -218,12 +204,11 @@ public partial class BindInputWindow : Window
                     prev = p;
                 if (Math.Abs(value - prev) > 0.18f)
                 {
-                    var fromCenter = prev is >= 0.35f and <= 0.65f;
                     AcceptCapture(new SourceRef
                     {
                         DeviceId = id,
                         Axis = axis,
-                        AxisFromCenter = fromCenter,
+                        AxisFromCenter = false,
                     }, restValue: prev);
                     return;
                 }
@@ -231,8 +216,46 @@ public partial class BindInputWindow : Window
         }
     }
 
+    private void UpdateLiveAxisMeter()
+    {
+        if (!_wantsButton || LiveAxisSlider is null || LiveAxisValueText is null)
+            return;
+
+        if (!HasAxisSource)
+        {
+            LiveAxisSlider.Value = 0;
+            LiveAxisValueText.Text = "-";
+            return;
+        }
+
+        var axisSource = (SourcesList.SelectedItem as SourceRow)?.Source;
+        if (axisSource?.Axis is null)
+            axisSource = _sources.Select(s => s.Source).FirstOrDefault(s => s.Axis is not null);
+        if (axisSource?.Axis is null)
+        {
+            LiveAxisSlider.Value = 0;
+            LiveAxisValueText.Text = "-";
+            return;
+        }
+
+        var devices = _poll();
+        if (!devices.TryGetValue(axisSource.DeviceId, out var device) ||
+            !device.Axes.TryGetValue(axisSource.Axis, out var raw))
+        {
+            LiveAxisSlider.Value = 0;
+            LiveAxisValueText.Text = "-";
+            return;
+        }
+
+        raw = Math.Clamp(raw, 0f, 1f);
+        var shown = InvertCheck.IsChecked == true ? 1f - raw : raw;
+        LiveAxisSlider.Value = shown;
+        LiveAxisValueText.Text = $"{shown:P0}";
+    }
+
     private void AcceptCapture(SourceRef source, float? restValue = null)
     {
+        source.AxisFromCenter = false;
         source.ProductId ??= _resolveProductId(source.DeviceId);
 
         if (_sources.Any(s => SameSource(s.Source, source)))
@@ -241,7 +264,6 @@ public partial class BindInputWindow : Window
             return;
         }
 
-        // Pedals/triggers: rest-high (~1) needs Invert; DualSense triggers rest-low (~0) must not.
         if (_sources.Count == 0 && restValue is float rest)
         {
             if (_wantsAxis &&
@@ -249,9 +271,8 @@ public partial class BindInputWindow : Window
             {
                 InvertCheck.IsChecked = rest > 0.5f;
             }
-            else if (_wantsButton && source.Axis is not null && !source.AxisFromCenter)
+            else if (_wantsButton && source.Axis is not null)
             {
-                // Rest-high analog control used as a button.
                 InvertCheck.IsChecked = rest > 0.7f;
             }
         }
@@ -259,13 +280,21 @@ public partial class BindInputWindow : Window
         _sources.Add(new SourceRow(CloneSource(source)!, _resolveName, _wantsAxis));
         SourcesList.SelectedItem = _sources[^1];
         UpdateListeningText();
-        UpdateInvertLabel();
-        RefreshThresholdPanelVisibility();
+        UpdateAxisUi();
+        UpdateLiveAxisMeter();
         _baseline = _poll().ToDictionary(kv => kv.Key, kv => CloneState(kv.Value));
     }
 
     private void UpdateListeningText()
     {
+        if (_wantsButton)
+        {
+            ListeningText.Text = _sources.Count == 0
+                ? "Listening for button, hat, or axis…"
+                : $"Listening for another input… ({_sources.Count} source{(_sources.Count == 1 ? "" : "s")})";
+            return;
+        }
+
         ListeningText.Text = _sources.Count == 0
             ? "Listening for input…"
             : $"Listening for another input… ({_sources.Count} source{(_sources.Count == 1 ? "" : "s")})";
@@ -277,8 +306,8 @@ public partial class BindInputWindow : Window
         {
             _sources.Remove(row);
             UpdateListeningText();
-            UpdateInvertLabel();
-            RefreshThresholdPanelVisibility();
+            UpdateAxisUi();
+            UpdateLiveAxisMeter();
         }
     }
 
@@ -286,8 +315,8 @@ public partial class BindInputWindow : Window
     {
         _sources.Clear();
         UpdateListeningText();
-        UpdateInvertLabel();
-        RefreshThresholdPanelVisibility();
+        UpdateAxisUi();
+        UpdateLiveAxisMeter();
         _baseline = _poll().ToDictionary(kv => kv.Key, kv => CloneState(kv.Value));
     }
 
@@ -297,32 +326,62 @@ public partial class BindInputWindow : Window
         Close();
     }
 
-    private void DeadzoneSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    private void AxisRangeSlider_RangeChanged(object? sender, RoutedPropertyChangedEventArgs<double> e) =>
+        UpdateAxisRangeLabel();
+
+    private void UpdateAxisRangeLabel()
     {
-        if (DeadzoneValueText is null) return;
-        DeadzoneValueText.Text = $"{DeadzoneSlider.Value:P0}";
+        if (AxisRangeValueText is null || AxisRangeSlider is null) return;
+        AxisRangeValueText.Text = $"{AxisRangeSlider.LowerValue:P0}–{AxisRangeSlider.UpperValue:P0}";
+    }
+
+    private void AxisThresholdSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (AxisThresholdValueText is null) return;
+        AxisThresholdValueText.Text = $"{AxisThresholdSlider.Value:P0}";
     }
 
     private void Ok_Click(object sender, RoutedEventArgs e)
     {
+        var hasAxis = _sources.Any(s => s.Source.Axis is not null);
+
         _binding.ClearSources();
         foreach (var row in _sources)
-            _binding.Sources.Add(CloneSource(row.Source)!);
+        {
+            var clone = CloneSource(row.Source)!;
+            clone.AxisFromCenter = false;
+            _binding.Sources.Add(clone);
+        }
+
         _binding.Invert = InvertCheck.IsChecked == true;
 
         if (_wantsAxis)
-            _binding.Deadzone = DeadzoneSlider.Value;
+        {
+            _binding.UseAxisAsButton = false;
+            _binding.AxisStart = AxisRangeSlider.LowerValue;
+            _binding.AxisEnd = AxisRangeSlider.UpperValue;
+            _binding.Deadzone = _target == G920Control.Steering ? _binding.Deadzone : _binding.AxisStart;
+        }
         else if (_wantsButton)
         {
-            // Persist threshold whenever any axis source is present; otherwise clear.
-            _binding.Deadzone = _sources.Any(s => s.Source.Axis is not null)
-                ? DeadzoneSlider.Value
-                : 0;
+            // Button targets always treat axes as digital presses (Activate on Axis threshold).
+            _binding.UseAxisAsButton = hasAxis;
+            _binding.AxisStart = 0;
+            _binding.AxisEnd = 1;
+            _binding.Deadzone = hasAxis ? AxisThresholdSlider.Value : 0;
+        }
+        else
+        {
+            _binding.UseAxisAsButton = false;
+            _binding.AxisStart = 0;
+            _binding.AxisEnd = 1;
+            _binding.Deadzone = 0;
         }
 
         if (_isGearR && GearReverseButtonCombo?.SelectedItem is GearReverseOption opt)
             _profile.GearReverseOutputButton = opt.Button;
 
+        _binding.Normalize();
         Applied = true;
         DialogResult = true;
         Close();
@@ -334,8 +393,7 @@ public partial class BindInputWindow : Window
         string.Equals(a.DeviceId, b.DeviceId, StringComparison.OrdinalIgnoreCase) &&
         string.Equals(a.Axis, b.Axis, StringComparison.OrdinalIgnoreCase) &&
         a.Button == b.Button &&
-        a.IsHat == b.IsHat &&
-        a.AxisFromCenter == b.AxisFromCenter;
+        a.IsHat == b.IsHat;
 
     private static SourceRef? CloneSource(SourceRef? source)
     {
@@ -347,7 +405,7 @@ public partial class BindInputWindow : Window
             Axis = source.Axis,
             Button = source.Button,
             IsHat = source.IsHat,
-            AxisFromCenter = source.AxisFromCenter,
+            AxisFromCenter = false,
         };
     }
 
@@ -368,12 +426,9 @@ public partial class BindInputWindow : Window
             {
                 var dev = resolveName(Source.DeviceId);
                 if (Source.Axis is not null)
-                {
-                    var mode = axisTarget
-                        ? "axis"
-                        : Source.AxisFromCenter ? "axis→btn (center)" : "axis→btn";
-                    return $"{dev} · {Source.Axis} ({mode})";
-                }
+                    return axisTarget
+                        ? $"{dev} · {Source.Axis} (axis)"
+                        : $"{dev} · {Source.Axis} (axis→btn)";
                 if (Source.IsHat) return $"{dev} · hat";
                 if (Source.Button is int b) return $"{dev} · button {b}";
                 return dev;

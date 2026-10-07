@@ -30,7 +30,7 @@ flowchart LR
 ## Input path (physical → game)
 
 1. **InputHub** enumerates DirectInput joysticks and polls axes/buttons/hats.
-2. **MapperEngine** applies the active JSON profile (`Binding` / `SourceRef`) to produce a `MappedG920State`. Profile updates from the UI are picked up on the next loop tick, so rebinding does not require restarting the bridge. The virtual D-pad can come from a POV hat binding, or from **D-pad Up/Down/Left/Right** button (or axis→button) bindings synthesized into an 8-way hat nibble.
+2. **MapperEngine** applies the active JSON profile (`Binding` / `CustomBinding` / `SourceRef`) to produce a `MappedG920State`. Analog binds use **AxisStart**/**AxisEnd** to remap throw; axis→button uses **Deadzone** as **Activate on Axis** (press at or above that %). Custom bindings can Toggle-latch a G920 button and optionally require an FN hold. Profile updates from the UI are picked up on the next loop tick, so rebinding does not require restarting the bridge. The virtual D-pad can come from a POV hat binding, or from **D-pad Up/Down/Left/Right** button (or axis→button) bindings synthesized into an 8-way hat nibble.
 3. **G920ReportBuilder** packs that state into a numbered HID input report matching a real G920 (report ID 1), including H-pattern gear buttons.
 4. **VirtualG920Device** submits the report through WinUHid.
 5. The game reads the virtual G920 like any other DirectInput / HID wheel.

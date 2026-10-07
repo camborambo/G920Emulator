@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         xmlns:controls="clr-namespace:G920Emulator.App.Controls"
+        xmlns:local="clr-namespace:G920Emulator.App"
         Title="G920 Emulator"
         Icon="pack://application:,,,/Assets/app.ico"
         Height="760" Width="1280"
@@ -262,7 +263,7 @@
                                 ToolTip="Re-scan DirectInput devices and restore any you hid from this list"/>
                       </DockPanel>
                       <TextBlock DockPanel.Dock="Bottom" x:Name="BindHintText"
-                                 Text="Click a G920 binding to Assign. Buttons also accept axes (axis→button)."
+                                 Text="Click a G920 binding to Assign. Use Add Custom Binding for Toggle + optional Bind FN combos."
                                  Opacity="0.65" TextWrapping="Wrap" Margin="0,8,0,0" FontSize="12"/>
                       <ListBox x:Name="DeviceList" BorderThickness="0" Background="Transparent">
                         <ListBox.ItemContainerStyle>
@@ -301,8 +302,11 @@
                       <TextBlock Text="G920 bindings" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"/>
                       <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Clear all" Click="ClearAllBindings_Click"
                               Margin="0" HorizontalAlignment="Right" Padding="10,5"
-                              ToolTip="Clear every G920 binding in this profile"/>
+                              ToolTip="Clear every G920 binding and custom binding in this profile"/>
                     </DockPanel>
+                    <Button DockPanel.Dock="Bottom" Style="{StaticResource AppButton}" Content="Add Custom Binding"
+                            Click="AddCustomBinding_Click" Margin="0,10,0,0" HorizontalAlignment="Stretch" Padding="10,7"
+                            ToolTip="Open the Binding Wizard: Bind Button + optional Bind FN"/>
                     <ListBox x:Name="BindingList" MouseLeftButtonUp="BindingList_MouseLeftButtonUp"
                              BorderThickness="0" Background="Transparent">
                       <ListBox.ItemContainerStyle>
@@ -312,8 +316,8 @@
                           <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                         </Style>
                       </ListBox.ItemContainerStyle>
-                      <ListBox.ItemTemplate>
-                        <DataTemplate>
+                      <ListBox.Resources>
+                        <DataTemplate DataType="{x:Type local:StandardBindingRow}">
                           <StackPanel>
                             <Grid>
                               <Grid.ColumnDefinitions>
@@ -323,20 +327,48 @@
                               <TextBlock Text="{Binding TargetName}" FontWeight="SemiBold"/>
                               <TextBlock Grid.Column="1" Text="{Binding SourceText}" Opacity="0.85" TextTrimming="CharacterEllipsis"/>
                             </Grid>
-                            <DockPanel Margin="0,6,0,0" Visibility="{Binding DeadzoneVisibility}">
-                              <TextBlock Text="{Binding DeadzoneLabel}" Width="72" Opacity="0.7" VerticalAlignment="Center" FontSize="12"/>
-                              <TextBlock DockPanel.Dock="Right" Text="{Binding DeadzoneText}" Width="36"
+                            <DockPanel Margin="0,6,0,0" Visibility="{Binding AxisRangeVisibility}">
+                              <TextBlock Text="Axis range" Width="96" Opacity="0.7" VerticalAlignment="Center" FontSize="12"/>
+                              <TextBlock DockPanel.Dock="Right" Text="{Binding AxisRangeText}" Width="56"
                                          Opacity="0.85" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="12"/>
-                              <Slider Minimum="{Binding DeadzoneMinimum}" Maximum="{Binding DeadzoneMaximum}"
+                              <controls:DualRangeSlider Minimum="0" Maximum="1"
+                                      LowerValue="{Binding AxisStart, Mode=TwoWay}"
+                                      UpperValue="{Binding AxisEnd, Mode=TwoWay}"
+                                      TickFrequency="0.01" IsSnapToTickEnabled="True"
+                                      Height="18" Margin="8,0"
+                                      ToolTip="{Binding AxisRangeToolTip}"
+                                      PreviewMouseLeftButtonDown="AxisRangeSlider_PreviewMouseLeftButtonDown"/>
+                            </DockPanel>
+                            <DockPanel Margin="0,6,0,0" Visibility="{Binding ActivateOnAxisVisibility}">
+                              <TextBlock Text="Activate on Axis" Width="96" Opacity="0.7" VerticalAlignment="Center" FontSize="12"/>
+                              <TextBlock DockPanel.Dock="Right" Text="{Binding ActivateOnAxisText}" Width="36"
+                                         Opacity="0.85" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="12"/>
+                              <Slider Minimum="0.05" Maximum="0.95"
                                       TickFrequency="0.01" IsSnapToTickEnabled="False"
-                                      Value="{Binding Deadzone, Mode=TwoWay}"
+                                      Value="{Binding ActivateOnAxis, Mode=TwoWay}"
                                       Margin="8,0"
-                                      ToolTip="{Binding DeadzoneToolTip}"
-                                      PreviewMouseLeftButtonDown="DeadzoneSlider_PreviewMouseLeftButtonDown"/>
+                                      ToolTip="{Binding ActivateOnAxisToolTip}"
+                                      PreviewMouseLeftButtonDown="ActivateOnAxisSlider_PreviewMouseLeftButtonDown"/>
                             </DockPanel>
                           </StackPanel>
                         </DataTemplate>
-                      </ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type local:CustomBindingRow}">
+                          <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}"
+                                    Width="26" Height="26" MinWidth="26" MinHeight="26" Padding="4"
+                                    VerticalAlignment="Center"
+                                    Click="RemoveCustomBinding_Click"
+                                    ToolTip="Remove this custom binding">
+                              <iconPacks:PackIconMaterial Kind="Close" Width="12" Height="12" Foreground="#E8EAED"/>
+                            </Button>
+                            <StackPanel Margin="0,0,8,0">
+                              <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                              <TextBlock Text="{Binding Summary}" Opacity="0.75" FontSize="12" Margin="0,2,0,0"
+                                         TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                          </DockPanel>
+                        </DataTemplate>
+                      </ListBox.Resources>
                     </ListBox>
                   </DockPanel>
                 </Border>
@@ -809,7 +841,7 @@
                 <TextBlock x:Name="TelemetryStatusText" Opacity="0.65" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"
                            Text="Telemetry: off"/>
               </StackPanel>
-            </Border>
+                    </Border>
 
             <!-- Profile card (same pattern as FFB profile) -->
             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
@@ -1307,9 +1339,9 @@
                 <ProgressBar x:Name="TelemetryLoadBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,2,0,0" Foreground="#5B7C99"/>
               </StackPanel>
             </Border>
-          </StackPanel>
-        </Grid>
-      </ScrollViewer>
+                  </StackPanel>
+                </Grid>
+              </ScrollViewer>
     </Grid>
   </DockPanel>
 </Window>

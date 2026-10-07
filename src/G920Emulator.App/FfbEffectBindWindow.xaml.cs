@@ -286,8 +286,7 @@ public partial class FfbEffectBindWindow : Window
         var dev = _resolveName(source.DeviceId);
         if (source.Axis is not null)
         {
-            var mode = source.AxisFromCenter ? "axis→btn·center" : "axis→btn";
-            return $"{dev} · {source.Axis} ({mode})";
+            return $"{dev} · {source.Axis} (axis→btn)";
         }
         if (source.IsHat) return $"{dev} · hat";
         if (source.Button is int b) return $"{dev} · button {b}";

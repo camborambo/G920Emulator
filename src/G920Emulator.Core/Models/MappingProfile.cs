@@ -54,6 +54,11 @@ public sealed class MappingProfile
     public List<Binding> Bindings { get; set; } = [];
 
     /// <summary>
+    /// User-created named mappings after the standard G920 layout (Toggle + optional Bind FN).
+    /// </summary>
+    public List<CustomBinding> CustomBindings { get; set; } = [];
+
+    /// <summary>
     /// Per-slider snap values for FFB "Set as Default" binds (key = <see cref="G920ControlInfo.FfbSliderBind.Id"/>).
     /// </summary>
     public Dictionary<string, double> FfbBindDefaults { get; set; } = new(StringComparer.OrdinalIgnoreCase);
@@ -113,7 +118,24 @@ public sealed class MappingProfile
         FfbOutputFeel ??= FfbOutputFeel.CreateDefault();
         FfbOutputFeel.Clamp();
         foreach (var binding in Bindings)
+        {
             binding.Normalize();
+            foreach (var source in binding.Sources)
+                source.AxisFromCenter = false;
+        }
+
+        CustomBindings ??= [];
+        foreach (var custom in CustomBindings)
+        {
+            custom.Normalize();
+            foreach (var source in custom.Sources)
+                source.AxisFromCenter = false;
+            foreach (var source in custom.FnSources ?? [])
+                source.AxisFromCenter = false;
+        }
+        CustomBindings.RemoveAll(c =>
+            string.IsNullOrWhiteSpace(c.Id) ||
+            (!c.IsFnModifier && !G920ControlInfo.IsCustomBindingTarget(c.Target)));
 
         // Legacy separate paddle rows → LB/RB (same DI bits on a real G920).
         MergeSources(G920Control.PaddleLeft, G920Control.ButtonLb);
@@ -165,8 +187,7 @@ public sealed class MappingProfile
         string.Equals(a.DeviceId, b.DeviceId, StringComparison.OrdinalIgnoreCase) &&
         string.Equals(a.Axis, b.Axis, StringComparison.OrdinalIgnoreCase) &&
         a.Button == b.Button &&
-        a.IsHat == b.IsHat &&
-        a.AxisFromCenter == b.AxisFromCenter;
+        a.IsHat == b.IsHat;
 
     private static SourceRef CloneSource(SourceRef s) => new()
     {
@@ -175,7 +196,7 @@ public sealed class MappingProfile
         Axis = s.Axis,
         Button = s.Button,
         IsHat = s.IsHat,
-        AxisFromCenter = s.AxisFromCenter,
+        AxisFromCenter = false,
     };
 }
 
@@ -192,6 +213,24 @@ public sealed class Binding
     public double Deadzone { get; set; }
     public bool Invert { get; set; }
     public double Scale { get; set; } = 1.0;
+
+    /// <summary>
+    /// Analog axis→axis only: usable throw start (0..1, after Invert). Remaps to rest.
+    /// Ignored for axis→button (use <see cref="Deadzone"/> as Activate on Axis).
+    /// </summary>
+    public double AxisStart { get; set; }
+
+    /// <summary>
+    /// Analog axis→axis only: usable throw end (0..1, after Invert). Remaps to full.
+    /// Ignored for axis→button.
+    /// </summary>
+    public double AxisEnd { get; set; } = 1;
+
+    /// <summary>
+    /// When true, axis sources on a button target are converted to digital presses.
+    /// Set automatically whenever a button binding has an axis source.
+    /// </summary>
+    public bool UseAxisAsButton { get; set; }
 
     [JsonIgnore]
     public IReadOnlyList<SourceRef> EffectiveSources
@@ -219,6 +258,66 @@ public sealed class Binding
             s.Axis is null &&
             s.Button is null &&
             !s.IsHat);
+
+        foreach (var source in Sources)
+            source.AxisFromCenter = false;
+
+        var hasAxis = Sources.Any(s => s.Axis is not null);
+        var buttonTarget = G920ControlInfo.IsButton(Target);
+        var centeredAxis = Target == G920Control.Steering;
+
+        // Button targets always convert axes to digital presses (games never see an analog button).
+        if (buttonTarget)
+        {
+            UseAxisAsButton = hasAxis;
+            // Activate on Axis threshold lives in Deadzone. AxisStart/End are analog-only.
+            if (hasAxis)
+            {
+                // Migrate brief dual-band experiment: treat former AxisStart as threshold.
+                if (Deadzone <= 0.001 && AxisStart > 0.001)
+                    Deadzone = AxisStart;
+                Deadzone = Deadzone > 0.001 ? Math.Clamp(Deadzone, 0.05, 0.95) : 0.5;
+            }
+            else
+            {
+                Deadzone = 0;
+            }
+
+            AxisStart = 0;
+            AxisEnd = 1;
+        }
+        else
+        {
+            UseAxisAsButton = false;
+            NormalizeAnalogAxisRange(hasAxis, centeredAxis);
+        }
+    }
+
+    internal void NormalizeAnalogAxisRange(bool hasAxis, bool centeredAxis)
+    {
+        if (!hasAxis)
+        {
+            AxisStart = 0;
+            AxisEnd = 1;
+            return;
+        }
+
+        // Legacy pedal deadzone → AxisStart when range still unset.
+        // Steering center-deadzone stays on Deadzone when range is still 0..1.
+        var rangeUnset = AxisStart <= 0.0001 && AxisEnd >= 0.9999;
+        if (rangeUnset && !centeredAxis && Deadzone > 0.001)
+        {
+            AxisStart = Math.Clamp(Deadzone, 0, 0.5);
+            AxisEnd = 1;
+        }
+
+        AxisStart = Math.Clamp(AxisStart, 0, 0.95);
+        AxisEnd = Math.Clamp(AxisEnd, 0.05, 1);
+        if (AxisEnd < AxisStart + 0.05)
+            AxisEnd = Math.Min(1, AxisStart + 0.05);
+
+        if (!centeredAxis)
+            Deadzone = AxisStart;
     }
 
     public void ClearSources()
@@ -231,8 +330,7 @@ public sealed class Binding
         string.Equals(a.DeviceId, b.DeviceId, StringComparison.OrdinalIgnoreCase) &&
         string.Equals(a.Axis, b.Axis, StringComparison.OrdinalIgnoreCase) &&
         a.Button == b.Button &&
-        a.IsHat == b.IsHat &&
-        a.AxisFromCenter == b.AxisFromCenter;
+        a.IsHat == b.IsHat;
 }
 
 public sealed class SourceRef
@@ -248,8 +346,117 @@ public sealed class SourceRef
     public bool IsHat { get; set; }
 
     /// <summary>
-    /// When an axis drives a button: measure deflection from center (0.5) instead of
-    /// absolute high-side throw. Used for sticks / centered analog shifters.
+    /// Legacy flag (ignored). Axis→button always uses absolute high-side throw.
+    /// Cleared on profile normalize; kept only so old JSON still deserializes.
     /// </summary>
     public bool AxisFromCenter { get; set; }
+}
+
+/// <summary>
+/// Named user binding after the standard G920 layout. Maps <see cref="Sources"/> to a
+/// G920 button (hold or Toggle); optional <see cref="FnSources"/> means FN must be held.
+/// </summary>
+public sealed class CustomBinding
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Name { get; set; } = "Custom";
+
+    /// <summary>Legacy: FN-only binding. Prefer <see cref="FnSources"/> on button bindings.</summary>
+    public bool IsFnModifier { get; set; }
+
+    /// <summary>
+    /// When true, rising edge latches the G920 target on/off.
+    /// When false, hold-to-press (momentary) while the button source is active.
+    /// </summary>
+    public bool Toggle { get; set; } = true;
+
+    /// <summary>
+    /// When true, the button only fires while FN is held.
+    /// Set automatically when <see cref="FnSources"/> is non-empty.
+    /// </summary>
+    public bool RequiresFn { get; set; }
+
+    /// <summary>
+    /// When true, axis sources are converted to digital presses (threshold).
+    /// Set automatically when button or FN sources include an axis.
+    /// </summary>
+    public bool UseAxisAsButton { get; set; }
+
+    public G920Control Target { get; set; } = G920Control.ButtonA;
+
+    /// <summary>Button sources (Bind Button) — hold or Toggle per <see cref="Toggle"/>.</summary>
+    public List<SourceRef> Sources { get; set; } = [];
+
+    /// <summary>Optional FN hold sources for this combo (Bind FN).</summary>
+    public List<SourceRef> FnSources { get; set; } = [];
+
+    public double Deadzone { get; set; }
+    public bool Invert { get; set; }
+    public double AxisStart { get; set; }
+    public double AxisEnd { get; set; } = 1;
+    public double FnDeadzone { get; set; }
+    public bool FnInvert { get; set; }
+    public double FnAxisStart { get; set; }
+    public double FnAxisEnd { get; set; } = 1;
+
+    public void Normalize()
+    {
+        if (string.IsNullOrWhiteSpace(Id))
+            Id = Guid.NewGuid().ToString("N");
+        Name = string.IsNullOrWhiteSpace(Name) ? "Custom" : Name.Trim();
+        Sources ??= [];
+        FnSources ??= [];
+        Sources.RemoveAll(IsEmptySource);
+        FnSources.RemoveAll(IsEmptySource);
+        foreach (var source in Sources.Concat(FnSources))
+            source.AxisFromCenter = false;
+
+        if (IsFnModifier)
+        {
+            // Legacy FN-only rows: keep Sources as the hold key; no per-binding FnSources.
+            RequiresFn = false;
+            FnSources = [];
+            Target = G920Control.ButtonA;
+        }
+        else if (!G920ControlInfo.IsCustomBindingTarget(Target))
+        {
+            Target = G920Control.ButtonA;
+        }
+
+        // Bind FN on this combo ⇒ Requires FN held.
+        if (!IsFnModifier)
+            RequiresFn = FnSources.Count > 0;
+
+        var buttonAxis = Sources.Any(s => s.Axis is not null);
+        var fnAxis = FnSources.Any(s => s.Axis is not null);
+        UseAxisAsButton = buttonAxis || fnAxis;
+
+        Deadzone = NormalizeActivateThreshold(buttonAxis, Deadzone, AxisStart);
+        FnDeadzone = NormalizeActivateThreshold(fnAxis, FnDeadzone, FnAxisStart);
+        // AxisStart/End are analog-only; customs are always digital targets.
+        AxisStart = 0;
+        AxisEnd = 1;
+        FnAxisStart = 0;
+        FnAxisEnd = 1;
+    }
+
+    private static double NormalizeActivateThreshold(bool hasAxis, double deadzone, double legacyStart)
+    {
+        if (!hasAxis)
+            return 0;
+        if (deadzone <= 0.001 && legacyStart > 0.001)
+            deadzone = legacyStart;
+        return deadzone > 0.001 ? Math.Clamp(deadzone, 0.05, 0.95) : 0.5;
+    }
+
+    public void ClearSources()
+    {
+        Sources = [];
+    }
+
+    private static bool IsEmptySource(SourceRef s) =>
+        string.IsNullOrWhiteSpace(s.DeviceId) &&
+        s.Axis is null &&
+        s.Button is null &&
+        !s.IsHat;
 }

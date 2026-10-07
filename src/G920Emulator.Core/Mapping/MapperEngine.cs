@@ -4,8 +4,20 @@ namespace G920Emulator.Core.Mapping;
 
 public sealed class MapperEngine
 {
+    private readonly Dictionary<string, bool> _customToggleLatched = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, bool> _customPrevEffective = new(StringComparer.Ordinal);
+
+    /// <summary>Clears FN/custom toggle latches (call when the profile is replaced or customs change).</summary>
+    public void ResetCustomState()
+    {
+        _customToggleLatched.Clear();
+        _customPrevEffective.Clear();
+    }
+
     public MappedG920State Map(MappingProfile profile, IReadOnlyDictionary<string, DeviceState> devices)
     {
+        UpdateCustomToggles(profile, devices);
+
         var result = new MappedG920State
         {
             Steering = ReadAxis(profile, devices, G920Control.Steering, centered: true),
@@ -45,7 +57,153 @@ public sealed class MapperEngine
         MappingProfile profile,
         IReadOnlyDictionary<string, DeviceState> devices,
         G920Control target) =>
-        ReadButton(profile, devices, target);
+        ReadStandardButton(profile, devices, target);
+
+    private void UpdateCustomToggles(MappingProfile profile, IReadOnlyDictionary<string, DeviceState> devices)
+    {
+        profile.CustomBindings ??= [];
+        var liveIds = new HashSet<string>(StringComparer.Ordinal);
+
+        // Legacy global FN-only bindings (IsFnModifier).
+        var globalFnHeld = false;
+        foreach (var custom in profile.CustomBindings)
+        {
+            if (!custom.IsFnModifier) continue;
+            if (SourcesPressed(custom.Sources, custom.Invert, custom.Deadzone, devices, out _))
+                globalFnHeld = true;
+        }
+
+        foreach (var custom in profile.CustomBindings)
+        {
+            if (custom.IsFnModifier) continue;
+            if (string.IsNullOrWhiteSpace(custom.Id)) continue;
+            liveIds.Add(custom.Id);
+
+            var raw = SourcesPressed(
+                custom.Sources, custom.Invert, custom.Deadzone, devices, out var buttonSeen);
+            bool effective;
+            bool comboSeen;
+            if (custom.FnSources is { Count: > 0 })
+            {
+                var fnHeld = SourcesPressed(
+                    custom.FnSources, custom.FnInvert, custom.FnDeadzone, devices, out var fnSeen);
+                // Need both sides present; if FN device drops mid-hold, don't invent edges.
+                comboSeen = buttonSeen && fnSeen;
+                effective = comboSeen && fnHeld && raw;
+            }
+            else if (custom.RequiresFn)
+            {
+                // Legacy: RequiresFn without per-binding FnSources → any global FN.
+                comboSeen = buttonSeen;
+                effective = comboSeen && globalFnHeld && raw;
+            }
+            else
+            {
+                comboSeen = buttonSeen;
+                effective = comboSeen && raw;
+            }
+
+            _customPrevEffective.TryGetValue(custom.Id, out var prev);
+            if (custom.Toggle)
+            {
+                // Only edge-detect when sources are visible. A one-frame device dropout
+                // would otherwise look like release→press and flip the latch off.
+                if (comboSeen && effective && !prev)
+                {
+                    _customToggleLatched.TryGetValue(custom.Id, out var latched);
+                    _customToggleLatched[custom.Id] = !latched;
+                }
+
+                if (comboSeen)
+                    _customPrevEffective[custom.Id] = effective;
+            }
+            else
+            {
+                // Hold / momentary: active only while the combo is pressed.
+                _customToggleLatched[custom.Id] = effective;
+                if (comboSeen)
+                    _customPrevEffective[custom.Id] = effective;
+            }
+        }
+
+        foreach (var key in _customToggleLatched.Keys.Where(k => !liveIds.Contains(k)).ToList())
+            _customToggleLatched.Remove(key);
+        foreach (var key in _customPrevEffective.Keys.Where(k => !liveIds.Contains(k)).ToList())
+            _customPrevEffective.Remove(key);
+    }
+
+    private bool AnyCustomToggle(MappingProfile profile, G920Control target)
+    {
+        profile.CustomBindings ??= [];
+        foreach (var custom in profile.CustomBindings)
+        {
+            if (custom.IsFnModifier) continue;
+            if (custom.Target != target) continue;
+            if (_customToggleLatched.TryGetValue(custom.Id, out var on) && on)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool SourcesPressed(
+        IReadOnlyList<SourceRef>? sources,
+        bool invert,
+        double activateThreshold,
+        IReadOnlyDictionary<string, DeviceState> devices,
+        out bool deviceSeen)
+    {
+        deviceSeen = false;
+        if (sources is null || sources.Count == 0)
+            return false;
+
+        var pressed = false;
+        var any = false;
+        var hasAxis = false;
+        var threshold = activateThreshold > 0.001 ? Math.Clamp(activateThreshold, 0.05, 0.95) : 0.5;
+
+        foreach (var source in sources)
+        {
+            if (!TryGetDevice(source, devices, out var device))
+                continue;
+
+            if (source.IsHat)
+            {
+                any = true;
+                deviceSeen = true;
+                if (device.Hat >= 0)
+                    pressed = true;
+                continue;
+            }
+
+            if (source.Button is int button)
+            {
+                if (button < 0 || button >= device.Buttons.Length)
+                    continue;
+                any = true;
+                deviceSeen = true;
+                if (device.Buttons[button])
+                    pressed = true;
+                continue;
+            }
+
+            if (!string.IsNullOrEmpty(source.Axis) &&
+                device.Axes.TryGetValue(source.Axis, out var raw))
+            {
+                any = true;
+                deviceSeen = true;
+                hasAxis = true;
+                if (AxisAsButtonPressed(raw, invert, threshold))
+                    pressed = true;
+            }
+        }
+
+        if (!any)
+            return false;
+        if (!hasAxis && invert)
+            return !pressed;
+        return pressed;
+    }
 
     private static void ApplyExclusiveGears(MappedG920State state)
     {
@@ -87,8 +245,7 @@ public sealed class MapperEngine
         if (sources.Count == 0)
             return 0f;
 
-        // Combine multiple axes: pedals use max; steering uses the strongest deflection.
-        float combined = centered ? 0f : 0f;
+        float combined = 0f;
         var any = false;
         foreach (var source in sources)
         {
@@ -97,17 +254,9 @@ public sealed class MapperEngine
             if (string.IsNullOrEmpty(source.Axis) || !device.Axes.TryGetValue(source.Axis, out var raw))
                 continue;
 
-            float value;
-            if (centered)
-            {
-                value = (raw * 2f) - 1f;
-                if (binding.Invert)
-                    value = -value;
-            }
-            else
-            {
-                value = binding.Invert ? 1f - raw : raw;
-            }
+            var value01 = binding.Invert ? 1f - raw : raw;
+            var remapped = ApplyAxisRange(value01, binding.AxisStart, binding.AxisEnd);
+            var value = centered ? (remapped * 2f) - 1f : remapped;
 
             if (!any)
             {
@@ -128,9 +277,31 @@ public sealed class MapperEngine
         if (!any)
             return 0f;
 
-        combined = ApplyDeadzone(combined, (float)binding.Deadzone, centered);
+        // Legacy steering: center deadzone when usable range is still full throw.
+        if (centered &&
+            binding.Deadzone > 0.001 &&
+            binding.AxisStart <= 0.0001 &&
+            binding.AxisEnd >= 0.9999)
+        {
+            combined = ApplyDeadzone(combined, (float)binding.Deadzone, centered: true);
+        }
+
         combined = (float)(combined * binding.Scale);
         return centered ? Math.Clamp(combined, -1f, 1f) : Math.Clamp(combined, 0f, 1f);
+    }
+
+    /// <summary>Remap axis value in [start,end] → [0,1]; below start → 0, above end → 1.</summary>
+    internal static float ApplyAxisRange(float value01, double start, double end)
+    {
+        value01 = Math.Clamp(value01, 0f, 1f);
+        var s = (float)Math.Clamp(start, 0, 0.95);
+        var e = (float)Math.Clamp(end, 0.05, 1);
+        if (e < s + 0.05f)
+            e = Math.Min(1f, s + 0.05f);
+
+        if (value01 <= s) return 0f;
+        if (value01 >= e) return 1f;
+        return (value01 - s) / (e - s);
     }
 
     private static float ApplyDeadzone(float value, float deadzone, bool centered)
@@ -153,7 +324,10 @@ public sealed class MapperEngine
         return (value - deadzone) / (1f - deadzone);
     }
 
-    private static bool ReadButton(MappingProfile profile, IReadOnlyDictionary<string, DeviceState> devices, G920Control target)
+    private bool ReadButton(MappingProfile profile, IReadOnlyDictionary<string, DeviceState> devices, G920Control target) =>
+        ReadStandardButton(profile, devices, target) || AnyCustomToggle(profile, target);
+
+    private static bool ReadStandardButton(MappingProfile profile, IReadOnlyDictionary<string, DeviceState> devices, G920Control target)
     {
         var binding = profile.Bindings.FirstOrDefault(b => b.Target == target);
         if (binding is null)
@@ -161,7 +335,6 @@ public sealed class MapperEngine
 
         var pressed = false;
         var any = false;
-        // Deadzone doubles as axis→button activation threshold (default 50%).
         var threshold = binding.Deadzone > 0.001 ? Math.Clamp(binding.Deadzone, 0.05, 0.95) : 0.5;
 
         foreach (var source in binding.EffectiveSources)
@@ -183,43 +356,29 @@ public sealed class MapperEngine
                 device.Axes.TryGetValue(source.Axis, out var raw))
             {
                 any = true;
-                if (AxisAsButtonPressed(raw, source.AxisFromCenter, binding.Invert, threshold))
+                if (AxisAsButtonPressed(raw, binding.Invert, threshold))
                     pressed = true;
             }
         }
 
         if (!any)
             return false;
-        // Invert for pure button sources is applied per-axis above; for button-only
-        // bindings with Invert, flip the OR result when no axis sources contributed.
         var hasAxis = binding.EffectiveSources.Any(s => !string.IsNullOrEmpty(s.Axis));
         if (!hasAxis && binding.Invert)
             return !pressed;
         return pressed;
     }
 
-    /// <summary>
-    /// Convert a 0..1 axis into a digital press. Invert flips the high/low sense
-    /// (rest-high pedals). AxisFromCenter uses deflection from 0.5.
-    /// </summary>
-    private static bool AxisAsButtonPressed(float raw, bool fromCenter, bool invert, double threshold)
+    /// <summary>Absolute axis→button: pressed when value (after Invert) is at or above Activate on Axis.</summary>
+    private static bool AxisAsButtonPressed(float raw, bool invert, double threshold)
     {
         raw = Math.Clamp(raw, 0f, 1f);
-        float amount;
-        if (fromCenter)
-        {
-            amount = Math.Abs(raw - 0.5f) * 2f;
-            // Invert is uncommon for centered; still allow flipping the compare.
-            return invert ? amount <= (float)threshold : amount >= (float)threshold;
-        }
-
         var value = invert ? 1f - raw : raw;
         return value >= (float)threshold;
     }
 
-    private static int ReadHat(MappingProfile profile, IReadOnlyDictionary<string, DeviceState> devices)
+    private int ReadHat(MappingProfile profile, IReadOnlyDictionary<string, DeviceState> devices)
     {
-        // Prefer a physical POV/hat when it is deflected.
         var binding = profile.Bindings.FirstOrDefault(b => b.Target == G920Control.Hat);
         if (binding is not null)
         {
@@ -234,7 +393,10 @@ public sealed class MapperEngine
             }
         }
 
-        // Pads without a hat: synthesize 8-way DI hat from cardinal button (or axis→button) bindings.
+        // Custom bindings targeting Hat: when toggled on, treat as centered-N (0) so games see a hat press.
+        if (AnyCustomToggle(profile, G920Control.Hat))
+            return 0;
+
         var up = ReadButton(profile, devices, G920Control.HatUp);
         var down = ReadButton(profile, devices, G920Control.HatDown);
         var left = ReadButton(profile, devices, G920Control.HatLeft);
@@ -245,7 +407,6 @@ public sealed class MapperEngine
         if (!up && !down && !left && !right)
             return -1;
 
-        // DI hat: 0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
         if (up && right) return 1;
         if (down && right) return 3;
         if (down && left) return 5;
@@ -257,11 +418,6 @@ public sealed class MapperEngine
         return -1;
     }
 
-    /// <summary>
-    /// Resolve a bound source to a live device state. Prefers instance GUID; if that
-    /// device is gone, fall back to any device whose id was already remapped onto the
-    /// source (ProductId remaps happen in <c>DeviceBindingResolver</c> before Map).
-    /// </summary>
     private static bool TryGetDevice(
         SourceRef source,
         IReadOnlyDictionary<string, DeviceState> devices,
@@ -271,7 +427,6 @@ public sealed class MapperEngine
             devices.TryGetValue(source.DeviceId, out device!))
             return true;
 
-        // Last resort: single attached device with matching state.DeviceId already updated.
         device = null!;
         return false;
     }

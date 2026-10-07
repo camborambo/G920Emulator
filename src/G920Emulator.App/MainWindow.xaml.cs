@@ -30,7 +30,7 @@ public partial class MainWindow : Window
     private readonly ProfileStore _profiles = new();
     private readonly DiagnosticsDebugSession _debugSession = new();
     private readonly ObservableCollection<DeviceRow> _devices = [];
-    private readonly ObservableCollection<BindingRow> _bindings = [];
+    private readonly ObservableCollection<object> _bindings = [];
     private readonly DispatcherTimer _uiTimer;
     private readonly DispatcherTimer _ffbProfilePushTimer;
     private MappingProfile _profile = MappingProfile.CreateDefault();
@@ -2053,6 +2053,7 @@ public partial class MainWindow : Window
         _profiles.ApplyLinkedFfbProfile(_profile);
         if (_devices.Count > 0)
             DeviceBindingResolver.RemapProfile(_profile, _devices.Select(d => d.Info).ToList());
+        _bridge.ResetCustomBindingState();
         _bridge.Profile = _profile;
         GainSlider.Value = _profile.FfbGain;
         InvertFfbCheck.IsChecked = _profile.FfbInvert;
@@ -2442,21 +2443,35 @@ public partial class MainWindow : Window
 
     private void RebuildBindingRows()
     {
-        var selected = (BindingList.SelectedItem as BindingRow)?.Target;
+        var selectedStandard = (BindingList.SelectedItem as StandardBindingRow)?.Target;
+        var selectedCustomId = (BindingList.SelectedItem as CustomBindingRow)?.Binding.Id;
         _bindings.Clear();
         foreach (var control in G920ControlInfo.UiOrder)
         {
             var binding = _profile.GetOrCreate(control);
-            _bindings.Add(new BindingRow(control, binding, ResolveDeviceName, () => _profile.GearReverseOutputButton));
+            _bindings.Add(new StandardBindingRow(control, binding, ResolveDeviceName, () => _profile.GearReverseOutputButton));
         }
-        if (selected is G920Control target)
-            BindingList.SelectedItem = _bindings.FirstOrDefault(b => b.Target == target);
+
+        _profile.CustomBindings ??= [];
+        foreach (var custom in _profile.CustomBindings)
+            _bindings.Add(new CustomBindingRow(custom, ResolveDeviceName));
+
+        if (selectedCustomId is not null)
+        {
+            BindingList.SelectedItem = _bindings.OfType<CustomBindingRow>()
+                .FirstOrDefault(b => b.Binding.Id == selectedCustomId);
+        }
+        else if (selectedStandard is G920Control target)
+        {
+            BindingList.SelectedItem = _bindings.OfType<StandardBindingRow>()
+                .FirstOrDefault(b => b.Target == target);
+        }
     }
 
     private void ClearAllBindings_Click(object sender, RoutedEventArgs e)
     {
         var confirm = MessageBox.Show(
-            "Clear all G920 bindings in this profile?\n\nInvert and deadzone settings are also reset. Save afterward if you want to keep the change.",
+            "Clear all G920 bindings and custom bindings in this profile?\n\nInvert and deadzone settings are also reset. Save afterward if you want to keep the change.",
             "Clear all bindings",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
@@ -2469,12 +2484,68 @@ public partial class MainWindow : Window
                 continue;
             binding.ClearSources();
             binding.Invert = false;
+            binding.UseAxisAsButton = false;
             binding.Deadzone = 0;
+            binding.AxisStart = 0;
+            binding.AxisEnd = 1;
         }
 
+        _profile.CustomBindings = [];
+        _bridge.ResetCustomBindingState();
         _bridge.Profile = _profile;
         RebuildBindingRows();
         StatusText.Text = "All bindings cleared.";
+    }
+
+    private void AddCustomBinding_Click(object sender, RoutedEventArgs e)
+    {
+        var custom = new CustomBinding { Name = "Custom", IsFnModifier = false, Toggle = false };
+        if (!OpenCustomBindingWizard(custom, isNew: true))
+            return;
+        _profile.CustomBindings ??= [];
+        _profile.CustomBindings.Add(custom);
+        _bridge.ResetCustomBindingState();
+        _bridge.Profile = _profile;
+        RebuildBindingRows();
+        BindingList.SelectedItem = _bindings.OfType<CustomBindingRow>()
+            .FirstOrDefault(b => b.Binding.Id == custom.Id);
+        StatusText.Text = $"Added custom binding '{custom.Name}'.";
+    }
+
+    private void RemoveCustomBinding_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: CustomBindingRow row })
+            return;
+        e.Handled = true;
+        var name = row.Binding.Name;
+        _profile.CustomBindings?.RemoveAll(c => c.Id == row.Binding.Id);
+        _bridge.ResetCustomBindingState();
+        _bridge.Profile = _profile;
+        RebuildBindingRows();
+        StatusText.Text = $"Removed custom binding '{name}'.";
+    }
+
+    private bool OpenCustomBindingWizard(CustomBinding custom, bool isNew)
+    {
+        _bindingDialogOpen = true;
+        try
+        {
+            var dlg = new CustomBindingWindow(
+                custom,
+                () => _bridge.PollForUi(),
+                () => _bridge.RefreshDevices(),
+                ResolveDeviceName,
+                ResolveProductId)
+            {
+                Owner = this,
+                Title = isNew ? "Add custom binding" : "Edit custom binding",
+            };
+            return dlg.ShowDialog() == true && dlg.Applied;
+        }
+        finally
+        {
+            _bindingDialogOpen = false;
+        }
     }
 
     private string ResolveDeviceName(string? id)
@@ -2538,16 +2609,15 @@ public partial class MainWindow : Window
         if (Interlocked.CompareExchange(ref _livePreviewPollInFlight, 1, 0) != 0)
             return;
 
-        var profile = _profile;
         _ = Task.Run(() =>
         {
             try
             {
                 if (_bridgeBusy || _bridge.IsRunning)
                     return;
-                // PollForUi overlays pinned FFB (e.g. FFB debug Attach without bridge Start).
-                var devices = _bridge.PollForUi();
-                var mapped = new MapperEngine().Map(profile, devices);
+                // Same MapperEngine as the bridge so custom Toggle latches persist.
+                var mapped = _bridge.MapForUi();
+                var devices = _bridge.LatestDevices;
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
                     if (!_bridgeBusy && !_bridge.IsRunning)
@@ -3339,16 +3409,36 @@ public partial class MainWindow : Window
         if (e.OriginalSource is not DependencyObject source) return;
         if (FindAncestor<System.Windows.Controls.Primitives.Thumb>(source) is not null) return;
         if (FindAncestor<Slider>(source) is not null) return;
+        if (FindAncestor<Button>(source) is not null) return;
 
         var item = FindAncestor<ListBoxItem>(source);
-        if (item?.DataContext is not BindingRow row) return;
+        if (item?.DataContext is CustomBindingRow customRow)
+        {
+            if (!OpenCustomBindingWizard(customRow.Binding, isNew: false))
+                return;
+            _bridge.ResetCustomBindingState();
+            _bridge.Profile = _profile;
+            RebuildBindingRows();
+            BindingList.SelectedItem = _bindings.OfType<CustomBindingRow>()
+                .FirstOrDefault(b => b.Binding.Id == customRow.Binding.Id);
+            StatusText.Text = $"Updated custom binding '{customRow.Binding.Name}'.";
+            return;
+        }
 
+        if (item?.DataContext is not StandardBindingRow row) return;
         OpenBindDialog(row.Target);
     }
 
-    private void DeadzoneSlider_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private void AxisRangeSlider_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // Keep focus on the slider so dragging does not open the bind dialog.
+        // Keep focus on the range control so dragging does not open the bind dialog.
+        e.Handled = false;
+        if (sender is UIElement el)
+            el.Focus();
+    }
+
+    private void ActivateOnAxisSlider_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
         e.Handled = false;
         if (sender is Slider slider)
             slider.Focus();
@@ -3395,7 +3485,8 @@ public partial class MainWindow : Window
             else
             {
                 RebuildBindingRows();
-                BindingList.SelectedItem = _bindings.FirstOrDefault(b => b.Target == target);
+                BindingList.SelectedItem = _bindings.OfType<StandardBindingRow>()
+                    .FirstOrDefault(b => b.Target == target);
             }
             var sources = binding.EffectiveSources;
             var label = G920ControlInfo.DisplayName(target);
@@ -4400,89 +4491,13 @@ public partial class MainWindow : Window
             $"{Info.Kind}: {Info.Name}  [{Info.AxisCount} axes, {Info.ButtonCount} btn{(Info.SupportsForceFeedback ? ", FFB" : "")}]";
     }
 
-    private sealed class BindingRow : INotifyPropertyChanged
-    {
-        private readonly Binding _binding;
-        private readonly Func<string?, string> _nameResolver;
-
-        private readonly Func<int> _gearReverseButton;
-
-        public BindingRow(
-            G920Control target,
-            Binding binding,
-            Func<string?, string> nameResolver,
-            Func<int> gearReverseButton)
-        {
-            Target = target;
-            _binding = binding;
-            _nameResolver = nameResolver;
-            _gearReverseButton = gearReverseButton;
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public G920Control Target { get; }
-        public string TargetName => G920ControlInfo.DisplayName(Target);
-
-        private bool IsAxisTarget => G920ControlInfo.IsAxis(Target);
-        private bool HasAxisSource => _binding.EffectiveSources.Any(s => !string.IsNullOrEmpty(s.Axis));
-
-        public Visibility DeadzoneVisibility =>
-            IsAxisTarget || HasAxisSource ? Visibility.Visible : Visibility.Collapsed;
-
-        public string DeadzoneLabel => IsAxisTarget ? "Deadzone" : "Threshold";
-        public double DeadzoneMinimum => IsAxisTarget ? 0 : 0.05;
-        public double DeadzoneMaximum => IsAxisTarget ? 0.5 : 0.95;
-        public string DeadzoneToolTip => IsAxisTarget
-            ? "Ignore small axis movement near rest"
-            : "Axis→button activates at or above this threshold";
-
-        public double Deadzone
-        {
-            get
-            {
-                if (IsAxisTarget) return _binding.Deadzone;
-                return _binding.Deadzone > 0.001 ? _binding.Deadzone : 0.5;
-            }
-            set
-            {
-                var clamped = Math.Clamp(value, DeadzoneMinimum, DeadzoneMaximum);
-                if (Math.Abs(_binding.Deadzone - clamped) < 0.0001) return;
-                _binding.Deadzone = clamped;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Deadzone)));
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DeadzoneText)));
-            }
-        }
-
-        public string DeadzoneText => $"{Deadzone:P0}";
-
-        public string SourceText
-        {
-            get
-            {
-                var outBtn = Target == G920Control.GearR
-                    ? $" → btn {Math.Clamp(_gearReverseButton() <= 0 ? 19 : _gearReverseButton(), 1, 19)}"
-                    : "";
-                var sources = _binding.EffectiveSources;
-                if (sources.Count == 0) return "(click to bind)" + outBtn;
-                var inv = _binding.Invert ? " · inverted" : "";
-                var thr = HasAxisSource && !IsAxisTarget ? $" · thr {Deadzone:P0}" : "";
-                if (sources.Count == 1)
-                    return FormatSource(sources[0], _nameResolver, IsAxisTarget) + thr + inv + outBtn;
-                var parts = sources.Select(s => FormatSource(s, _nameResolver, IsAxisTarget));
-                return string.Join(" + ", parts) + thr + inv + outBtn;
-            }
-        }
-    }
-
     private static string FormatSource(SourceRef source, Func<string?, string> nameResolver, bool axisTarget)
     {
         var dev = nameResolver(source.DeviceId);
         if (source.Axis is not null)
         {
-            var mode = axisTarget
-                ? "axis"
-                : source.AxisFromCenter ? "axis→btn·center" : "axis→btn";
+            // FFB/custom helpers still use axisTarget; standard button rows use BindingListRows.
+            var mode = axisTarget ? "axis" : "axis→btn";
             return $"{dev} · {source.Axis} ({mode})";
         }
         if (source.IsHat) return $"{dev} · hat";

@@ -10,7 +10,7 @@ Update this page when you validate a new setup.
 |--------|------|--------|
 | DualSense (PS5) | Steering / buttons / axes source | Bound into virtual G920; no DualSense-side FFB |
 | Fanatec Podium Wheel Base DD2 | FFB output (+ can be used as DI input) | Constant-force apply via shared InputHub acquire |
-| Simucube | FFB output (+ can be used as DI input) | Validated with **NFS Unbound** (spring + race CF / Triangle / Damper) and **Forza Horizon 5 & 6** FFB. DI apply runs on a side thread so slower `SetParameters` does not stall input. |
+| Simucube | FFB output (+ can be used as DI input) | DI apply runs on a side thread so slower `SetParameters` does not stall input. |
 
 ## Wheel bases (FFB output)
 
@@ -19,7 +19,7 @@ Same DirectInput constant-force path for all of these:
 | Device family | Status |
 |---------------|--------|
 | Fanatec (Podium / DD) | **Tested** (Podium Wheel Base DD2) |
-| Simucube | **Tested** (NFS Unbound, Forza Horizon 5 & 6) |
+| Simucube | **Tested** |
 | Simagic | Designed for |
 | Moza | Designed for |
 | Thrustmaster / Logitech / generic DI FFB | Designed for |

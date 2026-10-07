@@ -1,10 +1,11 @@
 <Window x:Class="G920Emulator.App.BindInputWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:G920Emulator.App.Controls"
         Title="Assign input"
         Icon="pack://application:,,,/Assets/app.ico"
-        Height="520" Width="520"
-        MinHeight="440" MinWidth="480"
+        Height="560" Width="520"
+        MinHeight="480" MinWidth="480"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#121418"
@@ -35,39 +36,69 @@
       <Button Style="{StaticResource PrimaryButton}" Content="OK" Click="Ok_Click" Margin="0" IsDefault="True"/>
     </StackPanel>
 
-    <StackPanel>
-      <TextBlock x:Name="TitleText" FontSize="20" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
-      <TextBlock x:Name="HintText" Opacity="0.7" Margin="0,6,0,12" TextWrapping="Wrap"/>
-      <TextBlock x:Name="ListeningText" Opacity="0.85" Margin="0,0,0,8"/>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel>
+        <TextBlock x:Name="TitleText" FontSize="20" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
+        <TextBlock x:Name="HintText" Opacity="0.7" Margin="0,6,0,12" TextWrapping="Wrap"/>
+        <TextBlock x:Name="ListeningText" Opacity="0.85" Margin="0,0,0,8"/>
 
-      <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6">
-        <DockPanel>
-          <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Remove selected" Click="RemoveSelected_Click"
-                  Margin="10,0,0,0" VerticalAlignment="Top"/>
-          <ListBox x:Name="SourcesList" MinHeight="120" DisplayMemberPath="Display"/>
-        </DockPanel>
-      </Border>
+        <Border Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Style="{StaticResource AppButton}" Content="Remove selected" Click="RemoveSelected_Click"
+                    Margin="10,0,0,0" VerticalAlignment="Top"/>
+            <ListBox x:Name="SourcesList" MinHeight="120" DisplayMemberPath="Display"
+                     SelectionChanged="SourcesList_SelectionChanged"/>
+          </DockPanel>
+        </Border>
 
-      <StackPanel x:Name="GearReversePanel" Visibility="Collapsed" Margin="0,14,0,0">
-        <TextBlock Text="G920 reverse button" FontWeight="SemiBold" Margin="0,0,0,4"/>
-        <ComboBox x:Name="GearReverseButtonCombo" DisplayMemberPath="Label"/>
-        <TextBlock Opacity="0.65" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
-                   Text="Most games use button 19 (official G920 + Driving Force Shifter). NFS Unbound uses button 12."/>
+        <StackPanel x:Name="GearReversePanel" Visibility="Collapsed" Margin="0,14,0,0">
+          <TextBlock Text="G920 reverse button" FontWeight="SemiBold" Margin="0,0,0,4"/>
+          <ComboBox x:Name="GearReverseButtonCombo" DisplayMemberPath="Label"/>
+          <TextBlock Opacity="0.65" FontSize="12" TextWrapping="Wrap" Margin="0,6,0,0"
+                     Text="Most games use button 19 (official G920 + Driving Force Shifter). NFS Unbound uses button 12."/>
+        </StackPanel>
+
+        <CheckBox x:Name="InvertCheck" Content="Invert"
+                  ToolTip="Invert this binding (for axes, rest-high triggers / pedals)."/>
+
+        <!-- Analog axis targets: usable throw start/end -->
+        <StackPanel x:Name="AxisRangePanel" Margin="0,12,0,0" Visibility="Collapsed">
+          <DockPanel>
+            <TextBlock Text="Axis range" Opacity="0.7" VerticalAlignment="Center"/>
+            <TextBlock x:Name="AxisRangeValueText" DockPanel.Dock="Right" Width="72" Text="0%–100%"
+                       HorizontalAlignment="Right" VerticalAlignment="Center"/>
+          </DockPanel>
+          <controls:DualRangeSlider x:Name="AxisRangeSlider" Margin="0,8,0,0" Height="22"
+                                    Minimum="0" Maximum="1" LowerValue="0" UpperValue="1"
+                                    TickFrequency="0.01" IsSnapToTickEnabled="True"
+                                    ToolTip="Usable axis throw (after Invert). Values below Start map to rest; above End map to full."
+                                    LowerValueChanged="AxisRangeSlider_RangeChanged"
+                                    UpperValueChanged="AxisRangeSlider_RangeChanged"/>
+          <TextBlock Opacity="0.6" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
+                     Text="Drag the handles to set where the axis starts and ends responding."/>
+        </StackPanel>
+
+        <!-- Button targets with an axis source: live meter + Activate on Axis threshold -->
+        <StackPanel x:Name="AxisDetectedPanel" Margin="0,10,0,0" Visibility="Collapsed">
+          <DockPanel Margin="0,0,0,8">
+            <TextBlock Text="Live axis" Width="110" Opacity="0.7" VerticalAlignment="Center"/>
+            <TextBlock x:Name="LiveAxisValueText" DockPanel.Dock="Right" Width="48" Text="-"
+                       HorizontalAlignment="Right" VerticalAlignment="Center" Opacity="0.85"/>
+            <Slider x:Name="LiveAxisSlider" Minimum="0" Maximum="1" Value="0"
+                    Margin="10,0" IsHitTestVisible="False" Focusable="False"
+                    ToolTip="Live position of the selected axis source"/>
+          </DockPanel>
+          <DockPanel>
+            <TextBlock Text="Activate on Axis" Width="110" Opacity="0.7" VerticalAlignment="Center"/>
+            <TextBlock x:Name="AxisThresholdValueText" DockPanel.Dock="Right" Width="48" Text="50%"
+                       HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            <Slider x:Name="AxisThresholdSlider" Minimum="0.05" Maximum="0.95" Value="0.5"
+                    Margin="10,0" TickFrequency="0.01"
+                    ValueChanged="AxisThresholdSlider_ValueChanged"
+                    ToolTip="Button presses when the axis (after Invert) reaches this %"/>
+          </DockPanel>
+        </StackPanel>
       </StackPanel>
-
-      <CheckBox x:Name="InvertCheck" Content="Invert"/>
-      <StackPanel x:Name="DeadzonePanel" Margin="0,12,0,0">
-        <DockPanel>
-          <TextBlock x:Name="DeadzoneLabelText" Text="Deadzone" Opacity="0.7" VerticalAlignment="Center"/>
-          <TextBlock x:Name="DeadzoneValueText" DockPanel.Dock="Right" Width="48" Text="0%"
-                     HorizontalAlignment="Right" VerticalAlignment="Center"/>
-          <Slider x:Name="DeadzoneSlider" Minimum="0" Maximum="0.5" Value="0"
-                  Margin="10,0" TickFrequency="0.01"
-                  ValueChanged="DeadzoneSlider_ValueChanged"/>
-        </DockPanel>
-        <TextBlock x:Name="DeadzoneHintText" Opacity="0.6" FontSize="12" Margin="0,6,0,0" TextWrapping="Wrap"
-                   Text="When binding an axis to this button, activation uses the threshold above."/>
-      </StackPanel>
-    </StackPanel>
+    </ScrollViewer>
   </DockPanel>
 </Window>

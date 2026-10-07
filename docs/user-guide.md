@@ -108,16 +108,30 @@ On the **Input** tab, click a G920 control in **G920 bindings** to **Assign** (c
 | Target kind | Capture |
 |-------------|---------|
 | Axis (Steering, Throttle, Brake, Clutch) | Move an axis → shown as `(axis)` |
-| Button | Press a button, or deflect an axis → `(axis→btn)` / `(axis→btn·center)` with threshold |
+| Button | Press a button, or move an axis → `(axis→btn)` with **Activate on Axis** % (auto digital press) |
 | Directional pad (hat) | Move a POV hat / D-pad |
 | D-pad Up / Down / Left / Right | Press a button (or axis→button) - for pads with no POV hat; diagonals work when two directions are held |
 
 Tips:
 
-- **Invert** and **deadzone** / **threshold** are per binding.
-- **Clear all** wipes every binding in the current profile.
+- **Invert** is per binding.
+- **Axis range** (start/end) is for axis→axis only — remaps the usable throw.
+- **Activate on Axis** is for axis→button only — the button presses when the axis reaches that %.
+- **Clear all** wipes every standard and custom binding in the current profile.
 - Axis→button is for mapping pedals/triggers onto digital G920 buttons.
 - Binding changes apply **live** - you do **not** need to Stop and Start the bridge after rebinding. The running bridge remaps every frame from the current profile.
+
+### Custom bindings (+ FN)
+
+After **Gear 6**, use **Add Custom Binding**:
+
+- Name the mapping and pick a **G920 target**.
+- **Toggle** checkbox (optional modifier): on = press latches on/off; off = hold-to-press.
+- **Bind Button** opens a listen popup for the input (required).
+- **Bind FN** is optional; if set, the button only fires while that FN key is held.
+- Axes become digital presses automatically; set **Activate on Axis** in the bind popup.
+
+Custom rows appear under the standard layout. Click a row to edit; **X** removes it.
 
 ### H-pattern gears
 
@@ -160,7 +174,7 @@ Slider ranges and probing tips: [force-feedback.md](force-feedback.md).
 3. Click **Start** (the button becomes **Stop** while the bridge is running).
 4. Launch the game and select the Logitech G920 / wheel device.
 
-You can change bindings (and tweak deadzone/invert) while the bridge is running; they take effect immediately. Restart the bridge only when you change something that attaches at Start (for example the **FFB output device**) or after driver/dependency changes.
+You can change bindings (and tweak Invert, **Axis range**, or **Activate on Axis**) while the bridge is running; they take effect immediately. Restart the bridge only when you change something that attaches at Start (for example the **FFB output device**) or after driver/dependency changes.
 
 If **joy.cpl still lists the G920 but buttons stop updating** in-game, the virtual node can be orphaned or a physical pad may have changed instance id. The bridge re-enumerates input every ~1.5s, remaps by product id, and recreates the WinUHid device only after about 1 s of hard submit failures (recreating it drops the game's force feedback effects). `ERROR_NOT_READY` from WinUHid just means Windows hasn't asked for the next report yet; it is normal and not counted as a failure. Prefer **Stop → Start** if the status bar shows a recover failure.
 

@@ -42,26 +42,45 @@ public static class DeviceBindingResolver
         foreach (var binding in profile.Bindings)
         {
             binding.Normalize();
-            foreach (var source in binding.Sources)
+            changed += RemapSources(binding.Sources, byInstance, devices);
+        }
+
+        profile.CustomBindings ??= [];
+        foreach (var custom in profile.CustomBindings)
+        {
+            custom.Normalize();
+            changed += RemapSources(custom.Sources, byInstance, devices);
+            changed += RemapSources(custom.FnSources ?? [], byInstance, devices);
+        }
+
+        return changed;
+    }
+
+    private static int RemapSources(
+        List<SourceRef> sources,
+        Dictionary<string, InputDeviceInfo> byInstance,
+        IReadOnlyList<InputDeviceInfo> devices)
+    {
+        var changed = 0;
+        foreach (var source in sources)
+        {
+            if (string.IsNullOrWhiteSpace(source.DeviceId))
+                continue;
+
+            if (byInstance.TryGetValue(source.DeviceId, out var live))
             {
-                if (string.IsNullOrWhiteSpace(source.DeviceId))
-                    continue;
-
-                if (byInstance.TryGetValue(source.DeviceId, out var live))
-                {
-                    if (string.IsNullOrWhiteSpace(source.ProductId))
-                        source.ProductId = live.ProductId;
-                    continue;
-                }
-
-                var match = FindMatch(devices, source.DeviceId, source.ProductId, preferFfb: false);
-                if (match is null)
-                    continue;
-
-                source.DeviceId = match.Id;
-                source.ProductId = match.ProductId;
-                changed++;
+                if (string.IsNullOrWhiteSpace(source.ProductId))
+                    source.ProductId = live.ProductId;
+                continue;
             }
+
+            var match = FindMatch(devices, source.DeviceId, source.ProductId, preferFfb: false);
+            if (match is null)
+                continue;
+
+            source.DeviceId = match.Id;
+            source.ProductId = match.ProductId;
+            changed++;
         }
 
         return changed;

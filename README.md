@@ -27,8 +27,8 @@ Game FFB effects  →  g920ffb.dll    →  Physical base
 | Category | Tested |
 |----------|--------|
 | Input | DualSense |
-| FFB bases | **Fanatec Podium Wheel Base DD2** (Heat / Unbound), **Simucube** (Unbound / Forza Horizon 5 & 6) |
-| Games | **NFS Heat**, **NFS Unbound**, **Forza Horizon 5**, **Forza Horizon 6** (FFB on Simucube) |
+| FFB bases | **Fanatec Podium Wheel Base DD2**, **Simucube** |
+| Games | **NFS Heat**, **NFS Unbound**, **Forza Horizon 5**, **Forza Horizon 6** |
 
 **Gear R:** Heat uses default button **19**. Unbound needs Bind Gear R → **12**. Full matrix: [compatibility](docs/compatibility.md).
 
@@ -89,6 +89,10 @@ Many racing games only expose a full Logitech wheel profile for the G920. This a
 ### Input mapping
 
 Bind axes, buttons, POV hats, and **D-pad Up/Down/Left/Right** (for pads without a hat), including axis-to-button. H-pattern gears **R** and **1-6** map to the official G920 shifter buttons (R defaults to **19**; Unbound needs **12**). Changes apply while the bridge is running - no restart needed after rebinding.
+
+- **Axis range** (start/end) on axis→axis binds remaps the usable throw.
+- **Activate on Axis** on axis→button binds sets the % where the digital press fires.
+- **Custom bindings** (after Gear 6): Binding Wizard with **Bind Button**, optional **Bind FN**, and a **Toggle** checkbox (hold vs latch).
 
 ### Force feedback
 

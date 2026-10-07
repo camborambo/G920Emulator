@@ -260,6 +260,16 @@ public static class G920ControlInfo
     public static bool IsButton(G920Control control) =>
         ButtonControls.Contains(control) || control == G920Control.Hat;
 
+    /// <summary>G920 targets allowed for named custom bindings (not axes).</summary>
+    public static readonly G920Control[] CustomBindingTargets =
+    [
+        G920Control.Hat,
+        ..ButtonControls,
+    ];
+
+    public static bool IsCustomBindingTarget(G920Control control) =>
+        CustomBindingTargets.Contains(control);
+
     public static bool IsFfbNudge(G920Control control) => FfbNudgeControls.Contains(control);
 
     /// <summary>Telemetry arcade holds bound on the input profile (same Bind dialog as FFB).</summary>
