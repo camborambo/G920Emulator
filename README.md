@@ -65,12 +65,13 @@ Binding changes apply while the bridge is running — no need to Stop/Start afte
 Profiles are **not** inside the install / zip folder. On first run the app creates:
 
 ```
-%AppData%\G920Emulator\profiles\       ← input bindings (Default.json + your Save / Save As)
-%AppData%\G920Emulator\ffb-profiles\   ← force-feedback presets (Raw + your Save / Save As)
+%AppData%\G920Emulator\profiles\              ← input bindings (Default.json + your Save / Save As)
+%AppData%\G920Emulator\ffb-profiles\          ← force-feedback presets (Raw + your Save / Save As)
+%AppData%\G920Emulator\telemetry-profiles\    ← SimHub simulation presets (Save / Save As)
 %AppData%\G920Emulator\settings.json
 ```
 
-**Input profiles** and **FFB profiles** are separate. Default FFB is **Raw** (exact game mix). Adjust master / per-effect gains / output feel / torque shaping, then Save / Save As under Force feedback; each input profile stores which FFB profile it links to.
+**Input**, **FFB**, and **Telemetry** profiles are separate. Default FFB is **Raw** (exact game mix). Adjust master / per-effect gains / output feel / torque shaping, then Save / Save As under Force feedback; each input profile stores which FFB profile it links to. Telemetry host/port/rate stay in `settings.json`.
 
 That way unzipping a newer release over `G920Emulator\` does not wipe or replace your buttons or feel. The status bar shows this path when you refresh devices.
 
@@ -86,9 +87,9 @@ Details: [user guide → Profiles](docs/user-guide.md#profiles).
 - H-pattern gears **R, 1–6** (R defaults to button **19** / LGS; pick **12** in Bind Gear R for Unbound)
 - Force feedback via our DirectInput OEM driver (`g920ffb.dll`) — not Logitech HID++ — with separate FFB profiles, per-effect gains, optional feel and torque-shaping sliders, and in-car **Bind** buttons
 - **FFB Debug Overlay**, **Telemetry Debug Overlay**, and **Effect Changes Overlay** for live inputs / FFB / SimHub packet and on-screen slider toasts while you drive
-- **Telemetry** tab: UDP feed to SimHub for games with no native telemetry (simulated dash + G-force + FFB-derived rumble/impact), plus optional **G920 Emulator RPM** SimHub plugin so built-in ShakeIt Engine vibrations works
+- **Telemetry** tab: UDP feed to SimHub for games with no native telemetry — Blocklayer-style gear chart (ratios / Diff / Tire / Redline), arcade Handbrake & NOS binds, simulated dash + G-force + FFB-derived rumble/impact, plus optional **G920 Emulator RPM** SimHub plugin for ShakeIt Engine vibrations
 - Optional GitHub update check that downloads the new zip to Downloads
-- JSON input + FFB profiles in AppData (see above)
+- JSON input + FFB + telemetry profiles in AppData (see above)
 
 ## Requirements
 
@@ -136,7 +137,7 @@ User bindings and FFB presets live in **`%AppData%\G920Emulator\`** at runtime �
 
 ## Version notes
 
-Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.6**.
+Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.7**.
 
 ## Support
 

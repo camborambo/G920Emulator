@@ -1,7 +1,7 @@
 <Project>
   <!-- Bump Version here for a release. All src projects inherit it. -->
   <PropertyGroup>
-    <Version>0.2.6</Version>
+    <Version>0.2.7</Version>
     <InformationalVersion>$(Version)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Product>G920 Emulator</Product>

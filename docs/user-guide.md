@@ -20,7 +20,7 @@ Approve UAC when prompted (WinUHid requires elevation to open the device).
 
 ## Updating
 
-The window title and status bar show the app version (for example **v0.2.6**). With **Settings → Check for GitHub updates** on (default), a banner appears when a newer **published** GitHub release exists.
+The window title and status bar show the app version (for example **v0.2.7**). With **Settings → Check for GitHub updates** on (default), a banner appears when a newer **published** GitHub release exists.
 
 1. Click **Update** — the zip downloads to **Downloads** and that folder opens.
 2. Close G920 Emulator if it is running.
@@ -69,7 +69,13 @@ Many arcade / console-port titles (Need for Speed Heat and Unbound included) hav
 2. On the **Telemetry** tab, click **Register with SimHub** (writes `%LocalAppData%\SimHub\ExternalSims\Registrations\{id}.simlink` pointing at `simhub\G920Telemetry.simdef` next to `G920Emulator.exe`, and installs **`G920Emulator.SimHubPlugin.dll`** into the SimHub folder so built-in ShakeIt **Engine vibrations** gets the same RPM capability native games like Forza use). **Remove registration** deletes the link and disables/removes that plugin; restart SimHub so the tile and icon drop, then Register again after changing `simhub/logo.png`.
 3. Restart SimHub, then activate **G920 Emulator (simulated)**. Match UDP **port** (default **20778**) and host **127.0.0.1**. Do not pick this sim for titles that already have a native SimHub plugin (Forza, and so on). Need for Speed Heat / Unbound are listed as detection processes only so SimHub can switch to this definition if those EXEs are running — they still have no real telemetry. Confirm **G920 Emulator RPM** is enabled under SimHub → Settings → Plugins.
 4. Enable **Send telemetry while the bridge is running**, **Start** the bridge, launch the game.
-5. Optional **Telemetry profile** tuning: gear ratios / Diff / Tire / Redline, Live speed, Accel·Brake·Coast use **MPH** (and **MPH/s**) by default. Simulated **RPM follows speed within the current gear** (upshift drops RPM). **Rev-limiter** / **Limiter rate** hard-cut when a gear is pinned at top speed. Enable **Settings → Telemetry km/h** for metric. Stored/sent to SimHub as **km/h** (rates as km/h/s).
+5. Optional **Telemetry profile** tuning (Save / Save as / Default / Delete under `telemetry-profiles`):
+
+   - **Gearing (Blocklayer chart)** — absolute ratios for gears 1–6 (6th editable, e.g. 0.56), **Diff / final drive**, **Tire** diameter, and **Redline** (SimHub `EngineShiftRpm`). Each gear’s top speed uses the blocklayer.com “Shift At” formula: `(tire × Redline) / (336 × gear × diff)`. Defaults land near 47 / 68 / 99 / 141 / 168 / 252 MPH.
+   - **Live / Accel / Brake / Coast** — MPH (and MPH/s) by default; enable **Settings → Telemetry km/h** for metric. Values are stored and sent to SimHub as **km/h** (rates as km/h/s).
+   - **RPM** — follows speed within the current gear (upshift drops RPM). **Rev-limiter** / **Limiter rate** hard-cut when a gear is pinned at top speed (hysteresis, not a soft bounce).
+   - **Arcade buttons** — **Handbrake** and **NOS / Turbo** use the same **Bind** dialog as FFB (hardware button on the **input** profile) plus strength / boost sliders on the telemetry profile. Hold Handbrake to dump simulated speed; hold NOS to boost (still gear-capped). Live Telemetry shows Off / Held dots when active.
+   - **Engine / ShakeIt scales** — Engine (0–200%) for SimHub Engine vibrations force; SurfaceRumble / Impact / RoadLoad as before.
 
 Unbound still needs **Controller Vibration On** or periodic/CF magnitudes stay 0 (same as FFB).
 
