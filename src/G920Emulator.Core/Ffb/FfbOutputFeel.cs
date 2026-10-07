@@ -8,12 +8,12 @@ public sealed class FfbOutputFeel
 {
     /// <summary>
     /// Low-pass time constant in ms (0 = off). Higher = softer / less "raw" on DD bases.
-    /// Useful range ~0–40.
+    /// Useful range ~0-40.
     /// </summary>
     public double SmoothingMs { get; set; }
 
     /// <summary>
-    /// Soft-knee starts at this |torque| (0.50–1.00). 1.00 = off (no peak compression).
+    /// Soft-knee starts at this |torque| (0.50-1.00). 1.00 = off (no peak compression).
     /// </summary>
     public double PeakSoftStart { get; set; } = 1.0;
 
@@ -35,7 +35,7 @@ public sealed class FfbOutputFeel
     public double MaxSlewPerSecond { get; set; }
 
     /// <summary>
-    /// Cap on a single-frame step toward the target (0.05–1.00). 1.00 = allow full steps (off).
+    /// Cap on a single-frame step toward the target (0.05-1.00). 1.00 = allow full steps (off).
     /// </summary>
     public double MaxSpikeStep { get; set; } = 1.0;
 
@@ -51,21 +51,21 @@ public sealed class FfbOutputFeel
     /// </summary>
     public bool ForceCenterSpring { get; set; }
 
-    /// <summary>Max centering torque (0.05–1.00) of the forced spring.</summary>
+    /// <summary>Max centering torque (0.05-1.00) of the forced spring.</summary>
     public double CenterSpringStrength { get; set; } = 0.3;
 
     /// <summary>
-    /// Rim offset (fraction of full rotation from center, 0.05–0.50) where the forced
+    /// Rim offset (fraction of full rotation from center, 0.05-0.50) where the forced
     /// spring reaches full strength. Lower = stiffer near center.
     /// </summary>
     public double CenterSpringRange { get; set; } = 0.25;
 
-    /// <summary>Centering deadzone around center (0–0.05 of full rotation).</summary>
+    /// <summary>Centering deadzone around center (0-0.05 of full rotation).</summary>
     public double CenterSpringDeadzone { get; set; }
 
     /// <summary>
     /// Extra Constant Force flip on top of the driver's DI→app polarity fix.
-    /// Independent of Invert FFB. Off by default — leave off unless a specific
+    /// Independent of Invert FFB. Off by default - leave off unless a specific
     /// game/base still feels mirrored after the built-in conversion.
     /// </summary>
     public bool InvertConstantForce { get; set; }

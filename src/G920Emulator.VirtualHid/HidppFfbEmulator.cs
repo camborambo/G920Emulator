@@ -164,7 +164,7 @@ public sealed class HidppFfbEmulator
             else
             {
                 _lastFn = $"Err.feat{featureIndex}";
-                // Unknown feature — soft-success empty response keeps some hosts happier than 0xFF errors.
+                // Unknown feature - soft-success empty response keeps some hosts happier than 0xFF errors.
                 responseParams = [];
             }
 

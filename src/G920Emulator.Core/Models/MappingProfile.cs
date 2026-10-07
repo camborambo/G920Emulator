@@ -46,7 +46,7 @@ public sealed class MappingProfile
     }
 
     /// <summary>
-    /// Virtual G920 DI button asserted for Gear R (1–19).
+    /// Virtual G920 DI button asserted for Gear R (1-19).
     /// Default 19 = official G920 + Driving Force Shifter (LGS). Use 12 for NFS Unbound.
     /// </summary>
     public int GearReverseOutputButton { get; set; } = 19;
@@ -240,7 +240,7 @@ public sealed class SourceRef
     /// <summary>DirectInput instance GUID (can change across replugs / Windows resets).</summary>
     public string DeviceId { get; set; } = "";
 
-    /// <summary>DirectInput product GUID — stable identity used to remap <see cref="DeviceId"/>.</summary>
+    /// <summary>DirectInput product GUID - stable identity used to remap <see cref="DeviceId"/>.</summary>
     public string? ProductId { get; set; }
 
     public string? Axis { get; set; }

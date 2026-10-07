@@ -95,7 +95,7 @@ public sealed class BridgeService : IDisposable
     private Dictionary<string, float>? _lastFfbAxes01;
     private bool[]? _lastFfbButtons;
     private int _lastFfbHat = -1;
-    /// <summary>Queued physical CF target — applied on a side thread so Simucube DI
+    /// <summary>Queued physical CF target - applied on a side thread so Simucube DI
     /// SetParameters cannot stall virtual G920 axis submits.</summary>
     private float _ffbQueuedTorque;
     private int _ffbQueuedVersion;
@@ -135,7 +135,7 @@ public sealed class BridgeService : IDisposable
             lock (_gate)
             {
                 _profile = value;
-                // Bind-on-the-fly mutates the same profile instance — always rebuild the
+                // Bind-on-the-fly mutates the same profile instance - always rebuild the
                 // poll filter so newly bound device IDs are included next frame.
                 _pollDeviceIds = null;
                 _pollDeviceIdsForProfile = null;
@@ -271,7 +271,7 @@ public sealed class BridgeService : IDisposable
         AttachFfbFromProfile();
 
         // Lock-free report provider: WinUHid ReadReport must never wait on Bridge._gate
-        // (that deadlock freezes reports — joy.cpl still lists the device, buttons die).
+        // (that deadlock freezes reports - joy.cpl still lists the device, buttons die).
         if (!device.Start(() =>
             {
                 var snap = Volatile.Read(ref _callbackReport);
@@ -309,7 +309,7 @@ public sealed class BridgeService : IDisposable
         // Drop test FFB loops first so they are not ApplyTorque'ing during detach.
         try { _ffb.ClearTestOverride(); } catch { /* ignore */ }
 
-        // Brief wait only — never hang Stop on a stuck loop iteration.
+        // Brief wait only - never hang Stop on a stuck loop iteration.
         try { loop?.Wait(400); } catch { /* ignore */ }
         try { ffbLoop?.Wait(400); } catch { /* ignore */ }
         if (loop is { IsCompleted: false })
@@ -332,8 +332,8 @@ public sealed class BridgeService : IDisposable
 
         // CRITICAL: do not hold Bridge._gate across FFB Detach. Detach → RestoreNonExclusive
         // needs InputHub._gate; the loop (if still winding down) takes InputHub then Bridge
-        // — holding Bridge here deadlocks Stop and freezes the app.
-        // Cap DI detach — Unacquire/Reset can hang on some bases while the rim is moving.
+        // - holding Bridge here deadlocks Stop and freezes the app.
+        // Cap DI detach - Unacquire/Reset can hang on some bases while the rim is moving.
         var ffbTeardown = Task.Run(() =>
         {
         try { _ffb.Stop(); } catch { /* ignore */ }
@@ -355,7 +355,7 @@ public sealed class BridgeService : IDisposable
     /// <summary>Re-attach FFB output to the profile's selected physical device.</summary>
     public bool TryAttachFfb(out string status)
     {
-        // Must not hold _gate across RefreshDevices / DI Exclusive acquire — the bridge
+        // Must not hold _gate across RefreshDevices / DI Exclusive acquire - the bridge
         // loop takes InputHub then _gate; holding _gate here deadlocks and freezes
         // virtual G920 buttons until the process is restarted.
         AttachFfbFromProfile();
@@ -428,7 +428,7 @@ public sealed class BridgeService : IDisposable
     {
         var torque = cmd.Stop ? 0f : cmd.Torque;
         _ffb.NoteIncoming(torque);
-        // Queue — never block the WinUHid callback on physical DI SetParameters.
+        // Queue - never block the WinUHid callback on physical DI SetParameters.
         QueuePhysicalFfbTorque(torque);
     }
 
@@ -480,7 +480,7 @@ public sealed class BridgeService : IDisposable
             try
             {
                 var now = Environment.TickCount64;
-                // Re-enumerate off the hot path — GetDevices under the loop caused visible
+                // Re-enumerate off the hot path - GetDevices under the loop caused visible
                 // steering pauses on multi-device Simucube rigs (~every 1.5s before).
                 if (now - _lastInputRefreshTick >= InputRefreshIntervalMs &&
                     Interlocked.CompareExchange(ref _inputRefreshInFlight, 1, 0) == 0)
@@ -511,7 +511,7 @@ public sealed class BridgeService : IDisposable
                 lock (_gate) profile = _profile;
                 var pollIds = GetPollDeviceIds(profile);
 
-                // Only bound devices (+ pinned FFB cache) — never USB-poll unused pads/shifters.
+                // Only bound devices (+ pinned FFB cache) - never USB-poll unused pads/shifters.
                 var devices = _inputHub.Poll(pollIds);
                 devices = OverlayPinnedFfbAxes(devices, profile.FfbSourceDeviceId);
 
@@ -580,7 +580,7 @@ public sealed class BridgeService : IDisposable
 
                 // Prefer OEM EffectDriver shared memory (exact DI effect mix from the game).
                 // Fall back to HID++ emulator sampling when OEM driver isn't publishing.
-                // Physical DI apply runs on a side thread — never stall HID submits here.
+                // Physical DI apply runs on a side thread - never stall HID submits here.
                 var usedOem = false;
                 var oemStale = false;
                 if (OemFfbSharedMemory.TryRead(out var oemSnap, out var oemErr) && oemSnap.IsStale())
@@ -607,7 +607,7 @@ public sealed class BridgeService : IDisposable
                     OemFfbSharedMemory.WriteTypeGains(profile.FfbEffectGains);
                     OemFfbSharedMemory.WriteMixOptions(profile.FfbOutputFeel);
 
-                    // Game Torque + optional Aux rumble (Steam/etc.) — every OEM effect on
+                    // Game Torque + optional Aux rumble (Steam/etc.) - every OEM effect on
                     // the virtual G920 reaches the selected base regardless of host PC.
                     var combined = oemSnap.CombinedTorque;
                     var combinedPlaying = oemSnap.Playing || (oemSnap.AuxPlaying && !oemSnap.IsAuxStale());

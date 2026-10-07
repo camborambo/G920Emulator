@@ -18,11 +18,11 @@ public sealed class VirtualG920Device : IVirtualG920Device
 
     /// <summary>
     /// When true, each host HID++ write is appended to %TEMP%\g920-hidpp-ingress.log.
-    /// Off by default — enabled while the app status-bar Debug session is active.
+    /// Off by default - enabled while the app status-bar Debug session is active.
     /// </summary>
     public static bool LogHostIngress { get; set; }
 
-    // Include REV so COL01 is HID\VID_046D&PID_C262&REV_9601&Col01 — that does NOT match
+    // Include REV so COL01 is HID\VID_046D&PID_C262&REV_9601&Col01 - that does NOT match
     // G HUB logi_joy_hid.inf (exact HID\…&Col01). The Logitech filter as function driver
     // swallows HID++ FFB and never forwards WriteReport to VHF (writes stay 0).
     // DirectInput still keys OEMForceFeedback off VID/PID from the HID descriptor.
@@ -92,7 +92,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
     {
         Stop();
         // Previous Stop may still be inside WinUHidStopDevice (game held the device open).
-        // Wait longer before CreateDevice — a short wait caused "Start does nothing"/fail
+        // Wait longer before CreateDevice - a short wait caused "Start does nothing"/fail
         // right after Stop while Forza still had the old G920 open.
         try { _nativeTeardown?.Wait(8000); } catch { /* ignore */ }
         _nativeTeardown = null;
@@ -142,7 +142,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
 
             var config = new WinUHidNative.DeviceConfig
             {
-                // Feature + output reports — HID++ FAP may arrive as WriteReport or SetFeature.
+                // Feature + output reports - HID++ FAP may arrive as WriteReport or SetFeature.
                 SupportedEvents =
                     WinUHidNative.EventType.GetFeature |
                     WinUHidNative.EventType.SetFeature |
@@ -163,7 +163,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
             if (_device == IntPtr.Zero)
             {
                 // Leftover Disconnected VHF/Col01 from a previous Stop/crash often keeps
-                // InstanceID "G920Emulator" reserved — purge orphans and retry once.
+                // InstanceID "G920Emulator" reserved - purge orphans and retry once.
                 var firstErr = Marshal.GetLastWin32Error();
                 try { _nativeTeardown?.Wait(5000); } catch { /* ignore */ }
                 _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes();
@@ -196,7 +196,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
             G920OemRegistration.EnsureRegistered();
             G920DeviceIdentityFix.Apply(restartDevice: false);
 
-            // Confirm Col01 actually came online — Heat needs a live wheel node, not orphans.
+            // Confirm Col01 actually came online - Heat needs a live wheel node, not orphans.
             var present = false;
             for (var i = 0; i < 20; i++)
             {
@@ -215,13 +215,13 @@ public sealed class VirtualG920Device : IVirtualG920Device
                 if (LogiJoyHidBinder.IsCol01BoundToLogitech())
                 {
                     LogiJoyHidBinder.TryRemoveLogitechCol01();
-                    _hostPathHint = "WARN: logi_joy_hid was bound — removed so HID++ can reach WinUHid";
+                    _hostPathHint = "WARN: logi_joy_hid was bound - removed so HID++ can reach WinUHid";
                 }
                 else
                 {
                     _hostPathHint = present
                         ? "Microsoft HID path · virtual Col01 present"
-                        : "WARNING: virtual Col01 not present — games will not see a wheel";
+                        : "WARNING: virtual Col01 not present - games will not see a wheel";
                 }
 
                 G920OemRegistration.EnsureRegistered();
@@ -231,7 +231,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
             _gHubGuard.Start();
             _hostPathHint = present
                 ? "Virtual Col01 present"
-                : "WARNING: virtual Col01 not present — Stop/Start bridge";
+                : "WARNING: virtual Col01 not present - Stop/Start bridge";
 
             _running = true;
             LastError = present
@@ -307,7 +307,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
 
         if (type is WinUHidNative.EventType.ReadReport or WinUHidNative.EventType.GetFeature)
         {
-            // Always complete read events — even while stopping — or WinUHidStopDevice can hang.
+            // Always complete read events - even while stopping - or WinUHidStopDevice can hang.
             if (!_running)
             {
                 var idle = _lastReport.Length > 0 ? _lastReport : G920ReportBuilder.Build(new Core.Models.MappedG920State());
@@ -331,7 +331,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
                 return;
             }
 
-            // ReportId 0 (or unknown): any valid input report — use joystick state.
+            // ReportId 0 (or unknown): any valid input report - use joystick state.
             var report = _reportProvider?.Invoke() ?? _lastReport;
             WinUHidNative.WinUHidCompleteReadEvent(device, evtPtr, report, (uint)report.Length);
             return;
@@ -416,7 +416,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
     {
         // OnEvent completes reads while !_running so StopDevice should return. If the
         // game still holds the device open, WinUHidStopDevice can block for a long time
-        // — never wait forever on the Stop-bridge path (UI shows "Stopping…" forever).
+        // - never wait forever on the Stop-bridge path (UI shows "Stopping…" forever).
         if (_device != IntPtr.Zero)
         {
             var device = _device;
@@ -447,7 +447,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
                 try { if (descriptor.IsAllocated) descriptor.Free(); } catch { /* ignore */ }
                 try { if (hardwareIds.IsAllocated) hardwareIds.Free(); } catch { /* ignore */ }
                 try { if (instanceId.IsAllocated) instanceId.Free(); } catch { /* ignore */ }
-                // Orphan cleanup can run pnputil for seconds — always after Destroy.
+                // Orphan cleanup can run pnputil for seconds - always after Destroy.
                 // Skip on app exit: fire-and-forget pnputil survives Environment.Exit and
                 // pins the install folder (CWD) so Desktop\G920Emulator cannot be deleted.
                 if (!SuppressDeferredDeviceCleanup)

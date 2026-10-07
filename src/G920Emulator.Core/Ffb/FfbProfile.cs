@@ -22,7 +22,7 @@ public sealed class FfbProfile
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    /// <summary>Exact game feedback — all feel options off, gains at 100%.</summary>
+    /// <summary>Exact game feedback - all feel options off, gains at 100%.</summary>
     public static FfbProfile CreateRaw() => new()
     {
         Name = "Raw",

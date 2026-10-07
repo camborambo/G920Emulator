@@ -85,7 +85,7 @@ public partial class DependenciesWindow : Window
         {
             OemSessionUiState.Active => "Pins applied for this bridge session. Stop bridge to restore system registration.",
             OemSessionUiState.NeedsRestore => "Leftover pins detected. Click Restore system registration (stop the bridge first if it is running).",
-            _ => "Idle — session pins restored. Nothing to do.",
+            _ => "Idle - session pins restored. Nothing to do.",
         };
         RestoreOemSdkButton.IsEnabled = oemState == OemSessionUiState.NeedsRestore;
         FullCleanRestoreButton.IsEnabled = oemState != OemSessionUiState.Active;
@@ -102,13 +102,13 @@ public partial class DependenciesWindow : Window
         if (tsLabel.Equals("Reboot required", StringComparison.OrdinalIgnoreCase))
             FooterText.Text = BundledWinUHidInstaller.HasPendingInstall
                 ? "Reboot, then click Install WinUHid once more (installs driver + turns test signing off)."
-                : "Test signing staged — reboot once, then continue setup.";
+                : "Test signing staged - reboot once, then continue setup.";
         else if (testSigningLive && report.WinUHid?.IsInstalled == true)
-            FooterText.Text = "Test signing still ON — Disable test signing and reboot so Forza can launch.";
+            FooterText.Text = "Test signing still ON - Disable test signing and reboot so Forza can launch.";
         else if (testSigningLive)
-            FooterText.Text = "Test signing ON — click Install WinUHid (it turns test signing off afterwards).";
+            FooterText.Text = "Test signing ON - click Install WinUHid (it turns test signing off afterwards).";
         else if (oemState == OemSessionUiState.NeedsRestore)
-            FooterText.Text = "OEM/SDK leftovers from a previous session — click Restore system registration.";
+            FooterText.Text = "OEM/SDK leftovers from a previous session - click Restore system registration.";
         else if (report.ReadyForGames)
             FooterText.Text = "Ready for games (including Forza if test signing is off). Configure HidHide if needed, then Start bridge.";
         else
@@ -245,15 +245,15 @@ public partial class DependenciesWindow : Window
         }
 
         var confirm = MessageBox.Show(this,
-            "Optional nuclear cleanup — not required for Forza Horizon 6.\n" +
-            "(For FH6 splash exit, Uninstall WinUHid instead — it turns test signing off.)\n\n" +
+            "Optional nuclear cleanup - not required for Forza Horizon 6.\n" +
+            "(For FH6 splash exit, Uninstall WinUHid instead - it turns test signing off.)\n\n" +
             "This removes:\n" +
             "• App OEM / Logitech SDK leftovers and COM\n" +
             "• ProgramData SDK cache\n" +
             "• Stale DirectInput / orphan virtual G920 nodes\n" +
             "• Restores Logitech hidpp_forcefeedback DLL if renamed by older repair\n" +
             "• WinUHid device + driver package\n" +
-            "• Windows test signing (turned off — reboot required)\n\n" +
+            "• Windows test signing (turned off - reboot required)\n\n" +
             "Not changed: HidHide, Secure Boot (BIOS), or your profiles.\n\n" +
             "Approve UAC if prompted. Continue?",
             "Full clean restore",
@@ -410,7 +410,7 @@ public partial class DependenciesWindow : Window
             MessageBox.Show(
                 this,
                 summary +
-                "\n\nHidHide was not changed — configure it yourself if games still see your pad.\n\n" +
+                "\n\nHidHide was not changed - configure it yourself if games still see your pad.\n\n" +
                 "Next: Start bridge, confirm the G920 in joy.cpl, then launch the game.",
                 "Repair G HUB leftovers",
                 MessageBoxButton.OK,

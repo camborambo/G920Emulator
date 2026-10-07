@@ -5,7 +5,7 @@ namespace G920Emulator.Core.Telemetry;
 
 /// <summary>
 /// Arcade simulation from mapped G920 inputs plus OEM FFB mix.
-/// Not real game physics — for titles with no telemetry API.
+/// Not real game physics - for titles with no telemetry API.
 /// </summary>
 public sealed class TelemetrySynthesizer
 {
@@ -85,7 +85,7 @@ public sealed class TelemetrySynthesizer
         var periodic = Math.Clamp(
             Di(type, 2) + Di(type, 3) + Di(type, 4) + Di(type, 5) + Di(type, 6),
             -1f, 1f);
-        // Vibration magnitude must sum absolutes — opposite-phase sine/square was wiping rumble to ~0.
+        // Vibration magnitude must sum absolutes - opposite-phase sine/square was wiping rumble to ~0.
         // Include CustomForce (11); many titles put curb/crash shake there, not only Sine/Square.
         var vibMag = Math.Clamp(
             AbsDi(type, 2) + AbsDi(type, 3) + AbsDi(type, 4) + AbsDi(type, 5) + AbsDi(type, 6)
@@ -156,14 +156,14 @@ public sealed class TelemetrySynthesizer
                     coast *= 1.35f;
             }
             // Aero from speed always, but ×(1−throttle)²: full when lifted (RPM falls),
-            // ~0 at WOT so a 90–95% pedal can still reach the gear cap / Max RPM.
+            // ~0 at WOT so a 90-95% pedal can still reach the gear cap / Max RPM.
             var aeroNorm = inGear && gearCap > 1f
                 ? Math.Clamp(_speedKmh / gearCap, 0f, 1f)
                 : speedNorm;
             var lift = 1f - throttle01;
             var aero = AeroDragKmhPerSecAtVmax * _tuning.AeroDragScale * aeroNorm * aeroNorm
                        * lift * lift;
-            // Heavy CF + lifted throttle ≈ scrubbing — fade out as gas comes back on.
+            // Heavy CF + lifted throttle ≈ scrubbing - fade out as gas comes back on.
             var scrub = 0f;
             var absCf = MathF.Abs(cf);
             if (absCf > 0.28f && throttle01 < 0.45f)
@@ -209,15 +209,15 @@ public sealed class TelemetrySynthesizer
 
         _impactDumpCooldown = Math.Max(0f, _impactDumpCooldown - (float)dtSec);
 
-        // Impact dump slider (0–200%): how hard an FFB spike cuts speed. Throttle softens the cut.
-        // Under strong throttle, skip dumps — they invent a false ceiling below the gear cap.
+        // Impact dump slider (0-200%): how hard an FFB spike cuts speed. Throttle softens the cut.
+        // Under strong throttle, skip dumps - they invent a false ceiling below the gear cap.
         var nearGearPin = inGear && throttle > 0.70f;
         if (impactHit && _impactDumpCooldown <= 0f && _tuning.CrashDumpScale > 0f && _speedKmh > 1f
             && !nearGearPin)
         {
             var strength = Math.Clamp(_tuning.CrashDumpScale, 0f, 2f);
             var loss = ImpactSpeedLossAtFull * strength * (1f - throttle * 0.85f);
-            // Holding gas: never wipe the simulation — floor keep rises with throttle.
+            // Holding gas: never wipe the simulation - floor keep rises with throttle.
             var minKeep = 0.5f + 0.45f * throttle;
             var keep = Math.Clamp(1f - loss, minKeep, 1f);
             _speedKmh *= keep;
@@ -225,7 +225,7 @@ public sealed class TelemetrySynthesizer
         }
 
         // In gear you cannot exceed that gear's max speed (Blocklayer chart ceiling).
-        // No separate Gear-settle slider — downshift above the new cap just pins to the cap.
+        // No separate Gear-settle slider - downshift above the new cap just pins to the cap.
         if (inGear && gearCap > 1f && _speedKmh > gearCap)
             _speedKmh = gearCap;
 
@@ -254,12 +254,12 @@ public sealed class TelemetrySynthesizer
         }
         else
         {
-            // Pure speed×ratio — no throttle "load pull" fudge.
+            // Pure speed×ratio - no throttle "load pull" fudge.
             rpmFrac = gearSpeedFrac;
         }
 
         // Idle floor while the session is live (stopped in gear / N / lift). Never send 0 RPM
-        // with ignition on — SimHub graphs and Engine vibrations expect a real idle.
+        // with ignition on - SimHub graphs and Engine vibrations expect a real idle.
         float targetRpm;
         if (!sessionRunning)
             targetRpm = 0f;
@@ -268,18 +268,18 @@ public sealed class TelemetrySynthesizer
         else if (!inGear)
             targetRpm = rpmMin + (rpmMax - rpmMin) * rpmFrac;
         else
-            // In gear: ChartRpm × (speed/gearMax) — peaks at redline like Blocklayer.
+            // In gear: ChartRpm × (speed/gearMax) - peaks at redline like Blocklayer.
             targetRpm = Math.Clamp(chartRpm * rpmFrac, rpmMin, rpmMax);
 
         // Gear change: snap RPM to the chart value for current speed in the new gear
-        // (Blocklayer shift — speed unchanged, RPM jumps with the ratio).
+        // (Blocklayer shift - speed unchanged, RPM jumps with the ratio).
         if (gearChanged && sessionRunning && inGear && moving)
         {
             _rpm = targetRpm;
             _revLimitCut = false;
         }
 
-        // Smooth toward target. In gear (clutch out) RPM is road-locked — keep tracking
+        // Smooth toward target. In gear (clutch out) RPM is road-locked - keep tracking
         // tight so lag does not "surge" into redline as speed finishes the gear.
         var climbSec = inGear && clutch < 0.35f
             ? 0.028f
@@ -293,7 +293,7 @@ public sealed class TelemetrySynthesizer
         else
             _rpm = Math.Clamp(_rpm, 0f, rpmMax);
 
-        // Hard-cut rev-limiter: only after RPM actually reaches ChartRpm — never pull RPM
+        // Hard-cut rev-limiter: only after RPM actually reaches ChartRpm - never pull RPM
         // up early (old 96%-of-gear arm + forced climb caused end-of-gear surges).
         var limit = chartRpm;
         var limiterOn = _tuning.RpmBounceAmount > 0.001f && sessionRunning && inGear && moving
@@ -323,7 +323,7 @@ public sealed class TelemetrySynthesizer
             }
             else
             {
-                // Recover after a cut — climb back, but never above road-speed target.
+                // Recover after a cut - climb back, but never above road-speed target.
                 var recoverCap = Math.Min(limit, Math.Max(targetRpm, floor));
                 if (_rpm < recoverCap - 2f)
                     _rpm = Math.Min(recoverCap, _rpm + bandRate * (float)dtSec);
@@ -400,10 +400,10 @@ public sealed class TelemetrySynthesizer
         var (tyreFl, tyreFr, tyreRl, tyreRr) = BuildTyreContactSurfaces(rumble, impact, sessionRunning);
 
         // SimHub: EngineMaxRpm = gauge/limiter scale; EngineShiftRpm = absolute redline RPM
-        // (not a %). SimHub may show that as a % of max in Car Settings — we always send RPM.
+        // (not a %). SimHub may show that as a % of max in Car Settings - we always send RPM.
 
         // Do NOT set SessionPaused when OEM FFB goes quiet (ACTUATORSOFF / menus). SimHub
-        // treats paused as a frozen/zeroed dash — idle RPM and Engine vibrations disappear
+        // treats paused as a frozen/zeroed dash - idle RPM and Engine vibrations disappear
         // even though we still send packets. Simulated telemetry has no real pause signal.
         return new TelemetryFrame(
             SessionRunning: sessionRunning,

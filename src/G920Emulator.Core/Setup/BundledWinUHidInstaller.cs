@@ -16,7 +16,7 @@ public sealed class BundledWinUHidInstaller
     private readonly WinUHidSetupService _setup = new();
 
     /// <summary>
-    /// Marker written when test signing was staged but not yet live — after reboot,
+    /// Marker written when test signing was staged but not yet live - after reboot,
     /// the next Install finishes the driver and turns test signing back off (Forza-safe).
     /// </summary>
     public static string PendingInstallMarkerPath => Path.Combine(
@@ -62,7 +62,7 @@ public sealed class BundledWinUHidInstaller
         if (missing.Count == 0)
             return $"Bundled package ready ({pkg.Describe()}).\n{PackageDirectory}";
 
-        return $"Bundled package incomplete — missing: {string.Join(", ", missing)}.\n{PackageDirectory}\nFound: {pkg.Describe()}";
+        return $"Bundled package incomplete - missing: {string.Join(", ", missing)}.\n{PackageDirectory}\nFound: {pkg.Describe()}";
     }
 
     public bool IsPackageComplete()
@@ -116,7 +116,7 @@ public sealed class BundledWinUHidInstaller
             }
         }
 
-        // Phase B: live test mode — install driver, then leave test mode for Forza.
+        // Phase B: live test mode - install driver, then leave test mode for Forza.
         _setup.InstallPackageElevated(pkg);
 
         string disableNote;
@@ -141,7 +141,7 @@ public sealed class BundledWinUHidInstaller
             NeedsReboot: true,
             Message: "WinUHid installed. Test signing was turned back off (only needed for install).\n\n" +
                      "Reboot once. After reboot:\n" +
-                     "• WinUHid should still work (Recheck — do not Install again)\n" +
+                     "• WinUHid should still work (Recheck - do not Install again)\n" +
                      "• Forza Horizon 6 can launch (test mode off)\n" +
                      "• You may re-enable Secure Boot in UEFI/BIOS (optional)\n\n" +
                      disableNote);
@@ -150,7 +150,7 @@ public sealed class BundledWinUHidInstaller
     /// <summary>
     /// Removes Root\WinUHid device node(s) and the published WinUHid driver package.
     /// When <paramref name="disableTestSigning"/> is true, also turns off Windows test signing
-    /// (reboot required — needed for Forza Horizon 6).
+    /// (reboot required - needed for Forza Horizon 6).
     /// </summary>
     public BundledInstallResult Uninstall(bool disableTestSigning = true)
     {
@@ -201,7 +201,7 @@ public sealed class BundledWinUHidInstaller
         }
         catch
         {
-            // non-fatal — user can still Install again after reboot
+            // non-fatal - user can still Install again after reboot
         }
     }
 

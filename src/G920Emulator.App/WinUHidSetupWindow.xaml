@@ -50,13 +50,13 @@
       <StackPanel>
         <TextBlock Text="Install WinUHid" FontSize="24" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
         <TextBlock Opacity="0.7" Margin="0,4,0,16" TextWrapping="Wrap"
-                   Text="Required so games can see the virtual Logitech G920. Everything needed is bundled with G920 Emulator — no download."/>
+                   Text="Required so games can see the virtual Logitech G920. Everything needed is bundled with G920 Emulator - no download."/>
 
         <Border Background="#3A2A14" BorderBrush="#8A5A1F" BorderThickness="1" Padding="12" CornerRadius="6" Margin="0,0,0,12">
           <StackPanel>
             <TextBlock Text="Forza-friendly install" FontWeight="SemiBold" Margin="0,0,0,6"/>
             <TextBlock TextWrapping="Wrap" Opacity="0.9"
-                       Text="Test signing is only required to install the test-signed WinUHid driver. Install turns it on (if needed), installs the driver, then turns it off again. Secure Boot must be off in UEFI/BIOS for the install step only — after WinUHid is installed and test signing is off, you can re-enable Secure Boot. Forza Horizon 6 and the emulator keep working."/>
+                       Text="Test signing is only required to install the test-signed WinUHid driver. Install turns it on (if needed), installs the driver, then turns it off again. Secure Boot must be off in UEFI/BIOS for the install step only - after WinUHid is installed and test signing is off, you can re-enable Secure Boot. Forza Horizon 6 and the emulator keep working."/>
           </StackPanel>
         </Border>
 

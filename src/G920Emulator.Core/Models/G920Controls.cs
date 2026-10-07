@@ -112,7 +112,7 @@ public static class G920ControlInfo
         G920Control.Clutch,
     ];
 
-    /// <summary>H-pattern order shown in the UI: Reverse first, then 1–6.</summary>
+    /// <summary>H-pattern order shown in the UI: Reverse first, then 1-6.</summary>
     public static readonly G920Control[] GearControls =
     [
         G920Control.GearR,
@@ -312,7 +312,7 @@ public static class G920ControlInfo
         G920Control.Throttle => "Throttle",
         G920Control.Brake => "Brake",
         G920Control.Clutch => "Clutch",
-        // Face controls — names match Logitech G920 Driving Force user guide.
+        // Face controls - names match Logitech G920 Driving Force user guide.
         G920Control.Hat => "Directional pad (hat)",
         G920Control.HatUp => "D-pad Up",
         G920Control.HatDown => "D-pad Down",

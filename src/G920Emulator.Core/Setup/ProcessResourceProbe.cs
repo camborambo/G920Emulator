@@ -114,7 +114,7 @@ public static class ProcessResourceProbe
         sb.AppendLine("  " + SnapshotPid("game (OEM Torque host)", gamePid, emu.Pid));
         sb.AppendLine("  " + SnapshotPid("aux (Steam/overlay)", auxPid, emu.Pid, skipIf: gamePid));
         sb.AppendLine("  " + Hint(emu.IntervalCpu1));
-        sb.AppendLine("  Racing games peg CPU/GPU by design. Compare emulator cpu1 here — not the game’s.");
+        sb.AppendLine("  Racing games peg CPU/GPU by design. Compare emulator cpu1 here - not the game’s.");
         sb.AppendLine("  GPU is not sampled (counters are heavy and game GPU high is normal).");
         return sb.ToString().TrimEnd();
     }
@@ -124,7 +124,7 @@ public static class ProcessResourceProbe
         if (emuCpu1 is null)
             return "hint=emulator interval CPU n/a until the next snapshot";
         if (emuCpu1 >= 80)
-            return "hint=emulator hot (~1+ core) — can steal time from the game";
+            return "hint=emulator hot (~1+ core) - can steal time from the game";
         if (emuCpu1 >= 25)
             return "hint=emulator moderate; watch if the game stutters in time with these spikes";
         return "hint=emulator light; high game CPU/GPU is expected and not our load";

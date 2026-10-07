@@ -10,7 +10,7 @@ Force-feedback presets live in `%AppData%\G920Emulator\ffb-profiles\` (not in th
 
 | Preset | Meaning |
 |--------|---------|
-| **Raw** (default) | Exact game mix — master/effect gains 100%, all feel / torque shaping / advanced mix options off. Cannot be deleted. |
+| **Raw** (default) | Exact game mix - master/effect gains 100%, all feel / torque shaping / advanced mix options off. Cannot be deleted. |
 | **Need For Speed Unbound / Heat** | Desktop-era known-good mix for Heat/Unbound: CF 200%, Spring 40%, Damper 150%, damper vel ×2 / deadband ×⅓, light torque shaping (deadband 0.004, slew 40, DI ε 12). Seeded once; editable/deletable. |
 | Your Save / Save As… | Capture current master gain, invert, per-effect gains, output feel, advanced mix options, and torque shaping into a named JSON |
 
@@ -75,7 +75,7 @@ All of these are **user optional**. On **Raw**, everything below is at the “of
 
 | Control | Default | Notes |
 |---------|---------|--------|
-| **Master** | 100% (0–200%) | Multiplier on the physical constant-force apply |
+| **Master** | 100% (0-200%) | Multiplier on the physical constant-force apply |
 | **Invert FFB** | off | Flips torque direction for bases with opposite sense |
 
 ### Effect gains
@@ -99,7 +99,7 @@ Applied while evaluating effects, before the shared-memory torque is published. 
 
 | Control | Default | NFS Unbound / Heat | Notes |
 |---------|---------|--------------------|--------|
-| **Invert Constant Force** | off | off | Extra CF flip only — driver already converts DI CF → app polarity (`+` = right) |
+| **Invert Constant Force** | off | off | Extra CF flip only - driver already converts DI CF → app polarity (`+` = right) |
 | **Damp vel** | 100% | **200%** | Scales rim velocity before damper/inertia condition eval |
 | **Damp dead** | 100% | **~33%** | Scales damper deadband before eval |
 
@@ -109,9 +109,9 @@ Applied **after** the advanced mix (emulator side):
 
 | Slider | Range | Off | Notes |
 |--------|-------|-----|--------|
-| **Smoothing** | 0–40 ms | **0** | Low-pass time constant. Try ~8–15 on some DD bases if FFB feels harsh |
-| **Peak soft** | 50–100% | **100%** | Soft-knee for strong peaks; 100% = no compression |
-| **Soft start** | 0–2000 ms | **0** | One-shot ease-in when FFB first appears (does not re-arm every frame) |
+| **Smoothing** | 0-40 ms | **0** | Low-pass time constant. Try ~8-15 on some DD bases if FFB feels harsh |
+| **Peak soft** | 50-100% | **100%** | Soft-knee for strong peaks; 100% = no compression |
+| **Soft start** | 0-2000 ms | **0** | One-shot ease-in when FFB first appears (does not re-arm every frame) |
 
 FFB debug Left / Right / Center / Pulse skip this path.
 
@@ -121,10 +121,10 @@ Optional deadband / slew / spike / DI chatter controls (same idea as the Desktop
 
 | Slider | Range | Off | Notes |
 |--------|-------|-----|--------|
-| **Deadband** | 0–0.05 | **0** | Ignore \|torque\| below this. Try ~0.004 for chatter |
-| **Slew** | 0–200 /s | **0** (unlimited) | Max \|torque\| change per second; zero target ramps down 2.5× faster. Heavy slew can mute crash rumble — keep low or off for Raw |
-| **Spike cap** | 5–100% | **100%** | Max single-frame step toward target; 100% = allow full steps |
-| **DI epsilon** | 0–64 | **0** | Skip physical DI updates when \|Δmagnitude\| is below this (0…10000 scale). Helps Fanatec grind from ±1 chatter; try ~12 |
+| **Deadband** | 0-0.05 | **0** | Ignore \|torque\| below this. Try ~0.004 for chatter |
+| **Slew** | 0-200 /s | **0** (unlimited) | Max \|torque\| change per second; zero target ramps down 2.5× faster. Heavy slew can mute crash rumble - keep low or off for Raw |
+| **Spike cap** | 5-100% | **100%** | Max single-frame step toward target; 100% = allow full steps |
+| **DI epsilon** | 0-64 | **0** | Skip physical DI updates when \|Δmagnitude\| is below this (0…10000 scale). Helps Fanatec grind from ±1 chatter; try ~12 |
 
 ### Centering (Force center spring)
 
@@ -133,9 +133,9 @@ For games that never center the wheel. When **Force center spring** is checked, 
 | Control | Range | Default | Effect |
 |---|---|---|---|
 | **Force center spring** | on/off | **off** | Enables the emulator spring |
-| **Strength** | 5–100% | 30% | Maximum centering torque |
-| **Range** | 5–50% | 25% | Rim offset (fraction of rotation to one side) where the spring reaches full strength. Lower = stiffer near center |
-| **Deadzone** | 0–5% | off | Free zone around center with no spring |
+| **Strength** | 5-100% | 30% | Maximum centering torque |
+| **Range** | 5-50% | 25% | Rim offset (fraction of rotation to one side) where the spring reaches full strength. Lower = stiffer near center |
+| **Deadzone** | 0-5% | off | Free zone around center with no spring |
 
 Leave it off for games that already send a DI Spring (most sims); stacking both makes centering heavier. Use the **Spring** effect gain to adjust the game's own spring instead.
 
@@ -150,7 +150,7 @@ Off by default so everyday use stays uncluttered. File logging (OEM effects + HI
 
 ## Status-bar Debug (OEM file log)
 
-**Leave Debug off for normal racing.** It enables `%TEMP%\g920ffb-effects.log` (and HID++ ingress logging) from inside the game process. Titles that re-download effects every frame (Forza Horizon, some Steam Input paths) can generate hundreds of lines per second; older builds opened/closed the file on every write and could freeze game input while the emulator UI stayed live. Current `g920ffb.dll` rate-limits stream lines, keeps the file open, and rotates at 4 MB — still use Debug only for short diagnostic captures, then **Stop debug**. Emulator CPU/RAM is sampled every 10 seconds into `%TEMP%\g920emulator-perf.log` (and once in `summary.txt` at export), including the OEM game process when `g920ffb.dll` is loaded. That file is not written from the game. High game CPU/GPU is expected; the `hint=` line is about **emulator** load. GPU is not sampled.
+**Leave Debug off for normal racing.** It enables `%TEMP%\g920ffb-effects.log` (and HID++ ingress logging) from inside the game process. Titles that re-download effects every frame (Forza Horizon, some Steam Input paths) can generate hundreds of lines per second; older builds opened/closed the file on every write and could freeze game input while the emulator UI stayed live. Current `g920ffb.dll` rate-limits stream lines, keeps the file open, and rotates at 4 MB - still use Debug only for short diagnostic captures, then **Stop debug**. Emulator CPU/RAM is sampled every 10 seconds into `%TEMP%\g920emulator-perf.log` (and once in `summary.txt` at export), including the OEM game process when `g920ffb.dll` is loaded. That file is not written from the game. High game CPU/GPU is expected; the `hint=` line is about **emulator** load. GPU is not sampled.
 
 **FFB debug** (the expander) is separate: live counters and test pulses with no file I/O on the game thread. **Settings → FFB Debug Overlay** shows the same live G920 inputs and FFB diagnostics in a topmost window you can drag over the game.
 
@@ -181,11 +181,11 @@ For a stronger tire-follow / lighter arcade center on DD bases, raise **Constant
 
 **Arcade auto-center (centering spring)**
 
-Heat / Unbound pull the wheel back to center like an arcade cabinet. In DirectInput that is the **Spring** effect (mixed with ConstantForce, Damper, Sine, Triangle, Square — nothing is muted by default).
+Heat / Unbound pull the wheel back to center like an arcade cabinet. In DirectInput that is the **Spring** effect (mixed with ConstantForce, Damper, Sine, Triangle, Square - nothing is muted by default).
 
 1. Select your **physical FFB base** under Force feedback (not DualSense). Spring uses that rim angle.
 2. Keep **Spring** (and other) effect gains above 0% unless you intend to mute a type.
-3. Do **not** rely on hardware `DIPROP_AUTOCENTER` during gameplay — it is left off so it cannot fight the OEM mix. FFB debug **Center** is a manual software return-to-center test only.
+3. Do **not** rely on hardware `DIPROP_AUTOCENTER` during gameplay - it is left off so it cannot fight the OEM mix. FFB debug **Center** is a manual software return-to-center test only.
 4. OEM log (`%TEMP%\g920ffb-effects.log`) should list Spring / Damper / CF / periodic while driving. FFB debug and FFB Debug Overlay show **Rim (spring)** plus the same MIX groups and per-type seen/playing list.
 
 ### Reading the OEM log
@@ -197,7 +197,7 @@ Heat / Unbound pull the wheel back to center like an arcade cabinet. In DirectIn
 - Shared memory `Local\G920Emulator.FfbTorque.v7`: the **game** publishes `Torque`; Steam/overlay may only layer `AuxTorque` (logged `SESSION HOST` / `AUX PUBLISH`). The bridge applies the sum.
 - **NFS Unbound:** Accessibility → Controls → **Controller Vibration = On**. Confirmed root cause when Vibration is Off: race still creates Triangle/CF/Damper, but all streamed magnitudes stay 0 (spring-only `MIX`). In-race with Vibration On: `GetEffectStatus` → `DestroyEffect` (boot Sine) → Triangle → non-zero `cf` / `periodic` / damper on `MIX`.
 - **vJoy may stay installed** (Joystick Gremlin / remappers). Keep feeder apps on the HidHide whitelist. The vJoy device itself must be **hidden from the game** when it advertises FFB, or Unbound can send forces there instead of the virtual G920. Seeing vJoy in the emulator device list does **not** mean the game sees it (this app is whitelisted). Auto-apply only hides devices on HidHide’s **Gaming devices only** list (`--dev-gaming`); if vJoy is missing there, hide it manually in HidHide Client.
-- If `MIX` only shows `spring` and there are no non-zero CF/periodic samples while driving, the **game** is not streaming those effects to the virtual G920. Confirm HidHide hides the physical FFB base and any competing FFB devices from the game; keep in-game FFB on. **SimHub can stay running** — mixed rigs (Simucube base + Fanatec shifter + SimHub) are supported.
+- If `MIX` only shows `spring` and there are no non-zero CF/periodic samples while driving, the **game** is not streaming those effects to the virtual G920. Confirm HidHide hides the physical FFB base and any competing FFB devices from the game; keep in-game FFB on. **SimHub can stay running** - mixed rigs (Simucube base + Fanatec shifter + SimHub) are supported.
 
 ## Launch soft-start
 

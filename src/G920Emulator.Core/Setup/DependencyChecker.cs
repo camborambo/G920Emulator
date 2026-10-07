@@ -18,7 +18,7 @@ public enum SecureBootStatus
 {
     On,
     Off,
-    /// <summary>Legacy BIOS / key missing — Secure Boot is not in effect.</summary>
+    /// <summary>Legacy BIOS / key missing - Secure Boot is not in effect.</summary>
     Unavailable,
     Unknown,
 }
@@ -107,7 +107,7 @@ public static class DependencyChecker
 
     /// <summary>
     /// Test signing is only required to *install* the test-signed WinUHid package.
-    /// After install it can stay off — WinUHid (UMDF) usually keeps working and Forza can launch.
+    /// After install it can stay off - WinUHid (UMDF) usually keeps working and Forza can launch.
     /// </summary>
     public static DependencyInfo CheckTestSigning(bool winUHidReady = false, SecureBootStatus? secureBoot = null)
     {
@@ -214,7 +214,7 @@ public static class DependencyChecker
         else if (nodePresent)
         {
             statusLabel = "Not responding";
-            hint = "A WinUHid device is present but the app cannot open it (often a duplicate enumerator). Prefer Uninstall WinUHid, then Install once — or Recheck after a reboot.";
+            hint = "A WinUHid device is present but the app cannot open it (often a duplicate enumerator). Prefer Uninstall WinUHid, then Install once - or Recheck after a reboot.";
         }
         else
         {
@@ -354,7 +354,7 @@ public static class DependencyChecker
     /// </summary>
     public static (HidHideSnapshot? Snapshot, string Error) TryCaptureHidHideSnapshotDetailed()
     {
-        // Stop's KillOrphan leaves cancel set — clear it or WaitForHidHideChild kills capture instantly.
+        // Stop's KillOrphan leaves cancel set - clear it or WaitForHidHideChild kills capture instantly.
         BeginHidHideOps();
 
         var cli = FindHidHideCli();
@@ -370,7 +370,7 @@ public static class DependencyChecker
 
         if (LooksLikeAccessDenied(captured.Error))
         {
-            // HidHide Client holds an exclusive handle — elevation does not help while it is open.
+            // HidHide Client holds an exclusive handle - elevation does not help while it is open.
             if (IsHidHideClientRunning())
             {
                 return (null,
@@ -519,7 +519,7 @@ public static class DependencyChecker
     }
 
     /// <summary>
-    /// One .cmd runs cloak/inv/app/dev — four separate HidHideCLI process starts were the Start delay.
+    /// One .cmd runs cloak/inv/app/dev - four separate HidHideCLI process starts were the Start delay.
     /// </summary>
     private static (HidHideSnapshot? Snapshot, string Error) CaptureHidHideSnapshotViaScript(string cli, bool elevated)
     {
@@ -598,7 +598,7 @@ public static class DependencyChecker
             // Empty app/dev lists are valid; any cloak/inv state line means the driver answered.
             if (!cloakOk && !invOk && string.IsNullOrWhiteSpace(appOut) && string.IsNullOrWhiteSpace(devOut))
             {
-                // Batch script produced nothing — try one-shot CLI (survives Start/Stop churn better).
+                // Batch script produced nothing - try one-shot CLI (survives Start/Stop churn better).
                 if (!elevated)
                 {
                     var fallback = CaptureHidHideSnapshotSequential(cli);
@@ -611,7 +611,7 @@ public static class DependencyChecker
                     ?? (elevated ? "Elevated capture returned no data." : "CLI returned no data"));
             }
 
-            // Partial capture (cloak OK, lists access-denied) must not become a restore point —
+            // Partial capture (cloak OK, lists access-denied) must not become a restore point -
             // that snapshot would look "empty" and Stop would wipe/skip the real config.
             if (LooksLikeAccessDenied(cloakOut) || LooksLikeAccessDenied(invOut) ||
                 LooksLikeAccessDenied(appOut) || LooksLikeAccessDenied(devOut))
@@ -632,7 +632,7 @@ public static class DependencyChecker
         catch (System.ComponentModel.Win32Exception)
         {
             return (null, elevated
-                ? "UAC elevation cancelled — cannot read HidHide without admin rights."
+                ? "UAC elevation cancelled - cannot read HidHide without admin rights."
                 : "Could not start HidHide capture.");
         }
         catch (Exception ex)
@@ -704,14 +704,14 @@ public static class DependencyChecker
 
         var cli = FindHidHideCli();
         if (cli is null)
-            return (false, "HidHide CLI not found — cannot restore.");
+            return (false, "HidHide CLI not found - cannot restore.");
 
         // Must know the live lists or the diff cannot unhide session devices / unreg the emulator.
         var (listsOk, currentApps, currentDevs, listError) = ReadHidHideAppAndDeviceLists(cli);
         if (HidHideOpsCancelled)
             return (false, "HidHide restore cancelled.");
         if (!listsOk)
-            return (false, "HidHide restore failed — could not read current lists. " + listError);
+            return (false, "HidHide restore failed - could not read current lists. " + listError);
 
         var targetApps = new HashSet<string>(snapshot.Apps ?? [], StringComparer.OrdinalIgnoreCase);
         var targetDevs = new HashSet<string>(snapshot.HiddenDevices ?? [], StringComparer.OrdinalIgnoreCase);
@@ -751,7 +751,7 @@ public static class DependencyChecker
         if (HidHideOpsCancelled)
             return (false, "HidHide restore cancelled.");
         if (!ok)
-            return (false, "HidHide restore failed — " + detail);
+            return (false, "HidHide restore failed - " + detail);
 
         // Never report success (and clear the snapshot) unless the live config matches.
         var (verified, verifyDetail) = VerifyHidHideMatchesSnapshot(cli, snapshot);
@@ -759,7 +759,7 @@ public static class DependencyChecker
             return (false, "HidHide restore cancelled.");
         return verified
             ? (true, "HidHide restored to the pre-session configuration.")
-            : (false, "HidHide restore did not stick — " + verifyDetail);
+            : (false, "HidHide restore did not stick - " + verifyDetail);
     }
 
     private static (bool Ok, List<string> Apps, List<string> Devices, string Error) ReadHidHideAppAndDeviceLists(string cli)
@@ -771,7 +771,7 @@ public static class DependencyChecker
         var denied = LooksLikeAccessDenied(appOut) || LooksLikeAccessDenied(devOut);
         if (!denied && string.IsNullOrWhiteSpace(appOut) && string.IsNullOrWhiteSpace(devOut))
         {
-            // Empty files can mean "no entries" or "CLI failed silently" — probe a cheap state flag.
+            // Empty files can mean "no entries" or "CLI failed silently" - probe a cheap state flag.
             var (invOk, invOut) = RunHidHideCapture(cli, "--inv-state");
             if (invOk && !LooksLikeAccessDenied(invOut))
                 return (true, [], [], "");
@@ -863,7 +863,7 @@ public static class DependencyChecker
             ClearHidHideSnapshot();
         }
 
-        // Whitelist/cloak only — full device hide is RefreshHidHideSessionDevices after the virtual G920 exists.
+        // Whitelist/cloak only - full device hide is RefreshHidHideSessionDevices after the virtual G920 exists.
         var result = EnsureHidHideForEmulator(extraAppPaths, hidePhysicalControllers: false);
         if (!result.CliAvailable)
         {
@@ -959,7 +959,7 @@ public static class DependencyChecker
                 CancelHidHideOps();
                 KillOrphanHidHideHelpers();
                 return (false,
-                    "HidHide restore timed out — helpers stopped. Will retry next launch.");
+                    "HidHide restore timed out - helpers stopped. Will retry next launch.");
             }
 
             var (ok, message) = task.Result;
@@ -971,7 +971,7 @@ public static class DependencyChecker
         {
             CancelHidHideOps();
             KillOrphanHidHideHelpers();
-            return (false, "HidHide restore failed — " + ex.Message);
+            return (false, "HidHide restore failed - " + ex.Message);
         }
     }
 
@@ -1098,7 +1098,7 @@ public static class DependencyChecker
         {
             return new HidHideEnsureResult
             {
-                Message = "HidHide CLI not found — install HidHide first.",
+                Message = "HidHide CLI not found - install HidHide first.",
                 CliAvailable = false,
             };
         }
@@ -1117,7 +1117,7 @@ public static class DependencyChecker
         foreach (var p in emulatorPaths)
             commands.Add($"--app-reg \"{p}\"");
 
-        // If G HUB / manual config hid the virtual G920, games won't see it — unhide those paths.
+        // If G HUB / manual config hid the virtual G920, games won't see it - unhide those paths.
         foreach (var path in DiscoverVirtualG920PathsToUnhide(cli))
             commands.Add($"--dev-unhide \"{path}\"");
 
@@ -1134,7 +1134,7 @@ public static class DependencyChecker
         {
             return new HidHideEnsureResult
             {
-                Message = $"HidHide configure failed — {detail}",
+                Message = $"HidHide configure failed - {detail}",
                 CliAvailable = true,
                 NeedsRelaunch = false,
                 DevicesHidden = 0,
@@ -1158,15 +1158,15 @@ public static class DependencyChecker
             Message = emulatorPaths.Count == 0
                 ? "HidHide inverse off (could not find G920Emulator.exe to whitelist)." + hideNote
                 : needsRelaunch
-                    ? $"HidHide updated — emulator whitelisted; relaunch so devices stay visible.{hideNote}"
+                    ? $"HidHide updated - emulator whitelisted; relaunch so devices stay visible.{hideNote}"
                     : confirmed
-                        ? $"HidHide updated — inverse off, cloak on, emulator whitelisted.{hideNote}"
+                        ? $"HidHide updated - inverse off, cloak on, emulator whitelisted.{hideNote}"
                         : "Could not confirm whitelist. Click Configure again and accept UAC, or add G920Emulator.exe in HidHide Client." + hideNote,
         };
     }
 
     /// <summary>
-    /// Hides whatever HidHide Client lists under Devices with "Gaming devices only" —
+    /// Hides whatever HidHide Client lists under Devices with "Gaming devices only" -
     /// <c>--dev-gaming</c> only. Does not scan <c>--dev-all</c> or invent devices.
     /// Virtual G920 paths stay visible.
     /// </summary>
@@ -1214,7 +1214,7 @@ public static class DependencyChecker
                             Add(dip.GetString());
                         if (device.TryGetProperty("xusbDeviceInstancePath", out var xusb))
                             Add(xusb.GetString());
-                        // Never use baseContainerDeviceInstancePath — cloaks whole USB composites.
+                        // Never use baseContainerDeviceInstancePath - cloaks whole USB composites.
                     }
                 }
 
@@ -1233,7 +1233,7 @@ public static class DependencyChecker
     }
 
     /// <summary>
-    /// Paths currently hidden that are clearly not pads/wheels — undo false positives from older builds.
+    /// Paths currently hidden that are clearly not pads/wheels - undo false positives from older builds.
     /// </summary>
     private static List<string> DiscoverNonGamingPathsToUnhide(string cli)
     {
@@ -1352,7 +1352,7 @@ public static class DependencyChecker
     private static bool IsLikelyNonGamingHid(string instancePath, string textBlob)
     {
         var blob = $"{instancePath} {textBlob}";
-        // Controllers sometimes mention "audio" in a composite name — require clear peripherals only.
+        // Controllers sometimes mention "audio" in a composite name - require clear peripherals only.
         ReadOnlySpan<string> skip =
         [
             "keyboard", "mouse", "touchpad", "touch screen", "digitizer",
@@ -1360,7 +1360,7 @@ public static class DependencyChecker
             "hid_device_system_keyboard", "hid_device_system_mouse",
             "led controller", "aura", "lighting", "rgb controller",
             "strix scope", "keychron", "consumer control", "system control",
-            "vendor-defined device", // generic HID — not a pad/wheel by itself
+            "vendor-defined device", // generic HID - not a pad/wheel by itself
         ];
         foreach (var token in skip)
         {
@@ -1431,7 +1431,7 @@ public static class DependencyChecker
         bool elevateOnAnyFailure,
         int timeoutMs)
     {
-        // One script / one process — sequential per-flag CLI calls made Stop/Exit feel stuck.
+        // One script / one process - sequential per-flag CLI calls made Stop/Exit feel stuck.
         if (commands.Count == 0)
             return (true, "ok");
         if (HidHideOpsCancelled)
@@ -1464,11 +1464,11 @@ public static class DependencyChecker
             var stamp = Guid.NewGuid().ToString("N");
             script = Path.Combine(Path.GetTempPath(), $"g920-hidhide-{stamp}.cmd");
             logPath = Path.Combine(Path.GetTempPath(), $"g920-hidhide-{stamp}.log");
-            // Fail the script if any CLI call fails — previously cmd returned 0 from a subshell
+            // Fail the script if any CLI call fails - previously cmd returned 0 from a subshell
             // and elevated restore falsely reported success via --inv-state alone.
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("@echo off");
-            // runas often ignores ProcessStartInfo.WorkingDirectory — force TEMP CWD in-script.
+            // runas often ignores ProcessStartInfo.WorkingDirectory - force TEMP CWD in-script.
             sb.AppendLine("cd /d \"%TEMP%\"");
             sb.AppendLine("set ERR=0");
             foreach (var args in commands)

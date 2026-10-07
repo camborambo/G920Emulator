@@ -34,7 +34,7 @@
 
       <Border DockPanel.Dock="Top" Background="#222836" CornerRadius="8" Padding="10,8" Margin="0,0,0,10">
         <DockPanel>
-          <TextBlock x:Name="ButtonsText" DockPanel.Dock="Right" Text="Buttons: —" FontSize="12"
+          <TextBlock x:Name="ButtonsText" DockPanel.Dock="Right" Text="Buttons: -" FontSize="12"
                      VerticalAlignment="Center" TextWrapping="Wrap" Opacity="0.9" Margin="10,0,0,0"/>
           <TextBlock x:Name="GearText" Text="GEAR N" FontWeight="Bold" FontFamily="Bahnschrift"
                      FontSize="18" VerticalAlignment="Center"/>

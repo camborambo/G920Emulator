@@ -42,7 +42,7 @@ public static class GHubConflictRepair
             log.Add("Device cleanup: " + ex.Message);
         }
 
-        // Do not apply OEM/SDK pins while idle — those are session-scoped (Start bridge).
+        // Do not apply OEM/SDK pins while idle - those are session-scoped (Start bridge).
         log.Add("OEM/SDK pins: skipped (applied only while bridge is running). Start bridge for games that need them.");
 
         try
@@ -66,7 +66,7 @@ public static class GHubConflictRepair
 
         try
         {
-            // Friendly name only — never pnputil /restart-device (orphans WinUHid Col01).
+            // Friendly name only - never pnputil /restart-device (orphans WinUHid Col01).
             log.Add(G920DeviceIdentityFix.Apply(restartDevice: false));
         }
         catch (Exception ex)
@@ -93,7 +93,7 @@ public static class GHubConflictRepair
             log.Add("Orphan C262 cleanup: " + ex.Message);
         }
 
-        // Never remove WinUHid root enumerators here — that made the driver look "missing"
+        // Never remove WinUHid root enumerators here - that made the driver look "missing"
         // (user-mode probe error 2) even when ROOT\WINUHID still showed Started.
 
         LastSummary = string.Join(" | ", log.Where(s => !string.IsNullOrWhiteSpace(s)));
@@ -108,7 +108,7 @@ public static class GHubConflictRepair
     {
         var notes = new List<string>();
 
-        // 1) Logitech G HUB Virtual HID driver (logi_joy_vir_hid) — demand-start leftover.
+        // 1) Logitech G HUB Virtual HID driver (logi_joy_vir_hid) - demand-start leftover.
         try
         {
             using var svc = Registry.LocalMachine.OpenSubKey(
@@ -184,13 +184,13 @@ public static class GHubConflictRepair
 
     /// <summary>
     /// Remove disconnected virtual C262 nodes left after failed disable/enable cycles.
-    /// Safe to call on every Start — never touches Status=Started devices.
+    /// Safe to call on every Start - never touches Status=Started devices.
     /// </summary>
     public static string RemoveDisconnectedVirtualNodes() => RemoveOrphanVirtualC262Nodes();
 
     /// <summary>
     /// Purges DirectInput cache keys and dead virtual C262 nodes left by the emulator.
-    /// Used by <see cref="FullCleanRestore"/> — does not touch WinUHid root or HidHide.
+    /// Used by <see cref="FullCleanRestore"/> - does not touch WinUHid root or HidHide.
     /// </summary>
     public static string PurgeEmulatorDeviceCaches()
     {
@@ -225,7 +225,7 @@ public static class GHubConflictRepair
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
             var status = blockMatch.Success ? blockMatch.Groups[1].Value : "";
 
-            // Only remove clearly dead nodes. Never touch Started / OK — some Windows
+            // Only remove clearly dead nodes. Never touch Started / OK - some Windows
             // builds report live WinUHid children as OK, and deleting those makes the
             // next WinUHidCreateDevice fail (InstanceID G920Emulator still reserved).
             if (!IsRemovableOrphanStatus(status))
@@ -287,7 +287,7 @@ public static class GHubConflictRepair
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
-            // Never inherit install-folder CWD — keeps Desktop\G920Emulator deletable.
+            // Never inherit install-folder CWD - keeps Desktop\G920Emulator deletable.
             WorkingDirectory = Path.GetTempPath(),
         };
         using var p = Process.Start(psi);
@@ -311,7 +311,7 @@ public static class GHubConflictRepair
                 string.Equals(clsid, G920OemRegistration.OemFfbClsid, StringComparison.OrdinalIgnoreCase))
                 return "OEM HKLM CLSID: ours (OK)";
             if (clsid.Contains("62B43F0E", StringComparison.OrdinalIgnoreCase))
-                return "OEM HKLM CLSID: still Logitech — rewrite failed";
+                return "OEM HKLM CLSID: still Logitech - rewrite failed";
             return "OEM HKLM CLSID: " + clsid;
         }
         catch (Exception ex)

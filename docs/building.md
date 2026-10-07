@@ -21,14 +21,14 @@ tools/build-g920ffb.ps1       MSBuild wrapper for g920ffb.dll
 tools/build-winuhid.ps1       Rebuild WinUHid package into native/winuhid
 publish.ps1                   Self-contained win-x64 publish → dist\G920Emulator + zip
 CHANGELOG.md                  Version notes (copied into dist)
-profiles/                     Repo reference only — runtime data is AppData
+profiles/                     Repo reference only - runtime data is AppData
 ```
 
 ## Version (release)
 
 The app version is **`Directory.Build.props`** (`<Version>`). Bump that for a release so the window title, About, tray tip, diagnostics zip, and assembly metadata stay in sync. Do not add a git hash to InformationalVersion.
 
-Users who leave **Settings → Check for GitHub updates** on are notified at launch when GitHub has a newer **published** release. Tag the GitHub release `v` + that version (example: `v0.2.7`) and attach **`G920Emulator-win-x64.zip`** as a release asset so **Update** can download it. Drafts and prereleases are ignored (`/releases/latest`). The app does not replace their folder — they unzip the zip themselves.
+Users who leave **Settings → Check for GitHub updates** on are notified at launch when GitHub has a newer **published** release. Tag the GitHub release `v` + that version (example: `v0.2.7`) and attach **`G920Emulator-win-x64.zip`** as a release asset so **Update** can download it. Drafts and prereleases are ignored (`/releases/latest`). The app does not replace their folder - they unzip the zip themselves.
 
 ## Publish (recommended)
 
@@ -56,10 +56,10 @@ Run:
 dist\G920Emulator\G920Emulator.exe
 ```
 
-- **`dist\Launch G920 Emulator.bat`** — starts the already-published EXE only
-- **Repo-root `Launch G920 Emulator.bat`** — starts `dist\…` if present, otherwise runs `publish.ps1` then launches
+- **`dist\Launch G920 Emulator.bat`** - starts the already-published EXE only
+- **Repo-root `Launch G920 Emulator.bat`** - starts `dist\…` if present, otherwise runs `publish.ps1` then launches
 
-Close a running emulator before republishing — files under `dist\` lock while the EXE is open.
+Close a running emulator before republishing - files under `dist\` lock while the EXE is open.
 
 ## Dev run (UI only)
 

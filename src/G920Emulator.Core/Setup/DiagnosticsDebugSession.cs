@@ -24,7 +24,7 @@ public sealed class DiagnosticsDebugSession : IDisposable
 
     public bool IsActive { get; private set; }
 
-    /// <summary>True after Stop() following a completed Start() — export is allowed.</summary>
+    /// <summary>True after Stop() following a completed Start() - export is allowed.</summary>
     public bool ExportReady { get; private set; }
 
     public void Start()
@@ -81,7 +81,7 @@ public sealed class DiagnosticsDebugSession : IDisposable
             }
             catch
             {
-                // best-effort — locked files are fine to leave
+                // best-effort - locked files are fine to leave
             }
         }
     }

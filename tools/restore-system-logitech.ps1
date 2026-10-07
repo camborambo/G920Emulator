@@ -98,4 +98,4 @@ Clear-SdkServerBinary
 Write-Host ''
 Write-Host 'Done. Launch Forza Horizon 5/6 to verify.'
 Write-Host 'If it works: the SDK/OEM pin from G920 Emulator was the cause.'
-Write-Host 'Re-opening G920 Emulator will re-apply pins while the app (or bridge) runs — keep it closed for Forza until we ship a fix.'
+Write-Host 'Re-opening G920 Emulator will re-apply pins while the app (or bridge) runs - keep it closed for Forza until we ship a fix.'

@@ -154,7 +154,7 @@
         <StackPanel>
           <TextBlock Text="Full clean restore (optional)" FontSize="18" FontWeight="SemiBold"/>
           <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Opacity="0.85"
-                     Text="Nuclear option: clears app leftovers, WinUHid, and turns off test signing. Not required for Forza — prefer Disable test signing if it was left on."/>
+                     Text="Nuclear option: clears app leftovers, WinUHid, and turns off test signing. Not required for Forza - prefer Disable test signing if it was left on."/>
           <WrapPanel Margin="0,14,0,-8">
             <Button x:Name="FullCleanRestoreButton" Style="{StaticResource AccentWrapButton}"
                     Content="Full clean restore…"

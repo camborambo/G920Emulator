@@ -1,7 +1,7 @@
 namespace G920Emulator.Core.Ffb;
 
 /// <summary>
-/// Per DirectInput effect-type gains (0..2 = 0–200%).
+/// Per DirectInput effect-type gains (0..2 = 0-200%).
 /// Applied in <c>g920ffb.dll</c> before effects are mixed into the output torque.
 /// </summary>
 public sealed class FfbEffectGains
@@ -46,7 +46,7 @@ public sealed class FfbEffectGains
         CustomForce = ClampGain(CustomForce);
     }
 
-    /// <summary>DI type id → gain (0–2).</summary>
+    /// <summary>DI type id → gain (0-2).</summary>
     public double ForType(int typeId) => typeId switch
     {
         Constant => ConstantForce,

@@ -5,7 +5,7 @@ namespace G920Emulator.Core.Telemetry;
 
 /// <summary>
 /// Saveable simulation-tuning preset for SimHub UDP telemetry.
-/// Host/port/rate stay in app settings — profiles are the dash/dynamics feel only.
+/// Host/port/rate stay in app settings - profiles are the dash/dynamics feel only.
 /// </summary>
 public sealed class TelemetryProfile
 {

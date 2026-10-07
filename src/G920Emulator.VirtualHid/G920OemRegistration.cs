@@ -35,7 +35,7 @@ public static class G920OemRegistration
             RegisterComServer(dll);
 
         // Same as last-known-good: overwrite OEM values in place.
-        // Do NOT delete the OEM tree — that was a post-G-HUB experiment and can briefly
+        // Do NOT delete the OEM tree - that was a post-G-HUB experiment and can briefly
         // strip Axes/Buttons Heat uses for wheel layout detection.
         _ = forceRewrite;
         WriteOemTree(Registry.CurrentUser);
@@ -58,7 +58,7 @@ public static class G920OemRegistration
             : $"OEM + COM registered → {dll}";
     }
 
-    /// <summary>Copy bundled SDK DLLs to ProgramData only — does not write registry.</summary>
+    /// <summary>Copy bundled SDK DLLs to ProgramData only - does not write registry.</summary>
     public static string EnsureSdkFilesCached()
     {
         var errors = new List<string>();
@@ -213,7 +213,7 @@ public static class G920OemRegistration
                 }
                 else
                 {
-                    // Delete the entire OEM VID/PID tree we created — leaving Axes/Effects
+                    // Delete the entire OEM VID/PID tree we created - leaving Axes/Effects
                     // with a blank CLSID can still break games that probe G920 OEM data.
                     var parentPath =
                         @"System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM";

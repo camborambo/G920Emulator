@@ -16,7 +16,7 @@ public partial class TelemetryDebugOverlayWindow : Window
 
     public void Update(in TelemetryFrame t, string status, string speedLabel, float speedMaxKmh, float rpmMax)
     {
-        StatusText.Text = string.IsNullOrWhiteSpace(status) ? "Telemetry: —" : status;
+        StatusText.Text = string.IsNullOrWhiteSpace(status) ? "Telemetry: -" : status;
         GearText.Text = "GEAR " + (string.IsNullOrEmpty(t.Gear) ? "N" : t.Gear);
         SessionText.Text = t.SessionRunning
             ? (t.SessionPaused ? "paused" : "running")
@@ -67,8 +67,8 @@ public partial class TelemetryDebugOverlayWindow : Window
             Row("clutch", $"{t.Clutch:0.00}") +
             Row("steering", $"{t.Steering:+0.00;-0.00;0.00}") +
             Row("gear", string.IsNullOrEmpty(t.Gear) ? "N" : t.Gear) +
-            Row("handbrake", t.HandbrakeHeld ? "held" : "—") +
-            Row("NOS / turbo", t.NosHeld ? "held" : "—") +
+            Row("handbrake", t.HandbrakeHeld ? "held" : "-") +
+            Row("NOS / turbo", t.NosHeld ? "held" : "-") +
             nl +
             "G-force" + nl +
             Row("surge g", $"{t.LocalSurgeMs2 / g:+0.00;-0.00;0.00}") +

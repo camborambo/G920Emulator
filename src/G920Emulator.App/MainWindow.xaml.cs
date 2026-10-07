@@ -53,7 +53,7 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _ffbPulseCts;
     private long _lastFfbDiagUiTick;
     private bool _refreshDevicesBusy;
-    /// <summary>True while Start/Stop/exit tears down DI — UI must not Poll InputHub.</summary>
+    /// <summary>True while Start/Stop/exit tears down DI - UI must not Poll InputHub.</summary>
     private volatile bool _bridgeBusy;
     private int _livePreviewPollInFlight;
     private bool _minimizeToTray;
@@ -75,7 +75,7 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        // Create before InitializeComponent — effect/feel sliders fire ValueChanged while XAML loads.
+        // Create before InitializeComponent - effect/feel sliders fire ValueChanged while XAML loads.
         _ffbProfilePushTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
         _ffbProfilePushTimer.Tick += (_, _) =>
         {
@@ -138,7 +138,7 @@ public partial class MainWindow : Window
     private static readonly Brush OkBorderBrush = new SolidColorBrush(Color.FromRgb(0x2A, 0x31, 0x40));
 
     private bool _exitTeardownStarted;
-    /// <summary>Set only after HidHide restore + teardown finish — then Close may proceed.</summary>
+    /// <summary>Set only after HidHide restore + teardown finish - then Close may proceed.</summary>
     private bool _exitAllowed;
 
     private void OnClosing(object? sender, CancelEventArgs e)
@@ -213,7 +213,7 @@ public partial class MainWindow : Window
         try
         {
             InstallFolderGuard.LeaveInstallFolder();
-            // Do not spawn deferred pnputil cleanup during exit — orphans pin the install folder.
+            // Do not spawn deferred pnputil cleanup during exit - orphans pin the install folder.
             VirtualG920Device.SuppressDeferredDeviceCleanup = true;
 
             await Task.Run(() =>
@@ -335,7 +335,7 @@ public partial class MainWindow : Window
         else
         {
             var missing = report.MissingRequiredNames;
-            StatusText.Text = $"{string.Join(" + ", missing)} missing — open Dependencies…";
+            StatusText.Text = $"{string.Join(" + ", missing)} missing - open Dependencies…";
         }
     }
 
@@ -408,7 +408,7 @@ public partial class MainWindow : Window
 
     private void TelemetryUnitKmhMenuItem_Click(object sender, RoutedEventArgs e)
     {
-        // WPF toggles IsChecked before Click — checked means metric UI.
+        // WPF toggles IsChecked before Click - checked means metric UI.
         var useKmh = TelemetryUnitKmhMenuItem?.IsChecked == true;
         _telemetryUseMph = !useKmh;
         UpdateAppSettings(s => s.TelemetrySpeedUnit = useKmh ? "kmh" : "mph");
@@ -422,8 +422,8 @@ public partial class MainWindow : Window
         var enabled = AutoApplyHidHideMenuItem?.IsChecked == true;
         UpdateAppSettings(s => s.AutoApplyHidHideConfigOnStart = enabled);
         StatusText.Text = enabled
-            ? "Apply HidHide on Start — Start will whitelist this app and hide Gaming-list devices."
-            : "Apply HidHide on Start off — Start will not change HidHide (manual).";
+            ? "Apply HidHide on Start - Start will whitelist this app and hide Gaming-list devices."
+            : "Apply HidHide on Start off - Start will not change HidHide (manual).";
     }
 
     private void UnloadHidHideMenuItem_Click(object sender, RoutedEventArgs e)
@@ -431,8 +431,8 @@ public partial class MainWindow : Window
         var enabled = UnloadHidHideMenuItem?.IsChecked == true;
         UpdateAppSettings(s => s.UnloadHidHideConfigWhenStopped = enabled);
         StatusText.Text = enabled
-            ? "Restore my HidHide on Stop — Start can save your setup and put it back on Stop."
-            : "Restore my HidHide on Stop off — Stop leaves HidHide as Start left it.";
+            ? "Restore my HidHide on Stop - Start can save your setup and put it back on Stop."
+            : "Restore my HidHide on Stop off - Stop leaves HidHide as Start left it.";
     }
 
     private void CheckForUpdatesMenuItem_Click(object sender, RoutedEventArgs e)
@@ -491,7 +491,7 @@ public partial class MainWindow : Window
 
         _pendingRelease = latest;
         if (UpdateBannerText is not null)
-            UpdateBannerText.Text = $"Update {latest.VersionLabel} is available — you have {AppVersion.Display}.";
+            UpdateBannerText.Text = $"Update {latest.VersionLabel} is available - you have {AppVersion.Display}.";
         if (UpdateBanner is not null)
             UpdateBanner.Visibility = Visibility.Visible;
         if (force)
@@ -521,7 +521,7 @@ public partial class MainWindow : Window
         if (string.IsNullOrWhiteSpace(release.ZipUrl))
         {
             OpenReleasePage(release.HtmlUrl);
-            StatusText.Text = "This GitHub release has no zip asset — opened the release page.";
+            StatusText.Text = "This GitHub release has no zip asset - opened the release page.";
             return;
         }
 
@@ -548,7 +548,7 @@ public partial class MainWindow : Window
             await GitHubUpdateChecker.DownloadAsync(release.ZipUrl, zipPath, progress, cts.Token).ConfigureAwait(true);
 
             if (UpdateBannerText is not null)
-                UpdateBannerText.Text = $"Downloaded {release.VersionLabel} — unzip over your G920 Emulator folder.";
+                UpdateBannerText.Text = $"Downloaded {release.VersionLabel} - unzip over your G920 Emulator folder.";
             StatusText.Text = "Saved " + zipPath;
             try
             {
@@ -564,7 +564,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             if (UpdateBannerText is not null)
-                UpdateBannerText.Text = $"Update {release.VersionLabel} is available — you have {AppVersion.Display}.";
+                UpdateBannerText.Text = $"Update {release.VersionLabel} is available - you have {AppVersion.Display}.";
             StatusText.Text = "Download failed: " + ex.Message;
             try { OpenReleasePage(release.HtmlUrl); } catch { /* ignore */ }
         }
@@ -601,7 +601,7 @@ public partial class MainWindow : Window
         var enabled = EffectChangesOverlayMenuItem?.IsChecked == true;
         UpdateAppSettings(s => s.EffectChangesOverlay = enabled);
         StatusText.Text = enabled
-            ? "Effect Changes Overlay on — bind buttons flash the category, name, and value while you drive."
+            ? "Effect Changes Overlay on - bind buttons flash the category, name, and value while you drive."
             : "Effect Changes Overlay off.";
     }
 
@@ -636,7 +636,7 @@ public partial class MainWindow : Window
         var enabled = DebugOverlayMenuItem?.IsChecked == true;
         UpdateAppSettings(s => s.DebugOverlay = enabled);
         StatusText.Text = enabled
-            ? "FFB Debug Overlay on — live inputs and FFB stay on top of the game."
+            ? "FFB Debug Overlay on - live inputs and FFB stay on top of the game."
             : "FFB Debug Overlay off.";
     }
 
@@ -645,7 +645,7 @@ public partial class MainWindow : Window
         var enabled = TelemetryDebugOverlayMenuItem?.IsChecked == true;
         UpdateAppSettings(s => s.TelemetryDebugOverlay = enabled);
         StatusText.Text = enabled
-            ? "Telemetry Debug Overlay on — live SimHub packet stays on top of the game."
+            ? "Telemetry Debug Overlay on - live SimHub packet stays on top of the game."
             : "Telemetry Debug Overlay off.";
     }
 
@@ -966,7 +966,7 @@ public partial class MainWindow : Window
         if (_telemetryUiBusy || !IsLoaded) return;
         if (ReferenceEquals(sender, TelemetrySpeedMaxSlider) && TelemetrySpeedMaxSlider is not null)
             SyncGearMaxSliderRanges(TelemetrySpeedMaxSlider.Value);
-        // Blocklayer Shift At = Redline — gear tops recalculate when it moves.
+        // Blocklayer Shift At = Redline - gear tops recalculate when it moves.
         if (ReferenceEquals(sender, TelemetryRpmRedlineSlider) && TelemetryRpmRedlineSlider is not null &&
             Math.Abs(TelemetryRpmRedlineSlider.Value - _telemetryLastRpmRedline) >= 0.5)
         {
@@ -1298,7 +1298,7 @@ public partial class MainWindow : Window
 
     private void SyncGearMaxSliderRanges(double speedMaxUi)
     {
-        // Ceiling is always the absolute UI max — never Maximum == current gear-6 value
+        // Ceiling is always the absolute UI max - never Maximum == current gear-6 value
         // (that re-fired ValueChanged and crashed).
         _ = speedMaxUi;
         var abs = AbsoluteSpeedMaxUi;
@@ -1818,13 +1818,13 @@ public partial class MainWindow : Window
         {
             _debugSession.Stop();
             VirtualG920Device.LogHostIngress = false;
-            StatusText.Text = "Debug stopped — Export log is ready.";
+            StatusText.Text = "Debug stopped - Export log is ready.";
         }
         else
         {
             _debugSession.Start();
             VirtualG920Device.LogHostIngress = true;
-            StatusText.Text = "Debug logging on — reproduce the issue, then Stop and Export log.";
+            StatusText.Text = "Debug logging on - reproduce the issue, then Stop and Export log.";
         }
 
         RefreshDebugSessionUi();
@@ -2187,7 +2187,7 @@ public partial class MainWindow : Window
             if (name.Equals(TelemetryProfile.DefaultProfileName, StringComparison.OrdinalIgnoreCase))
             {
                 MessageBox.Show(
-                    "Choose a different name — Default is the built-in simulation preset.",
+                    "Choose a different name - Default is the built-in simulation preset.",
                     "Save telemetry As");
                 return;
             }
@@ -2224,7 +2224,7 @@ public partial class MainWindow : Window
             var selected = TelemetryProfilesCombo?.SelectedItem as string
                            ?? settings.LastTelemetryProfileName
                            ?? TelemetryProfile.DefaultProfileName;
-            StatusText.Text = $"Telemetry sliders reset to defaults — Save to write '{selected}'";
+            StatusText.Text = $"Telemetry sliders reset to defaults - Save to write '{selected}'";
         }
         catch (Exception ex)
         {
@@ -2245,7 +2245,7 @@ public partial class MainWindow : Window
         if (name.Equals(TelemetryProfile.DefaultProfileName, StringComparison.OrdinalIgnoreCase))
         {
             MessageBox.Show(
-                "Default cannot be deleted — it is the built-in simulation preset.",
+                "Default cannot be deleted - it is the built-in simulation preset.",
                 "Delete telemetry profile");
             return;
         }
@@ -2274,7 +2274,7 @@ public partial class MainWindow : Window
             });
         }
 
-        StatusText.Text = $"Deleted telemetry '{name}' — switched to {fallback}";
+        StatusText.Text = $"Deleted telemetry '{name}' - switched to {fallback}";
     }
 
     private void TelemetryProfilesCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -2332,7 +2332,7 @@ public partial class MainWindow : Window
 
             if (name.Equals("Raw", StringComparison.OrdinalIgnoreCase))
             {
-                MessageBox.Show("Choose a different name — Raw is the built-in exact-mix preset.", "Save FFB As");
+                MessageBox.Show("Choose a different name - Raw is the built-in exact-mix preset.", "Save FFB As");
                 return;
             }
 
@@ -2377,7 +2377,7 @@ public partial class MainWindow : Window
             ScheduleFfbProfilePush();
 
             var selected = FfbProfilesCombo.SelectedItem as string ?? _profile.FfbProfileName ?? "Raw";
-            StatusText.Text = $"FFB sliders reset to defaults — Save to write '{selected}'";
+            StatusText.Text = $"FFB sliders reset to defaults - Save to write '{selected}'";
         }
         catch (Exception ex)
         {
@@ -2396,7 +2396,7 @@ public partial class MainWindow : Window
 
         if (name.Equals("Raw", StringComparison.OrdinalIgnoreCase))
         {
-            MessageBox.Show("Raw cannot be deleted — it is the built-in exact game-mix preset.", "Delete FFB profile");
+            MessageBox.Show("Raw cannot be deleted - it is the built-in exact game-mix preset.", "Delete FFB profile");
             return;
         }
 
@@ -2414,7 +2414,7 @@ public partial class MainWindow : Window
         LoadFeelIntoUi(_profile.FfbOutputFeel);
         _bridge.Profile = _profile;
         RefreshFfbProfilesCombo("Raw");
-        StatusText.Text = $"Deleted FFB '{name}' — switched to Raw";
+        StatusText.Text = $"Deleted FFB '{name}' - switched to Raw";
     }
 
     private void FfbProfilesCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -2498,7 +2498,7 @@ public partial class MainWindow : Window
 
     private void RefreshLiveUi()
     {
-        // Binding dialog already polls; never Poll DirectInput on the UI thread —
+        // Binding dialog already polls; never Poll DirectInput on the UI thread -
         // Start's FFB attach / RefreshDevices holds InputHub and freezes WPF when the wheel moves.
         if (_bindingDialogOpen || _bridgeBusy)
             return;
@@ -2525,7 +2525,7 @@ public partial class MainWindow : Window
         else if (string.IsNullOrWhiteSpace(link) && _shownLinkStatus is not null && StatusText is not null)
         {
             if (StatusText.Text == _shownLinkStatus)
-                StatusText.Text = "Bridge running — virtual G920 active.";
+                StatusText.Text = "Bridge running - virtual G920 active.";
             _shownLinkStatus = null;
         }
 
@@ -2589,7 +2589,7 @@ public partial class MainWindow : Window
         if (FfbDebugExpander?.IsExpanded != true && !overlayOn)
             return;
 
-        // Cap UI DI/diagnostics work — was every 50ms and also polled the FFB joystick
+        // Cap UI DI/diagnostics work - was every 50ms and also polled the FFB joystick
         // on the UI thread (hangs when alt-tabbing while the bridge applies torque).
         var now = Environment.TickCount64;
         if (now - _lastFfbDiagUiTick < 250)
@@ -2650,7 +2650,7 @@ public partial class MainWindow : Window
         _ffbPulseCts?.Cancel();
         _bridge.Ffb.StartTestAutoCenter(gain: 0.85f);
         SetFfbTestSlider(0f);
-        StatusText.Text = "Return-to-center ON — turn the rim; it should pull back. Release test to stop.";
+        StatusText.Text = "Return-to-center ON - turn the rim; it should pull back. Release test to stop.";
         RefreshFfbDiagnostics();
     }
 
@@ -2687,7 +2687,7 @@ public partial class MainWindow : Window
         _ffbPulseCts?.Cancel();
         _bridge.Ffb.ClearTestOverride();
         SetFfbTestSlider(0f);
-        StatusText.Text = "FFB test released — game/HID++ can drive the base again.";
+        StatusText.Text = "FFB test released - game/HID++ can drive the base again.";
         RefreshFfbDiagnostics();
     }
 
@@ -2820,7 +2820,7 @@ public partial class MainWindow : Window
             _bridgeBusy = true;
 
             // Optional HidHide: auto-apply hide-all-except-emulator; optional restore point.
-            // Do NOT run full GHubConflictRepair here — it previously removed WinUHid enumerators.
+            // Do NOT run full GHubConflictRepair here - it previously removed WinUHid enumerators.
             var sessionStarted = false;
             var appSettings = _profiles.LoadSettings();
             var autoApplyHidHide = appSettings.AutoApplyHidHideConfigOnStart;
@@ -2830,7 +2830,7 @@ public partial class MainWindow : Window
 
             if (autoApplyHidHide)
             {
-                // Client holds an exclusive lock on the filter — CLI gets 0x0005 while it is open.
+                // Client holds an exclusive lock on the filter - CLI gets 0x0005 while it is open.
                 if (DependencyChecker.IsHidHideClientRunning())
                 {
                     var closeClient = MessageBox.Show(
@@ -2846,7 +2846,7 @@ public partial class MainWindow : Window
                     {
                         _bridgeBusy = false;
                         SetBridgeControls(running: false, busy: false);
-                        StatusText.Text = "Start cancelled — close HidHide Client first.";
+                        StatusText.Text = "Start cancelled - close HidHide Client first.";
                         return;
                     }
 
@@ -2860,13 +2860,13 @@ public partial class MainWindow : Window
 
             if (autoApplyHidHide && unloadHidHide)
             {
-                // Ask first — reading HidHide is slow; don't pay for capture if the user picks No.
+                // Ask first - reading HidHide is slow; don't pay for capture if the user picks No.
                 var saveChoice = MessageBox.Show(
                     this,
                     "Save today's HidHide setup as your restore point?\n\n" +
-                    "Yes — read HidHide now and put it back when you Stop\n" +
-                    "No — apply session hide only (Stop won't restore)\n" +
-                    "Cancel — don't start",
+                    "Yes - read HidHide now and put it back when you Stop\n" +
+                    "No - apply session hide only (Stop won't restore)\n" +
+                    "Cancel - don't start",
                     "HidHide restore point",
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Question);
@@ -2908,11 +2908,11 @@ public partial class MainWindow : Window
                             captureError + "\n\n" +
                             (clientLocked
                                 ? "HidHide Client must be closed (it locks the driver).\n\n" +
-                                  "Yes — close HidHide Client and try again\n"
+                                  "Yes - close HidHide Client and try again\n"
                                 : "Windows may ask for admin permission.\n\n" +
-                                  "Yes — try reading again\n") +
-                            "No — start without a restore point (Stop won't put HidHide back)\n" +
-                            "Cancel — don't start",
+                                  "Yes - try reading again\n") +
+                            "No - start without a restore point (Stop won't put HidHide back)\n" +
+                            "Cancel - don't start",
                             "HidHide",
                             MessageBoxButton.YesNoCancel,
                             MessageBoxImage.Warning);
@@ -2927,7 +2927,7 @@ public partial class MainWindow : Window
                         {
                             _bridgeBusy = false;
                             SetBridgeControls(running: false, busy: false);
-                            StatusText.Text = "Start cancelled — HidHide could not be read.";
+                            StatusText.Text = "Start cancelled - HidHide could not be read.";
                             return;
                         }
 
@@ -2965,7 +2965,7 @@ public partial class MainWindow : Window
                     try { _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes(); } catch { /* ignore */ }
                     _bridge.Start();
 
-                    // Virtual G920 now exists — re-hide pads/wheels and keep the emulator visible.
+                    // Virtual G920 now exists - re-hide pads/wheels and keep the emulator visible.
                     if (autoApplyHidHide)
                         DependencyChecker.RefreshHidHideSessionDevices();
                 }).ConfigureAwait(true);
@@ -3015,12 +3015,12 @@ public partial class MainWindow : Window
             else
             {
                 StatusText.Text = _virtual.IsPreviewMode
-                    ? "Bridge running (preview — no virtual HID)."
+                    ? "Bridge running (preview - no virtual HID)."
                     : col01Missing
-                        ? "Bridge running — virtual G920 not visible. Stop, then Start again."
+                        ? "Bridge running - virtual G920 not visible. Stop, then Start again."
                         : _bridge.Ffb.IsReady
-                            ? "Bridge running — virtual G920 active, FFB attached."
-                            : "Bridge running — virtual G920 active. Pick an FFB-capable device under Force Feedback for forces.";
+                            ? "Bridge running - virtual G920 active, FFB attached."
+                            : "Bridge running - virtual G920 active. Pick an FFB-capable device under Force Feedback for forces.";
             }
             if (autoApplyHidHide && hidHideSaveRevert)
                 StatusText.Text += " HidHide restore point saved (restores on Stop).";
@@ -3054,7 +3054,7 @@ public partial class MainWindow : Window
         _bridgeBusy = true;
         try
         {
-            // Tear down off the UI thread — WinUHid stop + FFB detach must not freeze the window.
+            // Tear down off the UI thread - WinUHid stop + FFB detach must not freeze the window.
             // Always EndSession even if Stop hangs: otherwise OEM pins stay and the next
             // Start can fail while WinUHid is still destroying the previous device.
             try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
@@ -3086,7 +3086,7 @@ public partial class MainWindow : Window
         if (_profiles.LoadSettings().UnloadHidHideConfigWhenStopped ||
             DependencyChecker.HasPendingHidHideSnapshot)
         {
-            // Keep Start/Stop disabled until HidHide finishes — same as exit.
+            // Keep Start/Stop disabled until HidHide finishes - same as exit.
             StatusText.Text = "Restoring HidHide…";
             try
             {
@@ -3254,7 +3254,7 @@ public partial class MainWindow : Window
             imported.Name = Path.GetFileNameWithoutExtension(dialog.FileName);
 
         LoadProfileIntoUi(imported);
-        var name = PromptForName("Import profile — save as", imported.Name) ?? imported.Name;
+        var name = PromptForName("Import profile - save as", imported.Name) ?? imported.Name;
         _profiles.Save(_profile, name);
         RefreshSavedProfilesCombo(name);
         StatusText.Text = $"Imported and saved '{name}'";
@@ -3375,7 +3375,7 @@ public partial class MainWindow : Window
                 target,
                 binding,
                 _profile,
-                // Must overlay pinned FFB buttons — plain InputHub.Poll skips Fanatec while
+                // Must overlay pinned FFB buttons - plain InputHub.Poll skips Fanatec while
                 // the bridge holds exclusive FFB (broke bind-on-the-fly after Start).
                 () => _bridge.PollForUi(),
                 () => _bridge.RefreshDevices(),
@@ -4207,7 +4207,7 @@ public partial class MainWindow : Window
         };
         if (DockPanel.GetDock(label) == Dock.Right)
             DockPanel.SetDock(edit, Dock.Right);
-        // Grid cells lose Row/Column when the child is removed — copy them or the box jumps to 0,0.
+        // Grid cells lose Row/Column when the child is removed - copy them or the box jumps to 0,0.
         CopyPanelCellPlacement(label, edit);
 
         var index = panel.Children.IndexOf(label);

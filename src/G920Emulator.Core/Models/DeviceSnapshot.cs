@@ -62,7 +62,7 @@ public sealed class MappedG920State
     public bool Gear6 { get; set; }
     public bool GearR { get; set; }
 
-    /// <summary>Virtual DI button (1–19) used when <see cref="GearR"/> is active.</summary>
+    /// <summary>Virtual DI button (1-19) used when <see cref="GearR"/> is active.</summary>
     public int GearReverseOutputButton { get; set; } = 19;
 
     public string ActiveGearLabel

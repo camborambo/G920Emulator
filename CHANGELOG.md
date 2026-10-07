@@ -14,19 +14,19 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - **Telemetry** tab: optional SimHub External Sim UDP feed for games with no native telemetry (Heat / Unbound first). Speed/RPM/gear are simulated from pedals and shifter; rumble/impact/road load come from the virtual G920 FFB mix. Requires SimHub 9.11.5+. No game-process injection.
 - **G920 Emulator (simulated)** External Sim registration (**Register with SimHub** / **Remove registration**) plus bundled **G920 Emulator RPM** plugin so ShakeIt built-in **Engine vibrations** works like native games.
 - Telemetry **simulation profiles** (Save / Save as / Default / Delete) under `telemetry-profiles`. Host/port/rate stay global in settings.
-- **Blocklayer gear chart**: absolute gear ratios (6th editable), Diff, Tire diameter, Redline — max speed = `(tire × Redline) / (336 × gear × diff)` matching blocklayer.com “Shift At” (defaults → ~47/68/99/141/168/252 MPH). Hard-cut **Rev-limiter** with hysteresis.
-- **Arcade buttons** (telemetry): Handbrake / NOS–Turbo use the same **Bind** dialog as FFB (hardware on the input profile) plus strength/boost sliders; hold dumps or boosts simulated speed (NOS still gear-capped). Live Telemetry Off/Held LEDs.
-- Telemetry **Engine** scale (0–200%) under ShakeIt / FFB scales; RPM always sent, plugin applies the scale to Engine vibrations force.
+- Telemetry **gearing** sliders (ratios, Diff, Tire, Redline) and hard-cut **Rev-limiter** with hysteresis.
+- Telemetry **arcade buttons**: Handbrake / NOS-Turbo binds plus strength/boost sliders.
+- Telemetry **Engine** scale (0-200%) under ShakeIt / FFB scales; RPM always sent, plugin applies the scale to Engine vibrations force.
 - Simulated G-force for SimHub (`LocalSurgeMs2` / `LocalSwayMs2` / `LocalHeaveMs2`) and a live **G-force circle** on the Telemetry tab.
 - **Telemetry Debug Overlay** (Settings): topmost live SimHub UDP packet (gear, speed/RPM, pedals, G-force, FFB→SimHub scales).
 - FFB **Bind** dialog **Set as Default**: snap value + hardware button that restores that slider while driving (saved on the input profile).
-- Telemetry UDP send rate slider **30–60 Hz** (60 is SimHub's External Sim max).
+- Telemetry UDP send rate slider **30-60 Hz** (60 is SimHub's External Sim max).
 
 ### Changed
 
 - Settings **Debug Overlay** renamed to **FFB Debug Overlay** (same window; settings key unchanged).
 - Telemetry RPM tracks **speed-in-gear** (not WOT→max): upshifts drop RPM; taller gears build RPM slower with Accel.
-- Telemetry layout: Gearing + Engine/ShakeIt/Arcade stacked left; Live Telemetry alone on the right. Status notices use the main status bar.
+- Telemetry layout: controls stacked left; Live Telemetry alone on the right. Status notices use the main status bar.
 
 ### Fixed
 
@@ -45,7 +45,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ### Added
 
 - App version in the window title, About, tray tip, and exported diagnostics (`Directory.Build.props`)
-- **Check for GitHub updates** (Settings, on by default): banner when a newer published release exists. **Update** downloads `G920Emulator-{version}-win-x64.zip` to Downloads and opens that folder — unzip over your app folder yourself. **Later** hides that version until the next tag
+- **Check for GitHub updates** (Settings, on by default): banner when a newer published release exists. **Update** downloads `G920Emulator-{version}-win-x64.zip` to Downloads and opens that folder - unzip over your app folder yourself. **Later** hides that version until the next tag
 - **Bind** on every Force Feedback slider (Master, Custom, feel, shaping, centering, mix): hardware −/+ while driving (1% tap / 5% hold on gains). Green **Bind** means a − or + is assigned; the bind dialog has **Clear** per side
 - **Debug Overlay** (Settings): topmost live G920 inputs + FFB diagnostics
 - **Effect Changes Overlay** (Settings, on by default): brief top-center HUD of category, slider name, and value when FFB bind buttons fire
@@ -61,19 +61,19 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Removed
 
-- **SessionWatch** crash watchdog — OEM/SDK pins still restore on Stop/close; after a hard crash they clear on the next emulator launch
+- **SessionWatch** crash watchdog - OEM/SDK pins still restore on Stop/close; after a hard crash they clear on the next emulator launch
 
 ### Changed
 
 - Docs / diagnostics HOW-TO: leave status-bar **Debug** off for normal play (especially Forza); use only for short captures
-- README: prominent post-install step — turn **test signing off** and **re-enable Secure Boot** once WinUHid is installed
+- README: prominent post-install step - turn **test signing off** and **re-enable Secure Boot** once WinUHid is installed
 
 ### Fixed
 
-- **Forza FFB silent:** games that re-download full DIEP_ALL (`0x3FF`) every frame (Forza / some Steam Input paths) never armed Constant Force — only Unbound-style `0x100` param streams did. Updates on an existing effect handle now arm CF/periodics; Steam Aux publishes the full mix when no game Torque channel is live.
+- **Forza FFB silent:** games that re-download full DIEP_ALL (`0x3FF`) every frame (Forza / some Steam Input paths) never armed Constant Force - only Unbound-style `0x100` param streams did. Updates on an existing effect handle now arm CF/periodics; Steam Aux publishes the full mix when no game Torque channel is live.
 - **Steam unload harden:** `g920ffb` PIN now falls back to a permanent `LoadLibrary` ref if pin fails, and holds a COM lock for process lifetime (crash stamp `0x6AC32A35` was the pre-pin Oct 4 build; no `steam.exe` faults after the pinned builds).
 - **OEM FFB polarity:** Constant / ramp / periodic forces were published in DI device sense while springs used app sense (`+` = right); after `FfbBridge`’s base negation, CF pushed into the turn (Unbound’s Invert Constant Force was compensating). Non-condition effects now convert DI→app; conditions no longer take `DIEFFECT` direction; Unbound/Heat seed drops the CF invert workaround.
-- **Debug FFB log stall:** with Debug on, Forza’s per-frame OEM downloads (~600 lines/s) opened/wrote/closed the log on the game thread and could freeze game input while the emulator UI stayed live — log is now rate-limited, keeps the file open, and rotates at 4 MB
+- **Debug FFB log stall:** with Debug on, Forza’s per-frame OEM downloads (~600 lines/s) opened/wrote/closed the log on the game thread and could freeze game input while the emulator UI stayed live - log is now rate-limited, keeps the file open, and rotates at 4 MB
 - **Start after Stop:** OEM/SDK restore always runs even if WinUHid stop is slow; Start waits longer for teardown before recreating the virtual G920
 
 ## [0.2.4] - 2026-10-05
@@ -83,7 +83,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - **Dependencies → Windows test signing** as its own step (Enabled / Disabled / Reboot required / Off OK) with Enable/Disable actions and a Secure Boot warning
 - **Forza-friendly WinUHid install:** enable test signing only for install → install driver → turn test signing off automatically (WinUHid usually keeps working; FH6 can launch)
 - **Uninstall WinUHid** removes the driver **and** turns off Windows test signing, then offers a reboot
-- **Dependencies → Full clean restore…** — optional nuclear wipe of app system leftovers (OEM/SDK, SDK cache, WinUHid, test signing, etc.)
+- **Dependencies → Full clean restore…** - optional nuclear wipe of app system leftovers (OEM/SDK, SDK cache, WinUHid, test signing, etc.)
 - Session-scoped OEM / Logitech SDK pins on Start bridge (restored on Stop/close / next launch); Dependencies status card (Active / Idle / Needs restore)
 - Docs / README: Forza Horizon + Secure Boot guidance (Secure Boot can be re-enabled after install)
 
@@ -91,7 +91,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - Dependencies UI: numbered setup (test signing → WinUHid → HidHide); OEM/SDK is a session status card like G HUB guard
 - Main window dependency chips show test signing instead of OEM/SDK
-- Test signing shows **Off (OK)** when WinUHid is installed and test mode is off — not permanently required
+- Test signing shows **Off (OK)** when WinUHid is installed and test mode is off - not permanently required
 
 ### Fixed
 
@@ -112,7 +112,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
-- Fanatec (pinned FFB) wheel buttons frozen while steering still worked — overlay buttons/hat from the exclusive FFB handle
+- Fanatec (pinned FFB) wheel buttons frozen while steering still worked - overlay buttons/hat from the exclusive FFB handle
 - Bind-on-the-fly while the bridge is running (bind dialog uses FFB overlay poll)
 - Live Buttons line now shows View, Menu, LSB, RSB (and active gear)
 - Newly bound devices included in the poll set without restarting the bridge

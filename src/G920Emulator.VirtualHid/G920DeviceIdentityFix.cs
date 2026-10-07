@@ -6,7 +6,7 @@ namespace G920Emulator.VirtualHid;
 /// <summary>
 /// Keeps the virtual G920 Col01 friendly name / OEM-facing identity correct.
 /// On modern Windows, Joystick (usage 0x04) still binds MatchingDeviceId
-/// <c>HID_DEVICE_SYSTEM_GAME</c> ("HID-compliant game controller") — that is normal
+/// <c>HID_DEVICE_SYSTEM_GAME</c> ("HID-compliant game controller") - that is normal
 /// and must NOT trigger pnputil device restarts (those orphan WinUHid VHF children).
 /// </summary>
 public static class G920DeviceIdentityFix
@@ -42,12 +42,12 @@ public static class G920DeviceIdentityFix
         return false;
     }
 
-    /// <summary>Legacy name used by GHubGuard — friendly-name only, never a driver rebind.</summary>
+    /// <summary>Legacy name used by GHubGuard - friendly-name only, never a driver rebind.</summary>
     public static bool IsMisclassifiedAsGamepad() => NeedsFriendlyNameFix();
 
     public static void EnsureFriendlyNameOnly() => Apply(restartDevice: false);
 
-    /// <param name="restartDevice">Ignored — restarts break WinUHid virtual Col01 nodes.</param>
+    /// <param name="restartDevice">Ignored - restarts break WinUHid virtual Col01 nodes.</param>
     public static string Apply(bool restartDevice = false)
     {
         _ = restartDevice; // never restart virtual VHF children
@@ -77,7 +77,7 @@ public static class G920DeviceIdentityFix
                         }
 
                         // Keep JOY id present for tools that read HardwareID, but never remove
-                        // SYSTEM_GAME — Windows puts it there for Joystick usage and driver match.
+                        // SYSTEM_GAME - Windows puts it there for Joystick usage and driver match.
                         if (EnsureJoyHardwareId(inst))
                             changed = true;
 

@@ -22,7 +22,7 @@ Approve UAC when prompted (WinUHid requires elevation to open the device).
 
 The window title and status bar show the app version (for example **v0.2.7**). With **Settings → Check for GitHub updates** on (default), a banner appears when a newer **published** GitHub release exists.
 
-1. Click **Update** — the zip downloads to **Downloads** and that folder opens.
+1. Click **Update** - the zip downloads to **Downloads** and that folder opens.
 2. Close G920 Emulator if it is running.
 3. Unzip the new `G920Emulator` folder **over** the folder you already use (same place you put it the first time).
 4. Run the new `G920Emulator.exe`. Bindings stay in `%AppData%\G920Emulator\` unless you use `portable.txt`.
@@ -34,17 +34,17 @@ The window title and status bar show the app version (for example **v0.2.7**). W
 1. Open **Dependencies** (header **Settings** → **Manage dependencies**, or the **Fix** banner if something is missing).
 2. **Install WinUHid** → Recheck until installed/ready.
 3. Install HidHide if missing → configure it yourself in **HidHide Client** (or optional **Configure HidHide** in Dependencies). Or use **Settings**:
-   - **Apply HidHide on Start** — each **Start** whitelists the emulator and hides devices from HidHide’s **Gaming devices only** list (virtual G920 stays visible).
-   - **Restore my HidHide on Stop** — with apply on, **Start** can save your current HidHide setup and put it back on **Stop**/**Exit** (status shows **Restoring HidHide…**; if it times out, the next launch finishes it).
-   Both off = fully manual (this app never changes HidHide). Close **HidHide Client** before Start (or let the app close it when prompted) — while that window is open the driver returns Access denied / 0x0005. Windows may also ask for admin permission.
+   - **Apply HidHide on Start** - each **Start** whitelists the emulator and hides devices from HidHide’s **Gaming devices only** list (virtual G920 stays visible).
+   - **Restore my HidHide on Stop** - with apply on, **Start** can save your current HidHide setup and put it back on **Stop**/**Exit** (status shows **Restoring HidHide…**; if it times out, the next launch finishes it).
+   Both off = fully manual (this app never changes HidHide). Close **HidHide Client** before Start (or let the app close it when prompted) - while that window is open the driver returns Access denied / 0x0005. Windows may also ask for admin permission.
 4. Create a profile name → **Save** (stored in `%AppData%\G920Emulator\profiles`, so updates do not wipe binds).
 
 Details and troubleshooting: [driver-install.md](driver-install.md).
 
 ## Tabs
 
-- **Input** — detected devices, G920 bindings, shifter mode, and live virtual G920 preview (including buttons).
-- **Telemetry** — SimHub UDP for games with no native telemetry (simulated speed/RPM plus FFB-derived rumble).
+- **Input** - detected devices, G920 bindings, shifter mode, and live virtual G920 preview (including buttons).
+- **Telemetry** - SimHub UDP for games with no native telemetry (simulated speed/RPM plus FFB-derived rumble).
 
 Shared chrome: Input / Force Feedback / Telemetry tabs, input profile, **Start** (toggles to **Stop** while running), and **Settings**. Settings (including **Minimize to system tray**, **FFB Debug Overlay**, **Telemetry Debug Overlay**, **Effect Changes Overlay**, **Check for GitHub updates**, **Telemetry km/h**, **Apply HidHide on Start**, and **Restore my HidHide on Stop**) save immediately in `settings.json`. Telemetry **simulation** presets are separate profiles under `%AppData%\G920Emulator\telemetry-profiles` (same Save / Save as / Default / Delete pattern as FFB profiles); host/port/rate stay in settings. Live meters sit on the Input tab. A warning strip appears if required pieces are missing. With update checks on, a banner appears when GitHub has a newer published release. **Update** saves the zip to Downloads (then opens that folder); unzip it over your G920 Emulator folder like a first install. **Later** skips that version.
 
@@ -54,28 +54,28 @@ Many arcade / console-port titles (Need for Speed Heat and Unbound included) hav
 
 **Honest fields**
 
-- Throttle, brake, clutch, steering — your mapped G920 controls
-- Gear — H-pattern binds, or sequential paddles if you use them
-- `SurfaceRumble`, `Impact`, `RoadLoad`, and per-type FFB (`FfbConstant`, `FfbPeriodic`, …) — from the game's DirectInput mix on the virtual G920
+- Throttle, brake, clutch, steering - your mapped G920 controls
+- Gear - H-pattern binds, or sequential paddles if you use them
+- `SurfaceRumble`, `Impact`, `RoadLoad`, and per-type FFB (`FfbConstant`, `FfbPeriodic`, …) - from the game's DirectInput mix on the virtual G920
 
 **Simulated (not real game values)**
 
-- Speed (MPH by default, or km/h) and RPM — arcade integration from pedals, gated when FFB is idle and no known game process is running
-- G-force — SimHub standard `LocalSurgeMs2` / `LocalSwayMs2` / `LocalHeaveMs2` (m/s²). Vehicle-frame: surge **+ = throttle**, **− = brake**; sway **+ = left**. Live G-G circle uses the same signs (accel up, brake down).
+- Speed (MPH by default, or km/h) and RPM - arcade integration from pedals, gated when FFB is idle and no known game process is running
+- G-force - SimHub standard `LocalSurgeMs2` / `LocalSwayMs2` / `LocalHeaveMs2` (m/s²). Vehicle-frame: surge **+ = throttle**, **− = brake**; sway **+ = left**. Live G-G circle uses the same signs (accel up, brake down).
 
 **Setup**
 
 1. SimHub **9.11.5 or newer**. Settings → Global → enable game definition authoring if the sim does not appear.
 2. On the **Telemetry** tab, click **Register with SimHub** (writes `%LocalAppData%\SimHub\ExternalSims\Registrations\{id}.simlink` pointing at `simhub\G920Telemetry.simdef` next to `G920Emulator.exe`, and installs **`G920Emulator.SimHubPlugin.dll`** into the SimHub folder so built-in ShakeIt **Engine vibrations** gets the same RPM capability native games like Forza use). **Remove registration** deletes the link and disables/removes that plugin; restart SimHub so the tile and icon drop, then Register again after changing `simhub/logo.png`.
-3. Restart SimHub, then activate **G920 Emulator (simulated)**. Match UDP **port** (default **20778**) and host **127.0.0.1**. Do not pick this sim for titles that already have a native SimHub plugin (Forza, and so on). Need for Speed Heat / Unbound are listed as detection processes only so SimHub can switch to this definition if those EXEs are running — they still have no real telemetry. Confirm **G920 Emulator RPM** is enabled under SimHub → Settings → Plugins.
+3. Restart SimHub, then activate **G920 Emulator (simulated)**. Match UDP **port** (default **20778**) and host **127.0.0.1**. Do not pick this sim for titles that already have a native SimHub plugin (Forza, and so on). Need for Speed Heat / Unbound are listed as detection processes only so SimHub can switch to this definition if those EXEs are running - they still have no real telemetry. Confirm **G920 Emulator RPM** is enabled under SimHub → Settings → Plugins.
 4. Enable **Send telemetry while the bridge is running**, **Start** the bridge, launch the game.
 5. Optional **Telemetry profile** tuning (Save / Save as / Default / Delete under `telemetry-profiles`):
 
-   - **Gearing (Blocklayer chart)** — absolute ratios for gears 1–6 (6th editable, e.g. 0.56), **Diff / final drive**, **Tire** diameter, and **Redline** (SimHub `EngineShiftRpm`). Each gear’s top speed uses the blocklayer.com “Shift At” formula: `(tire × Redline) / (336 × gear × diff)`. Defaults land near 47 / 68 / 99 / 141 / 168 / 252 MPH.
-   - **Live / Accel / Brake / Coast** — MPH (and MPH/s) by default; enable **Settings → Telemetry km/h** for metric. Values are stored and sent to SimHub as **km/h** (rates as km/h/s).
-   - **RPM** — follows speed within the current gear (upshift drops RPM). **Rev-limiter** / **Limiter rate** hard-cut when a gear is pinned at top speed (hysteresis, not a soft bounce).
-   - **Arcade buttons** — **Handbrake** and **NOS / Turbo** use the same **Bind** dialog as FFB (hardware button on the **input** profile) plus strength / boost sliders on the telemetry profile. Hold Handbrake to dump simulated speed; hold NOS to boost (still gear-capped). Live Telemetry shows Off / Held dots when active.
-   - **Engine / ShakeIt scales** — Engine (0–200%) for SimHub Engine vibrations force; SurfaceRumble / Impact / RoadLoad as before.
+   - **Gearing** - gear ratios, Diff / final drive, Tire diameter, and Redline (SimHub `EngineShiftRpm`) tune how simulated speed and RPM behave.
+   - **Live / Accel / Brake / Coast** - MPH (and MPH/s) by default; enable **Settings → Telemetry km/h** for metric. Values are stored and sent to SimHub as **km/h** (rates as km/h/s).
+   - **RPM** - follows speed within the current gear (upshift drops RPM). **Rev-limiter** / **Limiter rate** hard-cut when a gear is pinned at top speed.
+   - **Arcade buttons** - optional **Handbrake** and **NOS / Turbo** binds on the input profile, with strength / boost on the telemetry profile.
+   - **Engine / ShakeIt scales** - Engine (0-200%) for SimHub Engine vibrations force; SurfaceRumble / Impact / RoadLoad as before.
 
 Unbound still needs **Controller Vibration On** or periodic/CF magnitudes stay 0 (same as FFB).
 
@@ -85,12 +85,12 @@ Unbound still needs **Controller Vibration On** or periodic/CF magnitudes stay 0
 |--------|----------------------|
 | Speed | `SpeedKmh` or `SpeedMph` (we always send **km/h**; SimHub derives MPH) |
 | RPM | `Rpms` / `MaxRpm` / `CarSettings_CurrentGearRedLineRPM` (from `EngineRpm` / `EngineMaxRpm` / `EngineShiftRpm`) |
-| Engine vibrations (built-in ShakeIt) | Simulated **`Rpms`** / `MaxRpm` / `EngineStarted` are always sent. After **Register with SimHub**, the **G920 Emulator RPM** plugin enables the effect (Forza-style). Use the **Engine** scale under ShakeIt / FFB scales for force (0–200%); enable/curves stay in SimHub. Restart SimHub once after installing the plugin. |
+| Engine vibrations (built-in ShakeIt) | Simulated **`Rpms`** / `MaxRpm` / `EngineStarted` are always sent. After **Register with SimHub**, the **G920 Emulator RPM** plugin enables the effect (Forza-style). Use the **Engine** scale under ShakeIt / FFB scales for force (0-200%); enable/curves stay in SimHub. Restart SimHub once after installing the plugin. |
 | G-force | `AccelerationSurge` / `AccelerationSway` / `AccelerationHeave` (from Local*Ms2) |
 | Road vibration / kerbs (built-in ShakeIt) | Uses standard **suspension velocity** + **tyre contact surface** (enabled when FFB rumble/impact is present) |
 | Custom rumble / impact / load | Game raw data **`SurfaceRumble`**, **`Impact`**, **`RoadLoad`** (0..1) |
 
-Watch the Telemetry tab Live meters — if rumble/impact/road load stay at 0%, the game is not sending those FFB types (vibration off / Steam Input / OEM silent). Speed and RPM should move with pedals whenever a session is active. After changing the definition, **Remove registration** → restart SimHub → **Register with SimHub** again (packet layout/signature changed).
+Watch the Telemetry tab Live meters - if rumble/impact/road load stay at 0%, the game is not sending those FFB types (vibration off / Steam Input / OEM silent). Speed and RPM should move with pedals whenever a session is active. After changing the definition, **Remove registration** → restart SimHub → **Register with SimHub** again (packet layout/signature changed).
 
 ## Detected devices
 
@@ -110,18 +110,18 @@ On the **Input** tab, click a G920 control in **G920 bindings** to **Assign** (c
 | Axis (Steering, Throttle, Brake, Clutch) | Move an axis → shown as `(axis)` |
 | Button | Press a button, or deflect an axis → `(axis→btn)` / `(axis→btn·center)` with threshold |
 | Directional pad (hat) | Move a POV hat / D-pad |
-| D-pad Up / Down / Left / Right | Press a button (or axis→button) — for pads with no POV hat; diagonals work when two directions are held |
+| D-pad Up / Down / Left / Right | Press a button (or axis→button) - for pads with no POV hat; diagonals work when two directions are held |
 
 Tips:
 
 - **Invert** and **deadzone** / **threshold** are per binding.
 - **Clear all** wipes every binding in the current profile.
 - Axis→button is for mapping pedals/triggers onto digital G920 buttons.
-- Binding changes apply **live** — you do **not** need to Stop and Start the bridge after rebinding. The running bridge remaps every frame from the current profile.
+- Binding changes apply **live** - you do **not** need to Stop and Start the bridge after rebinding. The running bridge remaps every frame from the current profile.
 
 ### H-pattern gears
 
-Assign **Gear R** and **Gear 1–6**. Gears 1–6 always map to G920 buttons **13–18** (official Driving Force Shifter).
+Assign **Gear R** and **Gear 1-6**. Gears 1-6 always map to G920 buttons **13-18** (official Driving Force Shifter).
 
 **Gear R** output button is selectable in the Assign Gear R dialog (saved on the profile):
 
@@ -130,7 +130,7 @@ Assign **Gear R** and **Gear 1–6**. Gears 1–6 always map to G920 buttons **1
 | **19** (default) | Official G920 / LGS reverse | **NFS Heat** and most titles |
 | **12** | Unbound native reverse | **NFS Unbound** only (required for reverse to work there) |
 
-If reverse works in Heat but not Unbound (or the reverse), change this setting — gears 1–6 stay on 13–18 either way.
+If reverse works in Heat but not Unbound (or the reverse), change this setting - gears 1-6 stay on 13-18 either way.
 
 Gears are always exclusive H-pattern: only one gear bit is on at a time. If more than one gear is pressed, the first match (R→1→6) is kept.
 
@@ -138,18 +138,18 @@ Gears are always exclusive H-pattern: only one gear bit is on at a time. If more
 
 On the **Force Feedback** tab:
 
-1. Select **FFB output device** (your physical base — not DualSense).
+1. Select **FFB output device** (your physical base - not DualSense).
 2. Pick an **FFB profile** in the dropdown (default **Raw** = exact game mix, the only built-in). Use **Save As…** to make your own per-game presets.
 3. Adjust sliders as needed, then use the FFB profile icons (Save / Save As / Reset to Raw defaults / Delete):
-   - **Master** + **Invert FFB** — **Bind** on Master assigns hardware buttons that step overall gain while you drive (1% per tap, 5% if you hold; saved on the input profile). **Set as Default** in the bind dialog picks a snap value and a button that jumps Master back to it. Green fill means −, +, or default is already assigned; open it to **Clear**.
-   - **Effect gains** — Constant, Spring, Damper, Friction, Inertia, Periodic, Ramp, Custom (0% mutes that DI type). **Bind** on every FFB slider (gains, feel, shaping, centering, advanced mix) assigns hardware − / + (small tap / faster hold) and optional **Set as Default** (slider + value + button) while you drive; saved on the input profile, not sent to the virtual G920. With **Settings → Effect Changes Overlay** on, those binds flash the category (e.g. Effect gains), slider name, and value at the top of the screen for a moment.
-   - **Output feel** — Smoothing (ms), Peak soft, Soft start (all off on Raw)
-   - **Advanced mix** — Invert Constant Force, damper velocity / deadband scales (all off on Raw)
-   - **Torque shaping** — Deadband, Slew, Spike cap, DI epsilon (all off on Raw; optional ShapeGameTorque path)
-   - **Centering** — **Force center spring** checkbox plus Strength / Range / Deadzone, for games that never center the wheel (off on Raw)
+   - **Master** + **Invert FFB** - **Bind** on Master assigns hardware buttons that step overall gain while you drive (1% per tap, 5% if you hold; saved on the input profile). **Set as Default** in the bind dialog picks a snap value and a button that jumps Master back to it. Green fill means −, +, or default is already assigned; open it to **Clear**.
+   - **Effect gains** - Constant, Spring, Damper, Friction, Inertia, Periodic, Ramp, Custom (0% mutes that DI type). **Bind** on every FFB slider (gains, feel, shaping, centering, advanced mix) assigns hardware − / + (small tap / faster hold) and optional **Set as Default** (slider + value + button) while you drive; saved on the input profile, not sent to the virtual G920. With **Settings → Effect Changes Overlay** on, those binds flash the category (e.g. Effect gains), slider name, and value at the top of the screen for a moment.
+   - **Output feel** - Smoothing (ms), Peak soft, Soft start (all off on Raw)
+   - **Advanced mix** - Invert Constant Force, damper velocity / deadband scales (all off on Raw)
+   - **Torque shaping** - Deadband, Slew, Spike cap, DI epsilon (all off on Raw; optional ShapeGameTorque path)
+   - **Centering** - **Force center spring** checkbox plus Strength / Range / Deadzone, for games that never center the wheel (off on Raw)
    - Hover any FFB row (label, slider or value) for a tooltip explaining what it does and what 0% / off means.
 4. **Start bridge** attaches FFB automatically.
-5. Optional: expand **FFB debug** for test pulses and live OEM counters, or turn on **Settings → FFB Debug Overlay** for a topmost window with live G920 inputs plus the same FFB diagnostics while you are in-game. Use **Settings → Telemetry Debug Overlay** for the live SimHub UDP packet. Use status-bar **Debug** only for short diagnostic captures (see [Getting help](#getting-help--diagnostics)) — leave it off for normal play.
+5. Optional: expand **FFB debug** for test pulses and live OEM counters, or turn on **Settings → FFB Debug Overlay** for a topmost window with live G920 inputs plus the same FFB diagnostics while you are in-game. Use **Settings → Telemetry Debug Overlay** for the live SimHub UDP packet. Use status-bar **Debug** only for short diagnostic captures (see [Getting help](#getting-help--diagnostics)) - leave it off for normal play.
 
 Slider ranges and probing tips: [force-feedback.md](force-feedback.md).
 
@@ -166,23 +166,23 @@ If **joy.cpl still lists the G920 but buttons stop updating** in-game, the virtu
 
 If the **app itself freezes** while alt-tabbing or dragging FFB sliders, use a build that keeps DirectInput work off the UI thread (device refresh, FFB reattach, and FFB debug no longer poll the exclusive wheel on the UI). Stop → Start recovers a stuck session.
 
-If the **game** freezes or loses the wheel mid-session while the emulator UI stays live, check whether status-bar **Debug** was left on — Forza-class titles stream OEM updates every frame, and older builds could stall the game on log I/O. Leave Debug off for racing; use it only for a short capture. Current builds rate-limit that log, but everyday play should still keep Debug off.
+If the **game** freezes or loses the wheel mid-session while the emulator UI stays live, check whether status-bar **Debug** was left on - Forza-class titles stream OEM updates every frame, and older builds could stall the game on log I/O. Leave Debug off for racing; use it only for a short capture. Current builds rate-limit that log, but everyday play should still keep Debug off.
 
-Stop ends the virtual device and FFB apply loop. If Stop is slow (WinUHid teardown), wait a few seconds before Start again — Start waits for the previous virtual G920 to finish tearing down.
+Stop ends the virtual device and FFB apply loop. If Stop is slow (WinUHid teardown), wait a few seconds before Start again - Start waits for the previous virtual G920 to finish tearing down.
 
 ## Profiles
 
 Input bindings and force-feedback presets are stored **separately**, both outside the install folder so updates never overwrite them:
 
 ```
-%AppData%\G920Emulator\profiles\Default.json        (input bindings — Save / Save As)
-%AppData%\G920Emulator\ffb-profiles\Raw.json        (exact game mix — cannot delete)
+%AppData%\G920Emulator\profiles\Default.json        (input bindings - Save / Save As)
+%AppData%\G920Emulator\ffb-profiles\Raw.json        (exact game mix - cannot delete)
 %AppData%\G920Emulator\settings.json
 ```
 
 There is **no** `profiles\` or `ffb-profiles\` directory next to `G920Emulator.exe` in the zip. On first run the app creates AppData, seeds an empty **Default** input profile, and seeds the built-in **Raw** FFB profile.
 
-**Migration (once, never overwrites AppData):** copies **input** `profiles\*.json` and `settings.json` from next-to-exe leftovers and from `%AppData%\N4Sunbound`. Next-to-exe `ffb-profiles\` are **not** migrated — re-Save FFB presets, or rely on legacy inline FFB fields on an input JSON becoming a named FFB profile when loaded.
+**Migration (once, never overwrites AppData):** copies **input** `profiles\*.json` and `settings.json` from next-to-exe leftovers and from `%AppData%\N4Sunbound`. Next-to-exe `ffb-profiles\` are **not** migrated - re-Save FFB presets, or rely on legacy inline FFB fields on an input JSON becoming a named FFB profile when loaded.
 
 Each input profile links to an FFB profile name. Saving an input profile also saves the linked FFB preset’s current master / effect gains / feel / torque shaping.
 
@@ -217,29 +217,29 @@ If Heat shows a **controller / D-pad** layout or ghost presses:
 
 ## Forza Horizon 6 after using the emulator
 
-Forza Horizon 6 refuses to launch while Windows **test signing** is on. It exits at the splash with Steam code **100** — likely an integrity / anti-cheat check. OEM/SDK session pins are not the cause.
+Forza Horizon 6 refuses to launch while Windows **test signing** is on. It exits at the splash with Steam code **100** - likely an integrity / anti-cheat check. OEM/SDK session pins are not the cause.
 
-**Install WinUHid** only needs test signing for the install step, then turns it off again — so FH6 and the emulator can coexist. Secure Boot can be re-enabled in UEFI/BIOS after install (with test signing off). If test signing is still on: **Dependencies → Disable test signing** → reboot (keep WinUHid installed). Details: [driver-install.md](driver-install.md#forza-horizon-6-and-test-signing).
+**Install WinUHid** only needs test signing for the install step, then turns it off again - so FH6 and the emulator can coexist. Secure Boot can be re-enabled in UEFI/BIOS after install (with test signing off). If test signing is still on: **Dependencies → Disable test signing** → reboot (keep WinUHid installed). Details: [driver-install.md](driver-install.md#forza-horizon-6-and-test-signing).
 
 ## Getting help / diagnostics
 
-Leave status-bar **Debug** **off** during normal play. It turns on OEM / HID++ file logging inside the game process; on Forza and similar titles that can add enough I/O to freeze the game or drop the virtual G920 while the emulator UI stays responsive. Current builds rate-limit and keep the log file open, but Debug is still for short captures only — not full races. **Settings → FFB Debug Overlay** and **Telemetry Debug Overlay** are separate (live meters, no extra game-thread log I/O).
+Leave status-bar **Debug** **off** during normal play. It turns on OEM / HID++ file logging inside the game process; on Forza and similar titles that can add enough I/O to freeze the game or drop the virtual G920 while the emulator UI stays responsive. Current builds rate-limit and keep the log file open, but Debug is still for short captures only - not full races. **Settings → FFB Debug Overlay** and **Telemetry Debug Overlay** are separate (live meters, no extra game-thread log I/O).
 
-1. Click **Debug** (status bar, bottom-right) — clears prior session logs in `%TEMP%` and starts OEM / HID++ file logging.
+1. Click **Debug** (status bar, bottom-right) - clears prior session logs in `%TEMP%` and starts OEM / HID++ file logging.
 2. Reproduce briefly (Start bridge, launch the game, hit a wall, etc.). Prefer a short run over a long session with Debug left on.
 3. Click **Stop debug**, then **Export log…**, save the zip, and attach it to a [GitHub issue](https://github.com/camborambo/G920Emulator/issues) with a short description (wheel, game, what failed). Export before starting Debug again, or those logs are wiped.
 
 The zip includes:
 
-- `HOW-TO-SEND.txt` — how the capture was meant to be taken
-- `summary.txt` — machine name, deps, running wheel/SimHub/Steam processes, `g920ffb.dll` stamp, live bridge/FFB attach, emulator CPU/RAM snapshot
-- `devices.txt` — every DirectInput game device (including virtual G920 and FFB flag)
-- `ffb-snapshot.txt` — OEM shared-memory mix + active gains at export time
-- `hidhide.txt` — cloak / app whitelist / hidden devices via HidHideCLI
-- `oem-registry.txt` — G920 OEMForceFeedback CLSID path
-- `game-ffb-analysis.txt` — Unbound race signature / Vibration hint from the OEM log
-- `logs\g920ffb-effects.log` — game OEM calls (`SESSION` / `CALL` / `EFFECT` / `MIX`) when Debug was used
-- `logs\g920emulator-perf.log` — 10 s snapshots of emulator CPU/RAM plus the OEM game (and Steam aux) process; high game load is expected, watch emulator `cpu1` / `hint=`
+- `HOW-TO-SEND.txt` - how the capture was meant to be taken
+- `summary.txt` - machine name, deps, running wheel/SimHub/Steam processes, `g920ffb.dll` stamp, live bridge/FFB attach, emulator CPU/RAM snapshot
+- `devices.txt` - every DirectInput game device (including virtual G920 and FFB flag)
+- `ffb-snapshot.txt` - OEM shared-memory mix + active gains at export time
+- `hidhide.txt` - cloak / app whitelist / hidden devices via HidHideCLI
+- `oem-registry.txt` - G920 OEMForceFeedback CLSID path
+- `game-ffb-analysis.txt` - Unbound race signature / Vibration hint from the OEM log
+- `logs\g920ffb-effects.log` - game OEM calls (`SESSION` / `CALL` / `EFFECT` / `MIX`) when Debug was used
+- `logs\g920emulator-perf.log` - 10 s snapshots of emulator CPU/RAM plus the OEM game (and Steam aux) process; high game load is expected, watch emulator `cpu1` / `hint=`
 - Copies of AppData (or portable) `profiles\`, `ffb-profiles\`, and `settings.json`
 
 **Fanatec DD2** (Heat / Unbound) and **Simucube** (Unbound) are validated FFB targets. For comparisons: **Debug** → race briefly with wall hits → **Stop debug** → **Export log…** on each PC with the same build.

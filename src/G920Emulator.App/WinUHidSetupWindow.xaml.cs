@@ -76,7 +76,7 @@ public partial class WinUHidSetupWindow : Window
             {
                 var after = BundledWinUHidInstaller.HasPendingInstall
                     ? "After reboot: open the app and click Install WinUHid once more to finish."
-                    : "After reboot: open the app and click Recheck — do not Install again.\nWinUHid should stay installed with test signing off.";
+                    : "After reboot: open the app and click Recheck - do not Install again.\nWinUHid should stay installed with test signing off.";
                 var reboot = MessageBox.Show(this,
                     "Reboot now?\n\n" + after,
                     "Reboot",

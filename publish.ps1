@@ -100,7 +100,7 @@ if (Test-Path $g920ffbDll) {
 }
 
 if ($TestBuild) {
-    # Side-by-side experiment — do not rewrite stable dist launchers.
+    # Side-by-side experiment - do not rewrite stable dist launchers.
     $launcher = Join-Path $distRoot "Launch G920 Emulator (ratio test).bat"
     Set-Content -Path $launcher -Encoding ASCII -Value @(
         '@echo off'
@@ -157,7 +157,7 @@ if ($TestBuild) {
     if (Test-Path $oldDist) { Remove-Item $oldDist -Force }
 }
 
-# Profiles are created at runtime in %AppData%\G920Emulator — never ship profiles\,
+# Profiles are created at runtime in %AppData%\G920Emulator - never ship profiles\,
 # ffb-profiles\, or settings.json (publishing from a used dist\ used to bake personal
 # binds into the zip and overwrite users on "unzip over install" updates).
 $profilesOut = Join-Path $outDir "profiles"

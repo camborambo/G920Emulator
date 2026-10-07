@@ -4,7 +4,7 @@ using System.Windows.Controls.Primitives;
 
 namespace G920Emulator.App.Controls;
 
-/// <summary>Single track with lower/upper thumbs (min–max range).</summary>
+/// <summary>Single track with lower/upper thumbs (min-max range).</summary>
 public partial class DualRangeSlider : UserControl
 {
     public static readonly DependencyProperty MinimumProperty =

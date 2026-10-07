@@ -7,7 +7,7 @@ namespace G920Emulator.VirtualHid;
 /// Windows 11 attaches Microsoft's <c>hidgamepad</c> upper-filter extension to every
 /// <c>HID_DEVICE_SYSTEM_GAME</c> collection (joystick usage). On our virtual G920 that can
 /// expose a second gamepad-style view (stuck Z/Rx/Ry, Heat pad UI, ghost presses).
-/// Strip it from virtual REV_9601 Col01 only — never touch DualSense or other devices.
+/// Strip it from virtual REV_9601 Col01 only - never touch DualSense or other devices.
 /// </summary>
 public static class HidGamepadFilterStrip
 {
@@ -140,7 +140,7 @@ public static class HidGamepadFilterStrip
     {
         try
         {
-            // Prefer disable/enable — softer than pnputil /restart-device for VHF children.
+            // Prefer disable/enable - softer than pnputil /restart-device for VHF children.
             if (TryPnPUtil($"/disable-device \"{instanceId}\"") &&
                 TryPnPUtil($"/enable-device \"{instanceId}\""))
                 return true;

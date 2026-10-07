@@ -8,7 +8,7 @@ public sealed class TelemetryTuning
     public const float DefaultRpmMin = 800f;
     public const float DefaultRpmMax = 8000f;
     /// <summary>
-    /// Blocklayer "Shift At" RPM — gear top speeds and in-gear RPM peaks use this
+    /// Blocklayer "Shift At" RPM - gear top speeds and in-gear RPM peaks use this
     /// (SimHub EngineShiftRpm). Not a percent.
     /// </summary>
     public const float DefaultRpmRedline = 6000f;
@@ -21,7 +21,7 @@ public sealed class TelemetryTuning
 
     public const float DefaultAccelKmhPerSec = 55f;
     public const float DefaultBrakeKmhPerSec = 90f;
-    /// <summary>Baseline coast without aero — previous hard-coded 8 felt far too slow.</summary>
+    /// <summary>Baseline coast without aero - previous hard-coded 8 felt far too slow.</summary>
     public const float DefaultCoastKmhPerSec = 28f;
     public const float DefaultAeroDragScale = 1f;
     public const float DefaultGearPullScale = 1f;
@@ -50,7 +50,7 @@ public sealed class TelemetryTuning
     public const float KmhPerMph = 1.609344f;
     public const float MphPerKmh = 1f / KmhPerMph;
 
-    /// <summary>Absolute gearbox ratios (Blocklayer defaults — 6th is overdrive, not 1.0).</summary>
+    /// <summary>Absolute gearbox ratios (Blocklayer defaults - 6th is overdrive, not 1.0).</summary>
     public const float DefaultGear1Ratio = 2.97f;
     public const float DefaultGear2Ratio = 2.07f;
     public const float DefaultGear3Ratio = 1.43f;
@@ -110,7 +110,7 @@ public sealed class TelemetryTuning
     /// <summary>Engine-braking / rolling coast (km/h per second) when throttle is off.</summary>
     public float CoastKmhPerSec { get; set; } = DefaultCoastKmhPerSec;
 
-    /// <summary>Extra high-speed drag (0–2). At 1.0 ≈ +45 km/h/s loss near top speed.</summary>
+    /// <summary>Extra high-speed drag (0-2). At 1.0 ≈ +45 km/h/s loss near top speed.</summary>
     public float AeroDragScale { get; set; } = DefaultAeroDragScale;
 
     /// <summary>How strongly gear changes throttle pull (0 = ignore gear, 1 = default ratios, 2 = exaggerated).</summary>
@@ -123,8 +123,8 @@ public sealed class TelemetryTuning
     public float GearSettleKmhPerSec { get; set; } = DefaultGearSettleKmhPerSec;
 
     /// <summary>
-    /// FFB-based speed kill on impacts / heavy constant force (0–2).
-    /// Guess only — games do not tell us we hit a wall.
+    /// FFB-based speed kill on impacts / heavy constant force (0-2).
+    /// Guess only - games do not tell us we hit a wall.
     /// </summary>
     public float CrashDumpScale { get; set; } = DefaultCrashDumpScale;
 
@@ -212,7 +212,7 @@ public sealed class TelemetryTuning
     }
 
     /// <summary>
-    /// RPM used for Blocklayer gear tops / chart peaks — the shift/redline point
+    /// RPM used for Blocklayer gear tops / chart peaks - the shift/redline point
     /// (matches blocklayer.com "Shift At"), not gauge Max RPM.
     /// </summary>
     public float ChartRpm => Math.Max(100f, RpmRedline > 0 ? RpmRedline : RpmMax);
@@ -254,7 +254,7 @@ public sealed class TelemetryTuning
 
     private void EnsureGearRatios()
     {
-        // Legacy: only max speeds — derive ratios. Else fall back to Blocklayer defaults.
+        // Legacy: only max speeds - derive ratios. Else fall back to Blocklayer defaults.
         Gear1Ratio = ResolveRatio(Gear1Ratio, Gear1MaxKmh, DefaultGear1Ratio);
         Gear2Ratio = ResolveRatio(Gear2Ratio, Gear2MaxKmh, DefaultGear2Ratio);
         Gear3Ratio = ResolveRatio(Gear3Ratio, Gear3MaxKmh, DefaultGear3Ratio);
@@ -290,7 +290,7 @@ public sealed class TelemetryTuning
         }
     }
 
-    /// <summary>Top speed for a gear (1–6 / R). N is uncapped (SpeedMax).</summary>
+    /// <summary>Top speed for a gear (1-6 / R). N is uncapped (SpeedMax).</summary>
     public float GearTopSpeedKmh(string gear)
     {
         return gear switch
@@ -322,7 +322,7 @@ public sealed class TelemetryTuning
     public float AbsoluteGearRatio(int gear) =>
         AbsoluteGearRatio(gear is >= 1 and <= 6 ? gear.ToString() : "N");
 
-    /// <summary>Alias used by older UI helpers — absolute gearbox ratio (not forced 1.0 on 6th).</summary>
+    /// <summary>Alias used by older UI helpers - absolute gearbox ratio (not forced 1.0 on 6th).</summary>
     public float RelativeGearRatio(string gear) => AbsoluteGearRatio(gear);
 
     public float RelativeGearRatio(int gear) => AbsoluteGearRatio(gear);
@@ -381,7 +381,7 @@ public sealed class TelemetryTuning
         return Math.Clamp(cap * (rpm / chart), 0f, cap);
     }
 
-    /// <summary>Redline / Diff / Tire changed — recompute max speeds; gearbox ratios stay fixed.</summary>
+    /// <summary>Redline / Diff / Tire changed - recompute max speeds; gearbox ratios stay fixed.</summary>
     public void RefreshMaxSpeedsKeepingRatios()
     {
         EnsureGearRatios();

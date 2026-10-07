@@ -1,4 +1,4 @@
-# Profiles (repo reference only — not shipped)
+# Profiles (repo reference only - not shipped)
 
 This folder is kept in the repo for developers. **It is not copied into `dist\`, the release zip, or the install folder.**
 

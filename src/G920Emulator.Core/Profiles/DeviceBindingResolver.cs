@@ -104,7 +104,7 @@ public static class DeviceBindingResolver
                 return byProduct[0];
             if (byProduct.Count > 1 && !string.IsNullOrWhiteSpace(instanceId))
             {
-                // Same product plugged twice — keep previous instance if still present, else first.
+                // Same product plugged twice - keep previous instance if still present, else first.
                 return byProduct.FirstOrDefault(d =>
                            string.Equals(d.Id, instanceId, StringComparison.OrdinalIgnoreCase))
                        ?? byProduct[0];

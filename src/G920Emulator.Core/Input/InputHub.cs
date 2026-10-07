@@ -48,7 +48,7 @@ public sealed class InputHub : IDisposable
         if (string.IsNullOrWhiteSpace(deviceId))
             return;
 
-        // Resolve session under lock, Poll outside — a moving FFB wheel's DI Poll can
+        // Resolve session under lock, Poll outside - a moving FFB wheel's DI Poll can
         // take tens/hundreds of ms and must not stall other InputHub callers.
         JoystickSession? session;
         lock (_gate)
@@ -70,7 +70,7 @@ public sealed class InputHub : IDisposable
 
     /// <summary>
     /// All attached game controllers as DirectInput sees them, including the virtual G920.
-    /// For diagnostics only — do not use as a bind source list.
+    /// For diagnostics only - do not use as a bind source list.
     /// </summary>
     public static IReadOnlyList<DiagnosticDeviceRow> EnumerateAllAttachedForDiagnostics()
     {
@@ -120,7 +120,7 @@ public sealed class InputHub : IDisposable
 
     public IReadOnlyList<InputDeviceInfo> RefreshDevices()
     {
-        // Enumerate outside the session lock — GetDevices can take 10–50ms+ with many
+        // Enumerate outside the session lock - GetDevices can take 10-50ms+ with many
         // HID devices and must not stall the 500 Hz bridge/Poll path.
         DeviceInstance[] devices;
         try
@@ -189,7 +189,7 @@ public sealed class InputHub : IDisposable
 
     /// <summary>
     /// Poll sessions. When <paramref name="includeIds"/> is set, only those devices
-    /// (plus any pinned FFB cache) are touched — avoids USB work on unused pads every frame.
+    /// (plus any pinned FFB cache) are touched - avoids USB work on unused pads every frame.
     /// </summary>
     public IReadOnlyDictionary<string, DeviceState> Poll(IReadOnlyCollection<string>? includeIds = null)
     {
@@ -205,7 +205,7 @@ public sealed class InputHub : IDisposable
                     !includeIds.Contains(id, StringComparer.OrdinalIgnoreCase))
                     continue;
 
-                // Never Poll the exclusive FFB joystick here — that can block the whole
+                // Never Poll the exclusive FFB joystick here - that can block the whole
                 // bridge loop (all bindings freeze). Bridge overlays live axes from FfbBridge.
                 if (_pinnedFfbDeviceId is not null &&
                     string.Equals(id, _pinnedFfbDeviceId, StringComparison.OrdinalIgnoreCase))
@@ -230,7 +230,7 @@ public sealed class InputHub : IDisposable
             }
 
             // Drop dead sessions so RefreshDevices can reopen (possibly new instance GUID).
-            // Never dispose the pinned FFB source — Unacquire during attach looks like a
+            // Never dispose the pinned FFB source - Unacquire during attach looks like a
             // failed poll and disposing it freezes input + breaks the shared FFB handle.
             foreach (var id in dead)
             {
@@ -261,7 +261,7 @@ public sealed class InputHub : IDisposable
                         !includeIds.Contains(id, StringComparer.OrdinalIgnoreCase))
                         continue;
 
-                    // Still skip pinned — never block the loop on the exclusive FFB base.
+                    // Still skip pinned - never block the loop on the exclusive FFB base.
                     if (_pinnedFfbDeviceId is not null &&
                         string.Equals(id, _pinnedFfbDeviceId, StringComparison.OrdinalIgnoreCase))
                     {

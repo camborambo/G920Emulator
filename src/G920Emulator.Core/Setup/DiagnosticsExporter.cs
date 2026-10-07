@@ -78,18 +78,18 @@ public static class DiagnosticsExporter
         "  1. Click Debug on the main window (starts OEM / HID++ file logging).\r\n" +
         "  2. Start bridge, launch the game, reproduce briefly (do not leave Debug on for a full race).\r\n" +
         "  3. Stop debug, then Export log…\r\n\r\n" +
-        "Leave Debug off during normal play — Forza-class titles stream OEM updates every frame;\r\n" +
+        "Leave Debug off during normal play - Forza-class titles stream OEM updates every frame;\r\n" +
         "older builds could stall the game on log I/O while the emulator UI stayed live.\r\n\r\n" +
         "For Fanatec vs Simucube FFB comparison, do the same on both PCs with the same build.\r\n\r\n" +
         "Key files in this zip:\r\n" +
-        "  summary.txt       — machine, deps, processes, g920ffb.dll stamp\r\n" +
-        "  devices.txt       — every DirectInput game device (incl. virtual G920 + FFB flag)\r\n" +
-        "  ffb-snapshot.txt  — live OEM mix / bridge attach / gains at export time\r\n" +
-        "  hidhide.txt       — cloak, apps whitelist, hidden devices (via HidHideCLI)\r\n" +
-        "  oem-registry.txt  — OEMForceFeedback CLSID / Effects / DLL path for VID_046D&PID_C262\r\n" +
-        "  game-ffb-analysis.txt — OEM race signature (Triangle/CF vs spring-only / Vibration)\r\n" +
-        "  logs\\g920ffb-effects.log — game OEM calls (SESSION / CALL / EFFECT / MIX)\r\n" +
-        "  logs\\g920emulator-perf.log — emulator vs game CPU/RAM every 10s (hint= is our load, not the game GPU)\r\n" +
+        "  summary.txt       - machine, deps, processes, g920ffb.dll stamp\r\n" +
+        "  devices.txt       - every DirectInput game device (incl. virtual G920 + FFB flag)\r\n" +
+        "  ffb-snapshot.txt  - live OEM mix / bridge attach / gains at export time\r\n" +
+        "  hidhide.txt       - cloak, apps whitelist, hidden devices (via HidHideCLI)\r\n" +
+        "  oem-registry.txt  - OEMForceFeedback CLSID / Effects / DLL path for VID_046D&PID_C262\r\n" +
+        "  game-ffb-analysis.txt - OEM race signature (Triangle/CF vs spring-only / Vibration)\r\n" +
+        "  logs\\g920ffb-effects.log - game OEM calls (SESSION / CALL / EFFECT / MIX)\r\n" +
+        "  logs\\g920emulator-perf.log - emulator vs game CPU/RAM every 10s (hint= is our load, not the game GPU)\r\n" +
         "Repository: " + GitHubRepoUrl + "\r\n";
 
     private static void WriteSummary(
@@ -138,7 +138,7 @@ public static class DiagnosticsExporter
         }
         catch (Exception ex)
         {
-            sb.AppendLine("Dependencies: failed — " + ex.Message);
+            sb.AppendLine("Dependencies: failed - " + ex.Message);
         }
 
         sb.AppendLine();
@@ -165,7 +165,7 @@ public static class DiagnosticsExporter
         }
         catch (Exception ex)
         {
-            sb.AppendLine("Profiles: failed — " + ex.Message);
+            sb.AppendLine("Profiles: failed - " + ex.Message);
         }
 
         sb.AppendLine();
@@ -201,7 +201,7 @@ public static class DiagnosticsExporter
         sb.AppendLine("Bridge / FFB (at export)");
         if (live is null)
         {
-            sb.AppendLine("  (no live snapshot — export was not opened from the main window)");
+            sb.AppendLine("  (no live snapshot - export was not opened from the main window)");
             return;
         }
 
@@ -241,7 +241,7 @@ public static class DiagnosticsExporter
         }
     }
 
-    // Context only — SimHub, FanatecService (shifter), and True Drive are normal on mixed
+    // Context only - SimHub, FanatecService (shifter), and True Drive are normal on mixed
     // rigs (e.g. Simucube base + Fanatec shifter). Listed so support can see what's present;
     // they are not treated as FFB failures by themselves.
     private static readonly string[] InterestingProcessPrefixes =
@@ -269,7 +269,7 @@ public static class DiagnosticsExporter
         }
         catch (Exception ex)
         {
-            sb.AppendLine("  Processes: failed — " + ex.Message);
+            sb.AppendLine("  Processes: failed - " + ex.Message);
         }
 
         var pf = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
@@ -295,7 +295,7 @@ public static class DiagnosticsExporter
         sb.AppendLine("DirectInput game controllers (AttachedOnly) as seen by this process.");
         sb.AppendLine("Includes the virtual G920 when the bridge is running.");
         sb.AppendLine("If a physical FFB base still appears here while HidHide is on, games may see it too");
-        sb.AppendLine("(this process is usually whitelisted — compare with hidhide.txt app-list).");
+        sb.AppendLine("(this process is usually whitelisted - compare with hidhide.txt app-list).");
         sb.AppendLine();
         try
         {
@@ -363,14 +363,14 @@ public static class DiagnosticsExporter
                             else if (hidClassHidden)
                             {
                                 sb.AppendLine(
-                                    "  OK? vJoy still listed here (whitelist), but a HID\\HIDCLASS hide entry is present — often that is vJoy.");
+                                    "  OK? vJoy still listed here (whitelist), but a HID\\HIDCLASS hide entry is present - often that is vJoy.");
                                 sb.AppendLine(
                                     "      Confirm with joy.cpl: if vJoy is absent there, games cannot see it.");
                             }
                             else
                             {
                                 sb.AppendLine(
-                                    "  WARN no VID_1234&PID_BEAD / HIDCLASS hide entry found — verify in joy.cpl that vJoy is absent.");
+                                    "  WARN no VID_1234&PID_BEAD / HIDCLASS hide entry found - verify in joy.cpl that vJoy is absent.");
                             }
                         }
                         else
@@ -650,7 +650,7 @@ public static class DiagnosticsExporter
 
         if (triangleCreates == 0 && unboundSessions > 0)
         {
-            sb.AppendLine("VERDICT: Unbound attached but never created Triangle — game did not enter race rumble path.");
+            sb.AppendLine("VERDICT: Unbound attached but never created Triangle - game did not enter race rumble path.");
             sb.AppendLine("Confirm Controller Vibration ON, drive in an actual race, hit a wall, export again.");
         }
         else if (triangleCreates > 0 && nonzeroRumbleMixAfterUnbound == 0)

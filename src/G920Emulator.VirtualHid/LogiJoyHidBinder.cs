@@ -5,7 +5,7 @@ namespace G920Emulator.VirtualHid;
 
 /// <summary>
 /// Helpers around G HUB's <c>logi_joy_hid</c> filter on Col01.
-/// That filter must NOT own our virtual Col01 — it swallows HID++ FFB so WinUHid
+/// That filter must NOT own our virtual Col01 - it swallows HID++ FFB so WinUHid
 /// never sees WriteReport (diagnostics show HID++ writes = 0).
 /// </summary>
 public static class LogiJoyHidBinder
@@ -86,7 +86,7 @@ public static class LogiJoyHidBinder
                 if (!string.IsNullOrEmpty(drivers) &&
                     !drivers.Contains(id, StringComparison.OrdinalIgnoreCase))
                 {
-                    // Fall through — still try remove if VID match is enough.
+                    // Fall through - still try remove if VID match is enough.
                 }
 
                 var blockHasLogi = drivers is not null &&

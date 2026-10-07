@@ -4,7 +4,7 @@ namespace G920Emulator.VirtualHid;
 
 /// <summary>
 /// Authentic Logitech G920 (046D:C262) HID report descriptor from a real device (168 bytes).
-/// Usage is Joystick (0x04) — same as the retail wheel — not Game Pad.
+/// Usage is Joystick (0x04) - same as the retail wheel - not Game Pad.
 /// </summary>
 public static class G920HidDescriptor
 {
@@ -18,7 +18,7 @@ public static class G920HidDescriptor
     public static readonly Guid ContainerId = new("8F3C2A1E-46D0-C262-9A01-046DC2620001");
 
     // Report ID 1 (10 bytes incl. id): hat + 19 buttons + 1 pad | X 16-bit | Y/Z/Rz inverted pedals | vendor
-    // 19 buttons so LGS/DirectInput Reverse = Button 19 fits (1st–6th = 13–18).
+    // 19 buttons so LGS/DirectInput Reverse = Button 19 fits (1st-6th = 13-18).
     // + vendor collections report 0x11 / 0x12 (FFB/HID++ style).
     public static readonly byte[] Bytes =
     [

@@ -19,7 +19,7 @@ Write-Host "Building WinUHid.dll..."
 Copy-Item (Join-Path $src "WinUHid\build\Release\x64\WinUHid.dll") $out -Force
 
 Write-Host "Building WinUHidDriver..."
-# Match installed WDK (10.0.26100) — VS may default WDKBuildFolder to an older Windows SDK.
+# Match installed WDK (10.0.26100) - VS may default WDKBuildFolder to an older Windows SDK.
 $wdkFolder = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\build" -Directory -ErrorAction SilentlyContinue |
     Where-Object { Test-Path (Join-Path $_.FullName "WindowsDriver.Default.props") } |
     Sort-Object Name -Descending |

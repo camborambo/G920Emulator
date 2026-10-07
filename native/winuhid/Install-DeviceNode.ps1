@@ -20,7 +20,7 @@ Write-Host "INF: $inf"
 & pnputil.exe /add-driver $inf /install
 
 if (-not ('WinUHidDevNode' -as [type])) {
-    # PowerShell Add-Type uses an older C# compiler — keep this C# 5 compatible.
+    # PowerShell Add-Type uses an older C# compiler - keep this C# 5 compatible.
     Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;

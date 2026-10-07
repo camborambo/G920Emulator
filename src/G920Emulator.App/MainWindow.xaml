@@ -28,10 +28,10 @@
           <Border Width="1" Height="22" Background="{StaticResource BorderSubtle}"
                   Margin="0,0,14,0" VerticalAlignment="Center"/>
           <TextBlock Text="Profile" Opacity="0.7" VerticalAlignment="Center" Margin="0,0,8,0"
-                     ToolTip="Input profile — bindings / devices. Force Feedback has its own profiles on the Force Feedback tab."/>
+                     ToolTip="Input profile - bindings / devices. Force Feedback has its own profiles on the Force Feedback tab."/>
           <ComboBox x:Name="SavedProfilesCombo" Width="220" VerticalAlignment="Center" Margin="0,0,6,0"
                     SelectionChanged="SavedProfilesCombo_SelectionChanged"
-                    ToolTip="Input profile — bindings / devices. Force Feedback has its own profiles on the Force Feedback tab."/>
+                    ToolTip="Input profile - bindings / devices. Force Feedback has its own profiles on the Force Feedback tab."/>
           <Button Style="{StaticResource IconButton}" Margin="0,0,4,0" Click="SaveButton_Click"
                   ToolTip="Save">
             <iconPacks:PackIconMaterial Kind="ContentSave" Width="14" Height="14" Foreground="#E8EAED"/>
@@ -80,7 +80,7 @@
                           ToolTip="Off (default): show MPH / MPH/s. On: show km/h / km/h/s. SimHub always receives km/h."/>
                 <MenuItem x:Name="AutoApplyHidHideMenuItem" Header="Apply HidHide on Start"
                           IsCheckable="True" Click="AutoApplyHidHideMenuItem_Click"
-                          ToolTip="On: Start applies this app’s HidHide setup (whitelist emulator, hide Gaming-list devices; virtual G920 stays visible). Off: Start never touches HidHide — manage it yourself in HidHide Client."/>
+                          ToolTip="On: Start applies this app’s HidHide setup (whitelist emulator, hide Gaming-list devices; virtual G920 stays visible). Off: Start never touches HidHide - manage it yourself in HidHide Client."/>
                 <MenuItem x:Name="UnloadHidHideMenuItem" Header="Restore my HidHide on Stop"
                           IsCheckable="True" Click="UnloadHidHideMenuItem_Click"
                           ToolTip="On (with Apply HidHide on Start): Start can save your current HidHide setup and put it back on Stop/Exit. Off: leave whatever Start applied. Both off = fully manual."/>
@@ -154,7 +154,7 @@
                   ToolTip="Export diagnostics after you stop a Debug session"/>
           <TextBlock x:Name="AppVersionText" VerticalAlignment="Center" Margin="0,0,12,0"
                      Opacity="0.55" FontSize="12" Cursor="Hand" Text="v0.2.7"
-                     ToolTip="Application version — click for About"
+                     ToolTip="Application version - click for About"
                      MouseLeftButtonDown="AboutButton_Click"/>
           <Button Style="{StaticResource AppButton}" Content="About" Padding="10,4" Margin="0"
                   FontSize="12" Click="AboutButton_Click" ToolTip="Credits and disclaimer"/>
@@ -178,7 +178,7 @@
       </DockPanel>
     </Border>
 
-    <!-- Dependencies — compact strip above status bar -->
+    <!-- Dependencies - compact strip above status bar -->
     <Border x:Name="DependenciesBanner" DockPanel.Dock="Bottom" Style="{StaticResource CardBorder}" Padding="10,8" Margin="0,8,0,0">
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
@@ -225,7 +225,7 @@
                                      FontSize="16" VerticalAlignment="Center"/>
                         </Border>
                         <TextBlock x:Name="GearText" Visibility="Collapsed" Text="Gear: N"/>
-                        <TextBlock x:Name="ButtonsText" DockPanel.Dock="Right" Text="Buttons: —" FontSize="11"
+                        <TextBlock x:Name="ButtonsText" DockPanel.Dock="Right" Text="Buttons: -" FontSize="11"
                                    VerticalAlignment="Center" HorizontalAlignment="Right" TextTrimming="CharacterEllipsis"
                                    Opacity="0.9" Margin="10,0,0,0"
                                    ToolTip="Pressed virtual G920 buttons while the bridge is running"/>
@@ -763,7 +763,7 @@
             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
               <StackPanel>
                 <DockPanel Margin="0,0,0,10"
-                           ToolTip="Simulated speed/RPM/G-force + FFB rumble/impact for games with no Data Out. SimHub 9.11.5+ — activate G920 Emulator (simulated). Skip titles that already have a SimHub plugin. Leave Controller Vibration on if the game has it.">
+                           ToolTip="Simulated speed/RPM/G-force + FFB rumble/impact for games with no Data Out. SimHub 9.11.5+ - activate G920 Emulator (simulated). Skip titles that already have a SimHub plugin. Leave Controller Vibration on if the game has it.">
                   <Button x:Name="TelemetryEnabledButton" DockPanel.Dock="Right"
                           Style="{StaticResource BridgeToggleStart}"
                           MinWidth="88" MinHeight="28" Padding="12,5" Margin="0"
@@ -841,7 +841,7 @@
                           ToolTip="Select a telemetry simulation profile."
                           SelectionChanged="TelemetryProfilesCombo_SelectionChanged"/>
                 <TextBlock Opacity="0.65" FontSize="11" TextWrapping="Wrap"
-                           Text="Arcade simulation from pedals + FFB. Walls/crashes use Impact dump — the game never reports true speed."/>
+                           Text="Arcade simulation from pedals + FFB. Walls/crashes use Impact dump - the game never reports true speed."/>
                 <!-- Hidden: max speed is derived from tallest gear. -->
                 <DockPanel x:Name="TelemetrySpeedMaxPanel" Margin="0,8,0,0" Visibility="Collapsed"
                            ToolTip="Derived from tallest gear max (top of gearing chart).">
@@ -938,13 +938,13 @@
               </StackPanel>
             </Border>
 
-            <!-- Gearing — accuracy -->
+            <!-- Gearing - accuracy -->
             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
               <StackPanel>
                 <TextBlock x:Name="TelemetryGearMaxTitle" Text="Gearing" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
                            ToolTip="Match your car’s ratios, final drive, and tire size. Max speeds follow Redline: MPH = (tire × RPM) / (336 × gear × diff)."/>
                 <DockPanel Margin="0,0,0,3"
-                           ToolTip="Blocklayer 'Shift At' RPM — each gear’s max speed is road speed at this RPM (SimHub EngineShiftRpm).">
+                           ToolTip="Shift / redline RPM - each gear’s max speed is road speed at this RPM (SimHub EngineShiftRpm).">
                   <TextBlock Text="Redline / shift" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBlock x:Name="TelemetryRpmRedlineValueText" DockPanel.Dock="Right" Width="76" Text="6000"
                              VerticalAlignment="Center" HorizontalAlignment="Right"
@@ -955,7 +955,7 @@
                           ValueChanged="TelemetryTuningSlider_ValueChanged"/>
                 </DockPanel>
                 <DockPanel Margin="0,0,0,3"
-                           ToolTip="Blocklayer Diff Ratio (axle / final drive). Higher = shorter overall gearing; gearbox ratios stay the same; max speeds recalculate.">
+                           ToolTip="Diff / final-drive ratio. Higher = shorter overall gearing; gearbox ratios stay the same; max speeds recalculate.">
                   <TextBlock Text="Diff / final drive" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBlock x:Name="TelemetryDiffRatioValueText" DockPanel.Dock="Right" Width="76" Text="3.42"
                              VerticalAlignment="Center" HorizontalAlignment="Right"
@@ -966,7 +966,7 @@
                           ValueChanged="TelemetryDiffRatioSlider_ValueChanged"/>
                 </DockPanel>
                 <DockPanel Margin="0,0,0,8"
-                           ToolTip="Blocklayer tire diameter (inches). Larger tire → higher max speed in every gear; gearbox ratios stay the same.">
+                           ToolTip="Tire diameter (inches). Larger tire → higher max speed in every gear; gearbox ratios stay the same.">
                   <TextBlock Text="Tire diameter" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBlock x:Name="TelemetryTireDiameterValueText" DockPanel.Dock="Right" Width="76" Text='27"'
                              VerticalAlignment="Center" HorizontalAlignment="Right"
@@ -977,7 +977,7 @@
                           ValueChanged="TelemetryTireDiameterSlider_ValueChanged"/>
                 </DockPanel>
                 <TextBlock Text="Gear ratios → top speed @ redline" Opacity="0.45" FontSize="10" Margin="0,0,0,2"
-                           ToolTip="Edit ratio or max — the other updates. Absolute gearbox ratios (6th can be overdrive)."/>
+                           ToolTip="Edit ratio or max - the other updates. Absolute gearbox ratios (6th can be overdrive)."/>
                 <Grid>
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="22"/>
@@ -1002,7 +1002,7 @@
                   <Slider x:Name="TelemetryGear1RatioSlider" Grid.Row="1" Grid.Column="1" Minimum="0.3" Maximum="8" Value="2.97" TickFrequency="0.01"
                           Margin="0,0,6,3" IsSnapToTickEnabled="False" VerticalAlignment="Center"
                           ValueChanged="TelemetryGearRatioSlider_ValueChanged"
-                          ToolTip="Absolute gearbox ratio (Blocklayer). Higher = shorter gear / lower max speed."/>
+                          ToolTip="Absolute gearbox ratio. Higher = shorter gear / lower max speed."/>
                   <TextBlock x:Name="TelemetryGear1RatioValueText" Grid.Row="1" Grid.Column="2" Text="2.97" Margin="0,0,6,3"
                              VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
                              MouseLeftButtonDown="TelemetryValueLabel_Click"/>
@@ -1073,14 +1073,14 @@
                   <Slider x:Name="TelemetryGear6RatioSlider" Grid.Row="6" Grid.Column="1" Minimum="0.3" Maximum="8" Value="0.56" TickFrequency="0.01"
                           Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
                           ValueChanged="TelemetryGearRatioSlider_ValueChanged"
-                          ToolTip="Absolute 6th gear ratio (Blocklayer often ~0.56 overdrive). Determines 6th max speed with Diff + Tire + Redline."/>
+                          ToolTip="Absolute 6th gear ratio (often ~0.56 overdrive). Determines 6th max speed with Diff + Tire + Redline."/>
                   <TextBlock x:Name="TelemetryGear6RatioValueText" Grid.Row="6" Grid.Column="2" Text="0.56" Margin="0,0,6,0"
                              VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
                              MouseLeftButtonDown="TelemetryValueLabel_Click"/>
                   <Slider x:Name="TelemetryGear6MaxSlider" Grid.Row="6" Grid.Column="3" Minimum="3" Maximum="404" Value="217" TickFrequency="1"
                           Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
                           ValueChanged="TelemetryGearMaxSlider_ValueChanged"
-                          ToolTip="6th gear max speed at Redline / shift RPM (Blocklayer formula)."/>
+                          ToolTip="6th gear max speed at Redline / shift RPM."/>
                   <TextBlock x:Name="TelemetryGear6MaxValueText" Grid.Row="6" Grid.Column="4" Text="217 MPH"
                              VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
                              MouseLeftButtonDown="TelemetryValueLabel_Click"/>
@@ -1094,14 +1094,14 @@
                            ToolTip="Gauge range and rev-limiter feel. Gear top speeds use Redline in Gearing, not Max RPM."/>
                 <DockPanel Margin="0,0,0,3" MinHeight="28"
                            ToolTip="Idle (left) · Max RPM (right). Max RPM is the SimHub gauge ceiling (EngineMaxRpm). Gear tops follow Redline in Gearing.">
-                  <TextBlock Text="RPM idle–max" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                  <TextBlock Text="RPM idle-max" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
                   <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0"
                               VerticalAlignment="Center">
                     <TextBlock x:Name="TelemetryRpmMinValueText" Width="52" Text="800"
                                VerticalAlignment="Center" HorizontalAlignment="Right"
                                Cursor="Hand" ToolTip="Click to type idle RPM"
                                MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                    <TextBlock Text="–" Width="14" Opacity="0.45" HorizontalAlignment="Center"
+                    <TextBlock Text="-" Width="14" Opacity="0.45" HorizontalAlignment="Center"
                                VerticalAlignment="Center"/>
                     <TextBlock x:Name="TelemetryRpmMaxValueText" Width="56" Text="8000"
                                VerticalAlignment="Center" HorizontalAlignment="Right"
@@ -1190,7 +1190,7 @@
               </StackPanel>
             </Border>
 
-            <!-- Arcade handbrake / NOS — hardware bind on input profile (same Bind dialog as FFB) -->
+            <!-- Arcade handbrake / NOS - hardware bind on input profile (same Bind dialog as FFB) -->
             <Border Style="{StaticResource CardBorder}">
               <StackPanel>
                 <TextBlock Text="Arcade buttons" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
@@ -1281,9 +1281,9 @@
                     <Line X1="84" Y1="8" X2="84" Y2="160" Stroke="#2A3140" StrokeThickness="1"/>
                     <Line X1="8" Y1="84" X2="160" Y2="84" Stroke="#2A3140" StrokeThickness="1"/>
                     <TextBlock Text="A" Canvas.Left="79" Canvas.Top="6" FontSize="9" Opacity="0.45" Foreground="#E8EAED"
-                               ToolTip="Accel — +surge (vehicle forward)"/>
+                               ToolTip="Accel - +surge (vehicle forward)"/>
                     <TextBlock Text="B" Canvas.Left="79" Canvas.Top="150" FontSize="9" Opacity="0.45" Foreground="#E8EAED"
-                               ToolTip="Brake — −surge"/>
+                               ToolTip="Brake - −surge"/>
                     <TextBlock Text="L" Canvas.Left="8" Canvas.Top="76" FontSize="9" Opacity="0.45" Foreground="#E8EAED"
                                ToolTip="Left turn (+sway)"/>
                     <TextBlock Text="R" Canvas.Left="152" Canvas.Top="76" FontSize="9" Opacity="0.45" Foreground="#E8EAED"

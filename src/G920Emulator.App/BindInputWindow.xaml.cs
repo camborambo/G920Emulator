@@ -87,8 +87,8 @@ public partial class BindInputWindow : Window
         {
             var label = btn switch
             {
-                19 => "19 — G920 / LGS (default)",
-                12 => "12 — NFS Unbound",
+                19 => "19 - G920 / LGS (default)",
+                12 => "12 - NFS Unbound",
                 _ => btn.ToString(),
             };
             items.Add(new GearReverseOption(btn, label));

@@ -8,7 +8,7 @@ namespace G920Emulator.Core.Mapping;
 ///   [0]     report id = 1
 ///   [1..3]  hat (low nibble, 0xF = null/center) + 19 buttons + 1 pad bit
 ///   [4..5]  steering X (16-bit little-endian, 0..65535, center 32768)
-///   [6]     throttle Y  (0xFF released … 0x00 fully pressed — Logitech inverted)
+///   [6]     throttle Y  (0xFF released … 0x00 fully pressed - Logitech inverted)
 ///   [7]     brake Z     (inverted)
 ///   [8]     clutch Rz   (inverted)
 ///   [9]     3 vendor bits + 5 pad
@@ -25,10 +25,10 @@ public static class G920ReportBuilder
 
         byte hatNibble = state.Hat is >= 0 and <= 7 ? (byte)state.Hat : (byte)0x0F;
 
-        // Face/paddles: DI buttons 1–10 (0-based bits). Real G920: RB = button 4, LB = button 5.
+        // Face/paddles: DI buttons 1-10 (0-based bits). Real G920: RB = button 4, LB = button 5.
         // Paddles share the matching bumper bit.
         //
-        // Gears 1–6: LGS / G920 Driving Force Shifter buttons 13–18.
+        // Gears 1-6: LGS / G920 Driving Force Shifter buttons 13-18.
         // Reverse: profile-selected DI button (default 19 = LGS; Unbound uses 12).
         uint buttons = 0;
         if (state.ButtonA) buttons |= 1u << 0;

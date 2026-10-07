@@ -548,10 +548,10 @@
 
   <!--
     Keyed base style. Windows must BasedOn this key (not {x:Type Button}) when
-    extending — a local TargetType Button BasedOn {x:Type Button} is circular
+    extending - a local TargetType Button BasedOn {x:Type Button} is circular
     and drops the template (light system chrome + light text).
   -->
-  <!-- Full dark chrome — default ContextMenu keeps a light icon gutter strip -->
+  <!-- Full dark chrome - default ContextMenu keeps a light icon gutter strip -->
   <Style TargetType="ContextMenu">
     <Setter Property="OverridesDefaultStyle" Value="True"/>
     <Setter Property="Background" Value="#1A1F29"/>

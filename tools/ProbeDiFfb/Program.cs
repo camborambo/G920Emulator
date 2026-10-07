@@ -1,6 +1,6 @@
 using SharpDX.DirectInput;
 
-// Acquire the virtual G920 via DirectInput and try CreateEffect — same path Unbound uses.
+// Acquire the virtual G920 via DirectInput and try CreateEffect - same path Unbound uses.
 using var di = new DirectInput();
 var sticks = di.GetDevices(DeviceClass.GameControl, DeviceEnumerationFlags.AttachedOnly);
 Console.WriteLine($"DI devices: {sticks.Count}");
@@ -74,7 +74,7 @@ try
     effect = new Effect(g920, EffectGuid.ConstantForce, pars);
     Console.WriteLine("CreateEffect ConstantForce OK");
     effect.Start();
-    Console.WriteLine("Effect.Start OK — hold 2s");
+    Console.WriteLine("Effect.Start OK - hold 2s");
     Thread.Sleep(2000);
     effect.Stop();
     Console.WriteLine("Effect.Stop OK");
@@ -87,5 +87,5 @@ catch (Exception ex)
 effect?.Dispose();
 g920.Unacquire();
 g920.Dispose();
-Console.WriteLine("Done — check emulator Host/HID++ write counters.");
+Console.WriteLine("Done - check emulator Host/HID++ write counters.");
 return 0;

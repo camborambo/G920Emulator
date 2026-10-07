@@ -33,7 +33,7 @@ public sealed class ProfileStore
         var exeRoot = AppContext.BaseDirectory.TrimEnd(
             Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-        // Opt-in portable mode only — default AppData survives "unzip over install" updates.
+        // Opt-in portable mode only - default AppData survives "unzip over install" updates.
         var portableMarker = Path.Combine(exeRoot, "portable.txt");
         UsesPortableStorage = File.Exists(portableMarker) && TryEnsureWritableProfilesDir(exeRoot);
 
@@ -152,7 +152,7 @@ public sealed class ProfileStore
 
     /// <summary>
     /// Old Unbound/Heat seed used Invert Constant Force to paper over a DI→app
-    /// polarity bug. With the driver fix, that toggle would double-invert — clear
+    /// polarity bug. With the driver fix, that toggle would double-invert - clear
     /// it when the profile still matches the original seed.
     /// </summary>
     private void MigrateNfsUnboundHeatCfPolarity()

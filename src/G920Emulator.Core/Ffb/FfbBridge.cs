@@ -14,7 +14,7 @@ namespace G920Emulator.Core.Ffb;
 /// </summary>
 public sealed class FfbBridge : IDisposable
 {
-    // DIJOFS_X — data-format offset for the X axis.
+    // DIJOFS_X - data-format offset for the X axis.
     private const int DiJofsX = 0;
     // Infinite duration (DIEFFECT.dwDuration = -1 / 0xFFFFFFFF).
     private const int InfiniteDuration = -1;
@@ -58,7 +58,7 @@ public sealed class FfbBridge : IDisposable
     private bool[]? _cachedButtons;
     private int _cachedHat = -1;
     private long _cachedAxesTick;
-    /// <summary>Winning SetParameters flags for this base — skip multi-strategy probes after first success.</summary>
+    /// <summary>Winning SetParameters flags for this base - skip multi-strategy probes after first success.</summary>
     private EffectParameterFlags? _fastMagnitudeFlags;
     private bool _fastMagnitudeUsesFullParams;
 
@@ -286,7 +286,7 @@ public sealed class FfbBridge : IDisposable
 
     /// <summary>
     /// Physical FFB axis position as -1..1 (center 0). Required for game spring/damper
-    /// auto-center to track the real rim — not the virtual G920 / DualSense steer.
+    /// auto-center to track the real rim - not the virtual G920 / DualSense steer.
     /// </summary>
     public bool TryGetPhysicalSteering(out float steeringCentered)
     {
@@ -298,7 +298,7 @@ public sealed class FfbBridge : IDisposable
     }
 
     /// <summary>
-    /// Live axis values (0..1) from the exclusive FFB joystick — same scale as
+    /// Live axis values (0..1) from the exclusive FFB joystick - same scale as
     /// <see cref="Input.InputHub"/> DeviceState axes.
     /// Never blocks behind a slow DI SetParameters: returns a fresh cache when the
     /// FFB apply thread holds <c>_diGate</c>.
@@ -334,7 +334,7 @@ public sealed class FfbBridge : IDisposable
 
         if (!Monitor.TryEnter(_diGate, 0))
         {
-            // Apply thread is busy — last sample is better than stalling the bridge.
+            // Apply thread is busy - last sample is better than stalling the bridge.
             lock (_gate)
             {
                 if (_cachedAxes01 is null || _cachedAxes01.Count == 0)
@@ -446,7 +446,7 @@ public sealed class FfbBridge : IDisposable
         {
             var pov = state.PointOfViewControllers[0];
             if (pov >= 0)
-                hat = pov / 4500; // 0..7 — same as InputHub
+                hat = pov / 4500; // 0..7 - same as InputHub
         }
 
         lock (_gate)
@@ -459,7 +459,7 @@ public sealed class FfbBridge : IDisposable
     }
 
     /// <summary>
-    /// Optional hardware DIPROP_AUTOCENTER. Used only by FFB debug Center test —
+    /// Optional hardware DIPROP_AUTOCENTER. Used only by FFB debug Center test -
     /// not toggled from the game OEM mix (that would fight Fanatec/Simucube DI effects).
     /// </summary>
     public void SetHardwareAutoCenter(bool enabled)
@@ -479,7 +479,7 @@ public sealed class FfbBridge : IDisposable
             }
             catch
             {
-                // Unsupported on this base — do not Unacquire; FFB debug Center still has
+                // Unsupported on this base - do not Unacquire; FFB debug Center still has
                 // the software spring path.
             }
         }
@@ -723,7 +723,7 @@ public sealed class FfbBridge : IDisposable
             dirs = _directions;
         }
 
-        // Hot path: reuse the flags that already worked on this base (avoids 2–3 USB probes).
+        // Hot path: reuse the flags that already worked on this base (avoids 2-3 USB probes).
         if (_fastMagnitudeFlags is { } fastFlags)
         {
             try
@@ -1054,7 +1054,7 @@ public sealed class FfbBridge : IDisposable
             }
         }
 
-        // Restore input acquire outside _diGate — RestoreNonExclusive takes InputHub's lock.
+        // Restore input acquire outside _diGate - RestoreNonExclusive takes InputHub's lock.
         if (owned is null && shared is not null)
             hub?.RestoreNonExclusive(id, hwnd);
     }

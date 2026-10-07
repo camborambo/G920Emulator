@@ -4,20 +4,20 @@ G920 Emulator creates a virtual Logitech G920 (`VID 046D` / `PID C262`) using **
 
 Without the driver, the app still runs in **preview mode** so you can map controls, but games will not see a G920.
 
-## Install (bundled — no download)
+## Install (bundled - no download)
 
 WinUHid files ship inside the app under `winuhid\`.
 
-1. Launch G920 Emulator (**approve the UAC prompt** — WinUHid only allows Administrators to open the device)
+1. Launch G920 Emulator (**approve the UAC prompt** - WinUHid only allows Administrators to open the device)
 2. Open **Dependencies…** → **Install WinUHid**
 3. Click **Install WinUHid** and approve any additional UAC prompts
 4. **Forza-friendly flow:** Install enables test signing only if needed, installs the driver, then **turns test signing back off**. You may need:
    - **Reboot #1** if test signing was not live yet → open the app → click **Install WinUHid** once more to finish
    - **Reboot #2** after the finish pass (leaves test signing off)
-5. After the final reboot, click **Recheck** — WinUHid should show Installed and test signing **Off (OK)**. Do **not** Install again (a duplicate Install can break detection)
+5. After the final reboot, click **Recheck** - WinUHid should show Installed and test signing **Off (OK)**. Do **not** Install again (a duplicate Install can break detection)
 6. **Start bridge**, then confirm in `joy.cpl` that a G920-class device appears
 
-If Recheck says access denied, the driver is installed but the app is not elevated — close it and relaunch so Windows can show the UAC prompt.
+If Recheck says access denied, the driver is installed but the app is not elevated - close it and relaunch so Windows can show the UAC prompt.
 
 ### Uninstall WinUHid
 
@@ -39,13 +39,13 @@ cd <path-to>\G920Emulator\winuhid
 
 ### Secure Boot
 
-The bundled driver is **test-signed**. Enabling test signing (needed only for the WinUHid *install*) fails while Secure Boot is on — **disable Secure Boot in UEFI/BIOS**, boot Windows, then run Install WinUHid. Admin CMD alone cannot override Secure Boot.
+The bundled driver is **test-signed**. Enabling test signing (needed only for the WinUHid *install*) fails while Secure Boot is on - **disable Secure Boot in UEFI/BIOS**, boot Windows, then run Install WinUHid. Admin CMD alone cannot override Secure Boot.
 
 **After WinUHid is installed and test signing is off**, you can **turn Secure Boot back on** in UEFI/BIOS. WinUHid and the emulator keep working; Forza Horizon can still launch. Secure Boot only needs to stay off during the install / test-signing step.
 
 ### Forza Horizon 6 and test signing
 
-Forza Horizon 6 will not start while Windows boots in **test mode** — Steam shows exit code **100** at the splash (integrity / anti-cheat), not because of OEM/SDK pins.
+Forza Horizon 6 will not start while Windows boots in **test mode** - Steam shows exit code **100** at the splash (integrity / anti-cheat), not because of OEM/SDK pins.
 
 **Good news:** test signing is only required to *install* WinUHid. The Forza-friendly Install flow turns test signing **off** again afterward. WinUHid (UMDF) usually keeps working with test signing off, so you can use the emulator and launch FH6 on the same boot. You can also re-enable Secure Boot once that install is finished.
 
@@ -83,7 +83,7 @@ Dependencies shows **OEM / Logitech SDK registration** as Idle / Active / Needs 
 
 ### Full clean restore (optional)
 
-Nuclear option if you want every app leftover removed: **Dependencies → Full clean restore…** (stop the bridge first). That also turns off test signing and removes OEM/SDK pins, ProgramData caches (`LogitechSDK` + `g920ffb`), DirectInput leftovers, orphan virtual G920 nodes, older hidpp rename, and WinUHid. **Not required for FH6** — prefer **Uninstall WinUHid**.
+Nuclear option if you want every app leftover removed: **Dependencies → Full clean restore…** (stop the bridge first). That also turns off test signing and removes OEM/SDK pins, ProgramData caches (`LogitechSDK` + `g920ffb`), DirectInput leftovers, orphan virtual G920 nodes, older hidpp rename, and WinUHid. **Not required for FH6** - prefer **Uninstall WinUHid**.
 
 Full clean does **not** change Secure Boot, HidHide, or your profiles under `%AppData%\G920Emulator`. If you disabled Secure Boot only for the WinUHid install, you can re-enable it afterward (with WinUHid installed and test signing off).
 
@@ -107,14 +107,14 @@ You do not need G HUB for this app.
 
 - Select your physical FFB wheel under **Force feedback → FFB output device**
 - Games drive FFB through DirectInput OEM into **`g920ffb.dll`**, which publishes torque over shared memory; the bridge applies it to your base (not Logitech HID++ WriteReports)
-- **Start bridge** applies session OEM/SDK pins and attaches FFB; **Stop** restores system registration; use status-bar **Debug** only for short OEM log captures (leave it off for normal play — see [force-feedback.md](force-feedback.md#status-bar-debug-oem-file-log)), and **FFB debug** for on-screen test controls
+- **Start bridge** applies session OEM/SDK pins and attaches FFB; **Stop** restores system registration; use status-bar **Debug** only for short OEM log captures (leave it off for normal play - see [force-feedback.md](force-feedback.md#status-bar-debug-oem-file-log)), and **FFB debug** for on-screen test controls
 - Full detail: [force-feedback.md](force-feedback.md)
 - Exclusive cooperative level may require running G920 Emulator elevated on some setups
 
 ## Validation checklist
 
 - [ ] Devices appear in G920 Emulator after Refresh
-- [ ] Bindings update live meters (steering, pedals, gear R/1–6)
+- [ ] Bindings update live meters (steering, pedals, gear R/1-6)
 - [ ] With WinUHid installed, virtual G920 shows in `joy.cpl`
 - [ ] Game sees G920
 - [ ] FFB moves the physical wheel when the game applies force

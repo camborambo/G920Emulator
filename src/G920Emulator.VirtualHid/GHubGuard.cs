@@ -5,14 +5,14 @@ namespace G920Emulator.VirtualHid;
 
 /// <summary>
 /// Keeps OEM + Col01 friendly name correct while the bridge runs.
-/// Never restarts PnP devices — that orphans WinUHid VHF children.
+/// Never restarts PnP devices - that orphans WinUHid VHF children.
 /// </summary>
 public sealed class GHubGuard : IDisposable
 {
     private CancellationTokenSource? _cts;
     private Task? _loop;
     private string _lastStatus = "";
-    private int _maintainBusy; // 0/1 — avoid overlapping Maintain with Stop
+    private int _maintainBusy; // 0/1 - avoid overlapping Maintain with Stop
 
     public string LastStatus => _lastStatus;
 
@@ -124,7 +124,7 @@ public sealed class GHubGuard : IDisposable
 
         if (!G920DeviceIdentityFix.IsVirtualCol01Present())
         {
-            parts.Add("virtual Col01 NOT present — Stop/Start bridge");
+            parts.Add("virtual Col01 NOT present - Stop/Start bridge");
             return "G HUB guard: " + string.Join("; ", parts);
         }
 
@@ -140,7 +140,7 @@ public sealed class GHubGuard : IDisposable
 
         if (token.IsCancellationRequested) return "G HUB guard: cancelled";
 
-        // 3) Friendly name only — never pnputil restart.
+        // 3) Friendly name only - never pnputil restart.
         if (G920DeviceIdentityFix.NeedsFriendlyNameFix())
             parts.Add(G920DeviceIdentityFix.Apply(restartDevice: false));
         else
@@ -149,7 +149,7 @@ public sealed class GHubGuard : IDisposable
         if (token.IsCancellationRequested) return "G HUB guard: cancelled";
 
         if (IsGHubProcessRunning())
-            parts.Add("G HUB running — guarding");
+            parts.Add("G HUB running - guarding");
 
         return parts.Count == 0 ? "G HUB guard: OK (Col01 present)" : "G HUB guard: " + string.Join("; ", parts);
     }

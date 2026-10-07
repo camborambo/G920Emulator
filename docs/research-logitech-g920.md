@@ -39,18 +39,18 @@ Logitech’s `hidpp_forcefeedback` may still load but does not deliver usable Wr
 
 - Games that use DirectInput OEM (`OEMName` / `OEMData` / `OEMForceFeedback`) still resolve VID/PID → G920 profile without the Logitech filter.
 - G HUB tile / “Logitech G HUB G920 … (HID)” friendly name may be absent (Microsoft HID-compliant name). Expected and preferable for FFB.
-- G HUB showing G920 **Inactive** is expected for a WinUHid device — “Active” needs the real USB + HID++ handshake. Not required for DI FFB.
+- G HUB showing G920 **Inactive** is expected for a WinUHid device - “Active” needs the real USB + HID++ handshake. Not required for DI FFB.
 
 ## Gear reverse button (per game)
 
-Official **G920 + Driving Force Shifter** (Logitech LGS docs): gears **1–6 = buttons 13–18**, **Reverse = button 19**.
+Official **G920 + Driving Force Shifter** (Logitech LGS docs): gears **1-6 = buttons 13-18**, **Reverse = button 19**.
 
 Games do **not** all use that reverse index in their native G920 profiles:
 
-| Game | Gears 1–6 | Reverse | Emulator setting |
+| Game | Gears 1-6 | Reverse | Emulator setting |
 |------|-----------|---------|------------------|
-| Most titles (e.g. **NFS Heat**) | 13–18 | **19** | Default — leave Bind Gear R on **19** |
-| **NFS Unbound** | 13–18 | **12** | Bind Gear R → select **12 — NFS Unbound** |
+| Most titles (e.g. **NFS Heat**) | 13-18 | **19** | Default - leave Bind Gear R on **19** |
+| **NFS Unbound** | 13-18 | **12** | Bind Gear R → select **12 - NFS Unbound** |
 
 G920 Emulator defaults to **19**. For Unbound, open **Gear R** binding and set **G920 reverse button** to **12** (saved on the profile; no bridge restart).
 
@@ -60,9 +60,9 @@ G920 Emulator defaults to **19**. For Unbound, open **Gear R** binding and set *
 
 ### NFS Unbound (2026-10-04)
 
-**Confirmed:** Accessibility → Controls → **Controller Vibration** must be **On**. With it Off, Unbound still creates CF / Damper / Triangle and enters the race FFB path, but every streamed magnitude stays **0** — only the centering Spring updates. That looks like “emulator/base not forwarding rumble” when the game simply never sent it. Fanatec vs Simucube captures matched once Vibration was on.
+**Confirmed:** Accessibility → Controls → **Controller Vibration** must be **On**. With it Off, Unbound still creates CF / Damper / Triangle and enters the race FFB path, but every streamed magnitude stays **0** - only the centering Spring updates. That looks like “emulator/base not forwarding rumble” when the game simply never sent it. Fanatec vs Simucube captures matched once Vibration was on.
 
-Unbound streams these DirectInput OEM types (all must stay in the mix — do not mute/disable any):
+Unbound streams these DirectInput OEM types (all must stay in the mix - do not mute/disable any):
 
 | Type | Role |
 |------|------|

@@ -32,7 +32,7 @@ public static class SimHubPacket
     public static int ClampSendHz(int hz) =>
         hz <= 0 ? DefaultSendHz : Math.Clamp(hz, MinSendHz, MaxSendHz);
     public const float MaxSpeedKmh = 350f;
-    /// <summary>Upper bound for tuning UI / docs — packet fields use the live TelemetryTuning values.</summary>
+    /// <summary>Upper bound for tuning UI / docs - packet fields use the live TelemetryTuning values.</summary>
     public const float MaxEngineRpm = TelemetryTuning.AbsoluteRpmMax;
 
     /// <summary>SimHub TyreContactSurface.Primary</summary>
@@ -185,9 +185,9 @@ public readonly record struct TelemetryFrame(
     float RoadLoad,
     /// <summary>Live / ShakeIt engine-vib intensity 0..1 (RPM load × Engine scale). Not a UDP field.</summary>
     float EngineVibration,
-    /// <summary>speed / current gear cap (0..1). Debug / Live only — not a UDP field.</summary>
+    /// <summary>speed / current gear cap (0..1). Debug / Live only - not a UDP field.</summary>
     float GearSpeedFrac,
-    /// <summary>Arcade handbrake button held. Live only — not a UDP field.</summary>
+    /// <summary>Arcade handbrake button held. Live only - not a UDP field.</summary>
     bool HandbrakeHeld,
-    /// <summary>Arcade NOS / turbo button held. Live only — not a UDP field.</summary>
+    /// <summary>Arcade NOS / turbo button held. Live only - not a UDP field.</summary>
     bool NosHeld);

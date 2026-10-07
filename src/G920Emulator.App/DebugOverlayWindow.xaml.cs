@@ -57,7 +57,7 @@ public partial class DebugOverlayWindow : Window
         if (s.Hat >= 0) pressed.Add($"Hat{s.Hat}");
         if (s.ActiveGearLabel is not "N")
             pressed.Add($"G{s.ActiveGearLabel}");
-        return pressed.Count == 0 ? "—" : string.Join(" ", pressed);
+        return pressed.Count == 0 ? "-" : string.Join(" ", pressed);
     }
 
     public static string FormatFfb(FfbDiagnostics d, string? linkStatus)

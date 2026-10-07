@@ -26,7 +26,7 @@ public static class InstallFolderGuard
         }
         catch
         {
-            // ignore — best effort
+            // ignore - best effort
         }
     }
 

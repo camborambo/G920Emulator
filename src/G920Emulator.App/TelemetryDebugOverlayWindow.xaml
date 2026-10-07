@@ -34,14 +34,14 @@
 
       <Border DockPanel.Dock="Top" Background="#222836" CornerRadius="8" Padding="10,8" Margin="0,0,0,10">
         <DockPanel>
-          <TextBlock x:Name="SessionText" DockPanel.Dock="Right" Text="session —" FontSize="12"
+          <TextBlock x:Name="SessionText" DockPanel.Dock="Right" Text="session -" FontSize="12"
                      VerticalAlignment="Center" Opacity="0.9" Margin="10,0,0,0"/>
           <TextBlock x:Name="GearText" Text="GEAR N" FontWeight="Bold" FontFamily="Bahnschrift"
                      FontSize="18" VerticalAlignment="Center"/>
         </DockPanel>
       </Border>
 
-      <TextBlock x:Name="StatusText" DockPanel.Dock="Top" Text="Telemetry: —" FontSize="12"
+      <TextBlock x:Name="StatusText" DockPanel.Dock="Top" Text="Telemetry: -" FontSize="12"
                  Opacity="0.85" TextWrapping="Wrap" Margin="0,0,0,10"/>
 
       <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">

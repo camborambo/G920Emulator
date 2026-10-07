@@ -111,7 +111,7 @@ public sealed class WinUHidSetupService
 
     public bool IsTestSigningEnabled()
     {
-        // Prefer live Code Integrity flags — works without admin and reflects the
+        // Prefer live Code Integrity flags - works without admin and reflects the
         // running boot config. Non-elevated bcdedit often fails with Access Denied
         // and produced false "OFF" readings after the user had already enabled it.
         if (TryQueryCodeIntegrityTestSigning(out var enabled))
@@ -265,7 +265,7 @@ public sealed class WinUHidSetupService
         var dest = Path.GetFullPath(LocalDllPath);
         var src = Path.GetFullPath(source);
 
-        // Already next to the EXE (common when bundled) — do not overwrite a loaded DLL.
+        // Already next to the EXE (common when bundled) - do not overwrite a loaded DLL.
         if (string.Equals(src, dest, StringComparison.OrdinalIgnoreCase))
             return dest;
 
@@ -369,7 +369,7 @@ try {
                     "2. Disable Secure Boot (Security / Boot menu)\n" +
                     "3. Save & exit, boot into Windows\n" +
                     "4. Install WinUHid (enables test signing, installs driver, turns test signing off)\n" +
-                    "5. Reboot when prompted, then Recheck — do not Install again\n" +
+                    "5. Reboot when prompted, then Recheck - do not Install again\n" +
                     "6. Optional: re-enable Secure Boot in UEFI/BIOS (WinUHid and Forza keep working)\n\n" +
                     "Admin CMD alone cannot override Secure Boot.\n\n" +
                     detail);
@@ -661,7 +661,7 @@ try {
     param([Parameter(Mandatory=$true)][string]$InfPath)
 
     if (Test-WinUHidDevicePresent) {
-      Write-Log 'WinUHid device node already present — binding INF only (skip create to avoid duplicates).'
+      Write-Log 'WinUHid device node already present - binding INF only (skip create to avoid duplicates).'
       & pnputil.exe /add-driver $InfPath /install 2>&1 | ForEach-Object { Write-Log "$_" }
       if (-not ('WinUHidDevNode' -as [type])) {
         Add-Type -TypeDefinition @'
@@ -712,14 +712,14 @@ public static class WinUHidDevNodeBind {
     # Only create via SetupAPI when no Root\WinUHid node exists yet.
     # Calling Create when one already exists spawns ROOT\SYSTEM\#### duplicates and breaks the user-mode probe.
     if (Test-WinUHidDevicePresent) {
-      Write-Log 'Device present after pnputil/devcon — skip SetupAPI create.'
+      Write-Log 'Device present after pnputil/devcon - skip SetupAPI create.'
       Remove-DuplicateWinUHidEnumerators
       return
     }
 
     Write-Log 'Creating/binding Root\WinUHid via SetupAPI (works on all Windows 10/11 builds)'
     if (-not ('WinUHidDevNode' -as [type])) {
-      # PowerShell Add-Type uses an older C# compiler — keep this C# 5 compatible (no => methods, no uint suffixes).
+      # PowerShell Add-Type uses an older C# compiler - keep this C# 5 compatible (no => methods, no uint suffixes).
       Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
