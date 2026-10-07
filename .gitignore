@@ -14,6 +14,13 @@ third_party/
 tools/wdk-nuget/
 *.log
 
+# Scratch / local diagnostics (never ship)
+.tmp/
+PluginsData/
+_diag_work/
+tools/_*/
+CHAT_HANDOFF.md
+
 # Cursor IDE (local rules / agent config)
 .cursor/
 
@@ -21,12 +28,13 @@ tools/wdk-nuget/
 artifacts/xinput-ffb-driver/
 artifacts/lghub-probe/g920_extracted/
 artifacts/lghub-probe/driver_*/
+artifacts/lghub-probe/*.depot
+artifacts/lghub-probe/*.meta.json
 artifacts/lghub-probe/*.log
 artifacts/lghub-probe/*.out.txt
 artifacts/lghub-probe/*-bind.log
 artifacts/lghub-probe/probe-*.txt
-CHAT_HANDOFF.md
 
-# Local diagnostic staging / one-off scratch tools (not product source)
-_diag_work/
-tools/_*/
+# Legacy sample profile — runtime uses %AppData%\G920Emulator\profiles\
+profiles/*.json
+!profiles/README.md

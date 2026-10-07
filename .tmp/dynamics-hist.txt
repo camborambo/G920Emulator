@@ -1,6 +1,0 @@
-L265 assistant [Speed dynamics]: **Estimation tuning → Speed dynamics** now has Accel / Brake / Coast (km/h/s), Aero drag, and Gear pull.  Coast default is **28/s** (was a hard-coded 8), plus speed² aero, so lift-off drops faster. Raise **Coast** / **Aero drag** further if i
-L314 assistant [mph/s]: Speed range, Accel/Brake/Coast, and gear maxes now adjust in **mph** (mph/s). On save they’re converted to **km/h** for settings and the SimHub packet.
-L324 assistant [km/h/s]: ry value label (hand cursor) to type — Enter saves, Esc cancels. Speed fields accept mph or km/h; rates accept mph/s or km/h/s; percents accept `50` or `50%`.
-L333 user [mph/s]: es> <timestamp>Tuesday, Oct 6, 2026, 4:55 PM (UTC-5)</timestamp> <user_query> Why did you change this to scale based on mph/s though. I was only referring to gear max speed </user_query>
-L334 assistant [km/h/s]: Reverting Accel/Brake/Coast to km/h/s; keeping mph (with the unit option) only for gear max speeds and the speed display.
-L336 assistant [km/h/s]: That was over-scoped — Accel / Brake / Coast are back to **km/h/s** only.  The mph / km/h setting applies to **Speed range**, **gear max speeds**, and the Live speed readout. SimHub still always gets km/h.
