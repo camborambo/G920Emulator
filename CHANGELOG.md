@@ -13,20 +13,22 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- **Experiment** (`experiment/rpm-gear-ratios`, `publish.ps1 -TestBuild` → `dist-test\`): Full Blocklayer chart — absolute gear ratios (6th editable, e.g. 0.56), Diff, Tire; max speed = (tire×Redline)/(336×gear×diff) matching blocklayer.com “Shift At” (defaults → 47/68/99/141/168/252 MPH). Hard-cut rev-limiter (hysteresis, not sine bounce). Wording: **Simulated** (SimHub name `G920 Emulator (simulated)`). No Gear pull / settle UI. Crash/aero/coast kept. Stable `dist\` untouched.
+- **Experiment** Arcade buttons (telemetry): Handbrake / NOS–Turbo use the same **Bind** dialog as FFB (hardware on the input profile) plus strength/boost sliders on the telemetry profile; hold dumps or boosts simulated speed (NOS still gear-capped). Live Telemetry bars when held.
 - **Telemetry Debug Overlay** (Settings): topmost live SimHub UDP packet (gear, speed/RPM, pedals, G-force, FFB→SimHub scales).
 - **G920 Emulator RPM** SimHub plugin: installed by **Register with SimHub**; enables ShakeIt built-in **Engine vibrations** for the External Sim (sets the RPM feedback capability the same way native games like Forza do). Restart SimHub after registering.
-- Telemetry **estimation profiles** (Save / Save as / Default / Delete), same pattern as FFB profiles — stored under `telemetry-profiles`. Host/port/rate stay global in settings.
+- Telemetry **simulation profiles** (Save / Save as / Default / Delete), same pattern as FFB profiles — stored under `telemetry-profiles`. Host/port/rate stay global in settings.
 - Telemetry **Engine** scale (0–200%) under ShakeIt / FFB scales — same pattern as Rumble / Impact / Road load. RPM is always sent; the SimHub RPM plugin applies the scale to Engine vibrations force.
-- Telemetry **RPM bounce** / **Bounce rate**: rev-limiter flutter when estimated speed/RPM is pinned at a gear’s top (adjustable depth and Hz; 0 bounce = flat ceiling).
+- Telemetry **RPM bounce** / **Bounce rate**: rev-limiter flutter when simulated speed/RPM is pinned at a gear’s top (adjustable depth and Hz; 0 bounce = flat ceiling).
 - Telemetry RPM now tracks **speed-in-gear** (not WOT→max): upshifts drop RPM, and taller gears build RPM slower with **Gear pull** / Accel.
-- Telemetry **Gear settle** rate: after a downshift, estimated speed tapers toward the new gear's max instead of snapping; adjustable under Estimation tuning.
-- **Telemetry** tab: optional SimHub External Sim UDP feed for games with no native telemetry (Heat / Unbound first). Speed/RPM/gear are estimated from pedals and shifter; rumble/impact/road load come from the virtual G920 FFB mix. Requires SimHub 9.11.5+. No game-process injection.
+- Telemetry **Gear settle** rate: after a downshift, simulated speed tapers toward the new gear's max instead of snapping; adjustable under Telemetry profile tuning.
+- **Telemetry** tab: optional SimHub External Sim UDP feed for games with no native telemetry (Heat / Unbound first). Speed/RPM/gear are simulated from pedals and shifter; rumble/impact/road load come from the virtual G920 FFB mix. Requires SimHub 9.11.5+. No game-process injection.
 - **Remove registration** on the Telemetry tab deletes the SimHub `.simlink` so you can drop the game tile (and cached icon) after a restart.
 - Telemetry UDP send rate slider is **30–60 Hz** (60 is SimHub's External Sim max; faster packets are ignored).
 - Simulated G-force for SimHub: `LocalSurgeMs2` / `LocalSwayMs2` / `LocalHeaveMs2` from speed change, steering, and FFB impact/rumble (ShakeIt-ready; not real chassis physics). Re-register the External Sim after updating.
 - Telemetry **G-force circle** (friction circle): live ball on X/Y axes for surge × sway.
 - FFB **Bind** dialog **Set as Default**: pick a snap value (slider + label) and a hardware button that restores that slider while driving (saved on the input profile).
-- Telemetry **Estimation tuning**: Speed/RPM min–max ranges and SurfaceRumble / Impact / RoadLoad scales (saved in settings).
+- Telemetry **simulation tuning**: Speed/RPM min–max ranges and SurfaceRumble / Impact / RoadLoad scales (saved in settings).
 
 ### Fixed
 
@@ -37,7 +39,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Telemetry tall gears can reach their configured max again: aero was keyed off global vmax (drag wall ~30 mph short in 5th). Aero is per gear cap, and throttle fades free drag while climbing so WOT can work up to each gear max.
 - Telemetry idle RPM: no longer set `SessionPaused` when OEM FFB goes quiet (SimHub was zeroing the dash), and keep `EngineRpm` floored at the configured idle while the session is live.
 - Telemetry RPM no longer snaps to 0 at the bottom of a taper in gear: stopping (speed &lt; 0.5) used to end the session; in-gear / short linger now holds idle instead.
-- SimHub **Engine vibrations** (built-in): External Sims never advertise the RPM feedback capability on their own; the **G920 Emulator RPM** plugin patches that when **G920 Emulator (estimated)** is active, and applies the **Engine** force scale from this app.
+- SimHub **Engine vibrations** (built-in): External Sims never advertise the RPM feedback capability on their own; the **G920 Emulator RPM** plugin patches that when **G920 Emulator (simulated)** is active, and applies the **Engine** force scale from this app.
 - HidHide **Start** no longer reads the restore-point snapshot before you answer Yes/No; capture/apply use one batched CLI script (was four+ sequential HidHideCLI launches). Device hide scans once after the virtual G920 exists.
 - HidHide restore on Stop/Exit no longer blocks for up to 90s: batched CLI, short timeouts (exit ~6s / stop ~12s), orphan helpers killed, unfinished restore retries on next launch.
 - HidHide restore actually reapplies the saved config: no more false “success” without writing lists, incomplete diffs when live lists failed to load, or clearing the restore point before verification.

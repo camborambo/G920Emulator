@@ -96,6 +96,10 @@ public enum G920Control
     FfbDampDeadMinus,
     FfbDampDeadPlus,
     FfbDampDeadDefault,
+    /// <summary>Input-profile only: hold for arcade handbrake speed dump (telemetry). Not a virtual G920 control.</summary>
+    TelemetryHandbrake,
+    /// <summary>Input-profile only: hold for arcade NOS / turbo boost (telemetry). Not a virtual G920 control.</summary>
+    TelemetryNos,
 }
 
 public static class G920ControlInfo
@@ -258,6 +262,15 @@ public static class G920ControlInfo
 
     public static bool IsFfbNudge(G920Control control) => FfbNudgeControls.Contains(control);
 
+    /// <summary>Telemetry arcade holds bound on the input profile (same Bind dialog as FFB).</summary>
+    public static readonly G920Control[] TelemetryArcadeControls =
+    [
+        G920Control.TelemetryHandbrake,
+        G920Control.TelemetryNos,
+    ];
+
+    public static bool IsTelemetryArcade(G920Control control) => TelemetryArcadeControls.Contains(control);
+
     public static bool IsFfbDefault(G920Control control)
     {
         foreach (var bind in FfbSliderBinds)
@@ -388,6 +401,8 @@ public static class G920ControlInfo
         G920Control.FfbDampDeadMinus => "Damp dead −",
         G920Control.FfbDampDeadPlus => "Damp dead +",
         G920Control.FfbDampDeadDefault => "Damp dead default",
+        G920Control.TelemetryHandbrake => "Handbrake (telemetry)",
+        G920Control.TelemetryNos => "NOS / Turbo (telemetry)",
         _ => control.ToString(),
     };
 }

@@ -1,14 +1,17 @@
 # Builds a self-contained Windows x64 folder you can double-click:
 #   dist\G920Emulator\G920Emulator.exe
+#   dist-test\G920Emulator\G920Emulator.exe  (-TestBuild)
 param(
-    [switch]$OpenFolder
+    [switch]$OpenFolder,
+    [switch]$TestBuild
 )
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root
 
-$outDir = Join-Path $root "dist\G920Emulator"
+$distRoot = if ($TestBuild) { Join-Path $root "dist-test" } else { Join-Path $root "dist" }
+$outDir = Join-Path $distRoot "G920Emulator"
 
 $winuhid = Join-Path $root "native\winuhid"
 if (-not (Test-Path (Join-Path $winuhid "WinUHid.dll"))) {
@@ -96,37 +99,63 @@ if (Test-Path $g920ffbDll) {
     Write-Warning "g920ffb.dll missing - in-game FFB ingress via OEM driver will not work."
 }
 
-# Convenience launcher next to the folder
-$launcher = Join-Path $root "dist\Launch G920 Emulator.bat"
-Set-Content -Path $launcher -Encoding ASCII -Value @(
-    '@echo off'
-    'start "" "%~dp0G920Emulator\G920Emulator.exe"'
-)
+if ($TestBuild) {
+    # Side-by-side experiment — do not rewrite stable dist launchers.
+    $launcher = Join-Path $distRoot "Launch G920 Emulator (ratio test).bat"
+    Set-Content -Path $launcher -Encoding ASCII -Value @(
+        '@echo off'
+        'start "" "%~dp0G920Emulator\G920Emulator.exe"'
+    )
+    $rootLauncher = Join-Path $root "Launch G920 Emulator (ratio test).bat"
+    Set-Content -Path $rootLauncher -Encoding ASCII -Value @(
+        '@echo off'
+        'set EXE=%~dp0dist-test\G920Emulator\G920Emulator.exe'
+        'if exist "%EXE%" ('
+        '  start "" "%EXE%"'
+        '  exit /b 0'
+        ')'
+        'echo Ratio-test build not found. Building it now...'
+        'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0publish.ps1" -TestBuild'
+        'if exist "%EXE%" ('
+        '  start "" "%EXE%"'
+        ') else ('
+        '  echo Publish failed.'
+        '  pause'
+        ')'
+    )
+} else {
+    # Convenience launcher next to the folder
+    $launcher = Join-Path $distRoot "Launch G920 Emulator.bat"
+    Set-Content -Path $launcher -Encoding ASCII -Value @(
+        '@echo off'
+        'start "" "%~dp0G920Emulator\G920Emulator.exe"'
+    )
 
-# Root-level quick launcher
-$rootLauncher = Join-Path $root "Launch G920 Emulator.bat"
-Set-Content -Path $rootLauncher -Encoding ASCII -Value @(
-    '@echo off'
-    'set EXE=%~dp0dist\G920Emulator\G920Emulator.exe'
-    'if exist "%EXE%" ('
-    '  start "" "%EXE%"'
-    '  exit /b 0'
-    ')'
-    'echo G920Emulator.exe not found. Building it now...'
-    'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0publish.ps1"'
-    'if exist "%EXE%" ('
-    '  start "" "%EXE%"'
-    ') else ('
-    '  echo Publish failed.'
-    '  pause'
-    ')'
-)
+    # Root-level quick launcher
+    $rootLauncher = Join-Path $root "Launch G920 Emulator.bat"
+    Set-Content -Path $rootLauncher -Encoding ASCII -Value @(
+        '@echo off'
+        'set EXE=%~dp0dist\G920Emulator\G920Emulator.exe'
+        'if exist "%EXE%" ('
+        '  start "" "%EXE%"'
+        '  exit /b 0'
+        ')'
+        'echo G920Emulator.exe not found. Building it now...'
+        'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0publish.ps1"'
+        'if exist "%EXE%" ('
+        '  start "" "%EXE%"'
+        ') else ('
+        '  echo Publish failed.'
+        '  pause'
+        ')'
+    )
 
-# Remove old launcher name if present
-$oldRoot = Join-Path $root "Launch G920Emulator.bat"
-$oldDist = Join-Path $root "dist\Launch G920Emulator.bat"
-if (Test-Path $oldRoot) { Remove-Item $oldRoot -Force }
-if (Test-Path $oldDist) { Remove-Item $oldDist -Force }
+    # Remove old launcher name if present
+    $oldRoot = Join-Path $root "Launch G920Emulator.bat"
+    $oldDist = Join-Path $root "dist\Launch G920 Emulator.bat"
+    if (Test-Path $oldRoot) { Remove-Item $oldRoot -Force }
+    if (Test-Path $oldDist) { Remove-Item $oldDist -Force }
+}
 
 # Profiles are created at runtime in %AppData%\G920Emulator — never ship profiles\,
 # ffb-profiles\, or settings.json (publishing from a used dist\ used to bake personal
@@ -153,8 +182,9 @@ if (Test-Path $simhubSrc) {
     Copy-Item (Join-Path $simhubSrc "*") $simhubOut -Force
 }
 
-# Zip with a single top-level folder: G920Emulator-win-x64.zip → G920Emulator\...
-$zipPath = Join-Path $root "dist\G920Emulator-win-x64.zip"
+# Zip with a single top-level folder: G920Emulator\...
+$zipName = if ($TestBuild) { "G920Emulator-ratio-test-win-x64.zip" } else { "G920Emulator-win-x64.zip" }
+$zipPath = Join-Path $distRoot $zipName
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Write-Host "Creating $zipPath ..." -ForegroundColor Cyan
 Compress-Archive -Path $outDir -DestinationPath $zipPath -CompressionLevel Optimal
@@ -163,12 +193,16 @@ Write-Host "Zip layout: G920Emulator\ (folder) → app files"
 Write-Host ""
 Write-Host "Done." -ForegroundColor Green
 Write-Host "Run:  $outDir\G920Emulator.exe"
-Write-Host "Or double-click:  Launch G920 Emulator.bat"
+if ($TestBuild) {
+    Write-Host "Or double-click:  Launch G920 Emulator (ratio test).bat"
+} else {
+    Write-Host "Or double-click:  Launch G920 Emulator.bat"
+}
 Write-Host "Zip:  $zipPath"
 Write-Host ""
 $bundledOk = (Test-Path (Join-Path $destWinuhid "WinUHidDriver.dll")) -and (Test-Path (Join-Path $destWinuhid "WinUHidDriver.inf"))
 if ($bundledOk) {
-    Write-Host "WinUHid is bundled in dist\G920Emulator\winuhid - use Install WinUHid in the app (no download)."
+    Write-Host "WinUHid is bundled in $outDir\winuhid - use Install WinUHid in the app (no download)."
 } else {
     Write-Warning "WinUHid driver package incomplete in native\winuhid. Run tools\build-winuhid.ps1 then republish."
 }

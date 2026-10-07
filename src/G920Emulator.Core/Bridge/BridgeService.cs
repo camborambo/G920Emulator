@@ -679,7 +679,14 @@ public sealed class BridgeService : IDisposable
                 try { mappedCallback?.Invoke(mapped); }
                 catch { /* add-on errors must not stop the bridge */ }
 
-                PublishTelemetry(mapped, ffbSteer, sw.Elapsed.TotalSeconds > 0 ? sw.Elapsed.TotalSeconds : InputTargetPeriodMs / 1000.0);
+                var handbrakeHeld = MapperEngine.IsPressed(profile, devices, G920Control.TelemetryHandbrake);
+                var nosHeld = MapperEngine.IsPressed(profile, devices, G920Control.TelemetryNos);
+                PublishTelemetry(
+                    mapped,
+                    ffbSteer,
+                    sw.Elapsed.TotalSeconds > 0 ? sw.Elapsed.TotalSeconds : InputTargetPeriodMs / 1000.0,
+                    handbrakeHeld,
+                    nosHeld);
             }
             catch
             {
@@ -933,7 +940,12 @@ public sealed class BridgeService : IDisposable
         _telemetryUdp.Dispose();
     }
 
-    private void PublishTelemetry(MappedG920State mapped, float steering, double dtSec)
+    private void PublishTelemetry(
+        MappedG920State mapped,
+        float steering,
+        double dtSec,
+        bool handbrakeHeld,
+        bool nosHeld)
     {
         TelemetrySettings settings;
         lock (_gate) settings = _telemetrySettings;
@@ -951,7 +963,7 @@ public sealed class BridgeService : IDisposable
             oem = snap;
 
         var knownGame = GameProcessProbe.IsKnownGameRunning();
-        var frame = _telemetrySynth.Update(mapped, steering, oem, knownGame, dtSec);
+        var frame = _telemetrySynth.Update(mapped, steering, oem, knownGame, dtSec, handbrakeHeld, nosHeld);
         lock (_gate) _latestTelemetry = frame;
 
         if (!settings.Enabled)

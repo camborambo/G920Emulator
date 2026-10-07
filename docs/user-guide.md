@@ -44,13 +44,13 @@ Details and troubleshooting: [driver-install.md](driver-install.md).
 ## Tabs
 
 - **Input** — detected devices, G920 bindings, shifter mode, and live virtual G920 preview (including buttons).
-- **Telemetry** — SimHub UDP for games with no native telemetry (estimated speed/RPM plus FFB-derived rumble).
+- **Telemetry** — SimHub UDP for games with no native telemetry (simulated speed/RPM plus FFB-derived rumble).
 
-Shared chrome: Input / Force Feedback / Telemetry tabs, input profile, **Start** (toggles to **Stop** while running), and **Settings**. Settings (including **Minimize to system tray**, **FFB Debug Overlay**, **Telemetry Debug Overlay**, **Effect Changes Overlay**, **Check for GitHub updates**, **Telemetry km/h**, **Apply HidHide on Start**, and **Restore my HidHide on Stop**) save immediately in `settings.json`. Telemetry **Estimation tuning** presets are separate profiles under `%AppData%\G920Emulator\telemetry-profiles` (same Save / Save as / Default / Delete pattern as FFB profiles); host/port/rate stay in settings. Live meters sit on the Input tab. A warning strip appears if required pieces are missing. With update checks on, a banner appears when GitHub has a newer published release. **Update** saves the zip to Downloads (then opens that folder); unzip it over your G920 Emulator folder like a first install. **Later** skips that version.
+Shared chrome: Input / Force Feedback / Telemetry tabs, input profile, **Start** (toggles to **Stop** while running), and **Settings**. Settings (including **Minimize to system tray**, **FFB Debug Overlay**, **Telemetry Debug Overlay**, **Effect Changes Overlay**, **Check for GitHub updates**, **Telemetry km/h**, **Apply HidHide on Start**, and **Restore my HidHide on Stop**) save immediately in `settings.json`. Telemetry **simulation** presets are separate profiles under `%AppData%\G920Emulator\telemetry-profiles` (same Save / Save as / Default / Delete pattern as FFB profiles); host/port/rate stay in settings. Live meters sit on the Input tab. A warning strip appears if required pieces are missing. With update checks on, a banner appears when GitHub has a newer published release. **Update** saves the zip to Downloads (then opens that folder); unzip it over your G920 Emulator folder like a first install. **Later** skips that version.
 
 ## Telemetry (SimHub)
 
-Many arcade / console-port titles (Need for Speed Heat and Unbound included) have **no telemetry API**. This tab does not read the game process. It sends a UDP packet SimHub 9.11.5+ can consume as an **External Sim** named **G920 Emulator (estimated)**.
+Many arcade / console-port titles (Need for Speed Heat and Unbound included) have **no telemetry API**. This tab does not read the game process. It sends a UDP packet SimHub 9.11.5+ can consume as an **External Sim** named **G920 Emulator (simulated)**.
 
 **Honest fields**
 
@@ -58,7 +58,7 @@ Many arcade / console-port titles (Need for Speed Heat and Unbound included) hav
 - Gear — H-pattern binds, or sequential paddles if you use them
 - `SurfaceRumble`, `Impact`, `RoadLoad`, and per-type FFB (`FfbConstant`, `FfbPeriodic`, …) — from the game's DirectInput mix on the virtual G920
 
-**Estimated (not real game values)**
+**Simulated (not real game values)**
 
 - Speed (MPH by default, or km/h) and RPM — arcade integration from pedals, gated when FFB is idle and no known game process is running
 - G-force — SimHub standard `LocalSurgeMs2` / `LocalSwayMs2` / `LocalHeaveMs2` (m/s²). Vehicle-frame: surge **+ = throttle**, **− = brake**; sway **+ = left**. Live G-G circle uses the same signs (accel up, brake down).
@@ -67,9 +67,9 @@ Many arcade / console-port titles (Need for Speed Heat and Unbound included) hav
 
 1. SimHub **9.11.5 or newer**. Settings → Global → enable game definition authoring if the sim does not appear.
 2. On the **Telemetry** tab, click **Register with SimHub** (writes `%LocalAppData%\SimHub\ExternalSims\Registrations\{id}.simlink` pointing at `simhub\G920Telemetry.simdef` next to `G920Emulator.exe`, and installs **`G920Emulator.SimHubPlugin.dll`** into the SimHub folder so built-in ShakeIt **Engine vibrations** gets the same RPM capability native games like Forza use). **Remove registration** deletes the link and disables/removes that plugin; restart SimHub so the tile and icon drop, then Register again after changing `simhub/logo.png`.
-3. Restart SimHub, then activate **G920 Emulator (estimated)**. Match UDP **port** (default **20778**) and host **127.0.0.1**. Do not pick this sim for titles that already have a native SimHub plugin (Forza, and so on). Need for Speed Heat / Unbound are listed as detection processes only so SimHub can switch to this definition if those EXEs are running — they still have no real telemetry. Confirm **G920 Emulator RPM** is enabled under SimHub → Settings → Plugins.
+3. Restart SimHub, then activate **G920 Emulator (simulated)**. Match UDP **port** (default **20778**) and host **127.0.0.1**. Do not pick this sim for titles that already have a native SimHub plugin (Forza, and so on). Need for Speed Heat / Unbound are listed as detection processes only so SimHub can switch to this definition if those EXEs are running — they still have no real telemetry. Confirm **G920 Emulator RPM** is enabled under SimHub → Settings → Plugins.
 4. Enable **Send telemetry while the bridge is running**, **Start** the bridge, launch the game.
-5. Optional **Estimation tuning**: Max speed / gear caps / Live speed / Accel·Brake·Coast·**Gear settle** use **MPH** (and **MPH/s**) by default. **Gear settle** is how fast speed tapers down toward a lower gear's max after a downshift (not an instant snap). Estimated **RPM follows speed within the current gear** (upshift drops RPM; higher gears build RPM slower because Accel is softer via **Gear pull**). **RPM bounce** / **Bounce rate** flutter at the limiter when a gear is pinned at top speed. Enable **Settings → Telemetry km/h** for metric. Stored/sent to SimHub as **km/h** (rates as km/h/s).
+5. Optional **Telemetry profile** tuning: gear ratios / Diff / Tire / Redline, Live speed, Accel·Brake·Coast use **MPH** (and **MPH/s**) by default. Simulated **RPM follows speed within the current gear** (upshift drops RPM). **Rev-limiter** / **Limiter rate** hard-cut when a gear is pinned at top speed. Enable **Settings → Telemetry km/h** for metric. Stored/sent to SimHub as **km/h** (rates as km/h/s).
 
 Unbound still needs **Controller Vibration On** or periodic/CF magnitudes stay 0 (same as FFB).
 
@@ -79,7 +79,7 @@ Unbound still needs **Controller Vibration On** or periodic/CF magnitudes stay 0
 |--------|----------------------|
 | Speed | `SpeedKmh` or `SpeedMph` (we always send **km/h**; SimHub derives MPH) |
 | RPM | `Rpms` / `MaxRpm` / `CarSettings_CurrentGearRedLineRPM` (from `EngineRpm` / `EngineMaxRpm` / `EngineShiftRpm`) |
-| Engine vibrations (built-in ShakeIt) | Estimated **`Rpms`** / `MaxRpm` / `EngineStarted` are always sent. After **Register with SimHub**, the **G920 Emulator RPM** plugin enables the effect (Forza-style). Use the **Engine** scale under ShakeIt / FFB scales for force (0–200%); enable/curves stay in SimHub. Restart SimHub once after installing the plugin. |
+| Engine vibrations (built-in ShakeIt) | Simulated **`Rpms`** / `MaxRpm` / `EngineStarted` are always sent. After **Register with SimHub**, the **G920 Emulator RPM** plugin enables the effect (Forza-style). Use the **Engine** scale under ShakeIt / FFB scales for force (0–200%); enable/curves stay in SimHub. Restart SimHub once after installing the plugin. |
 | G-force | `AccelerationSurge` / `AccelerationSway` / `AccelerationHeave` (from Local*Ms2) |
 | Road vibration / kerbs (built-in ShakeIt) | Uses standard **suspension velocity** + **tyre contact surface** (enabled when FFB rumble/impact is present) |
 | Custom rumble / impact / load | Game raw data **`SurfaceRumble`**, **`Impact`**, **`RoadLoad`** (0..1) |

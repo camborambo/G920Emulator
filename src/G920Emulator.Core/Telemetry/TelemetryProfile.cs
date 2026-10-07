@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace G920Emulator.Core.Telemetry;
 
 /// <summary>
-/// Saveable estimation-tuning preset for SimHub UDP telemetry.
+/// Saveable simulation-tuning preset for SimHub UDP telemetry.
 /// Host/port/rate stay in app settings — profiles are the dash/dynamics feel only.
 /// </summary>
 public sealed class TelemetryProfile

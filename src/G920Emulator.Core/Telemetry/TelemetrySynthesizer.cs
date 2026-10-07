@@ -4,7 +4,7 @@ using G920Emulator.Core.Models;
 namespace G920Emulator.Core.Telemetry;
 
 /// <summary>
-/// Arcade estimates from mapped G920 inputs plus OEM FFB mix.
+/// Arcade simulation from mapped G920 inputs plus OEM FFB mix.
 /// Not real game physics — for titles with no telemetry API.
 /// </summary>
 public sealed class TelemetrySynthesizer
@@ -47,7 +47,8 @@ public sealed class TelemetrySynthesizer
     private float _prevPeriodic;
     private float _impactDumpCooldown;
     private float _suspensionPhase;
-    private float _rpmBouncePhase;
+    /// <summary>Hard-cut rev-limiter: true while fuel/spark is "cut" (RPM falling through hysteresis).</summary>
+    private bool _revLimitCut;
     /// <summary>Keeps ignition/idle alive briefly after pedals/speed go quiet (N only).</summary>
     private float _engineLingerSec;
 
@@ -61,7 +62,9 @@ public sealed class TelemetrySynthesizer
         float steering,
         OemFfbSharedMemory.Snapshot? oem,
         bool knownGameRunning,
-        double dtSec)
+        double dtSec,
+        bool handbrakeHeld = false,
+        bool nosHeld = false)
     {
         dtSec = Math.Clamp(dtSec, 0.0005, 0.05);
         var throttle = Math.Clamp(mapped.Throttle, 0f, 1f);
@@ -105,10 +108,10 @@ public sealed class TelemetrySynthesizer
         var inGear = gear is not "N";
         var driveGear = inGear ? gear : "N";
 
-        var gearRatio = GearRpmRatio(driveGear);
-        var gearPull = 1f + (GearPullFactor(driveGear) - 1f) * _tuning.GearPullScale;
+        // Blocklayer: pull from ratio only (no Gear-pull slider). Shorter gears accelerate harder.
+        var gearPull = _tuning.GearPullFactor(driveGear);
         var clutchFactor = 1f - Math.Clamp(clutch, 0f, 1f) * 0.85f;
-        // Each gear has a top speed (from 1st-top % + curve). Neutral keeps the current ceiling for coast.
+        // Each gear's max speed is where that ratio redlines. Neutral keeps the current ceiling for coast.
         var gearCap = inGear ? _tuning.GearTopSpeedKmh(driveGear) : Math.Max(_speedKmh, 1f);
 
         var load = MathF.Abs(cf) + vibMag;
@@ -184,6 +187,22 @@ public sealed class TelemetrySynthesizer
             }
             _speedKmh -= brakeEff * _tuning.BrakeKmhPerSec * speedScale * (float)dtSec;
             _speedKmh -= (coast + aero + scrub) * speedScale * (float)dtSec;
+
+            // Arcade handbrake: hold-to-dump (stacks with brake). Bound on input profile.
+            if (handbrakeHeld && _tuning.HandbrakeKmhPerSec > 0f)
+                _speedKmh -= _tuning.HandbrakeKmhPerSec * speedScale * (float)dtSec;
+
+            // Arcade NOS / turbo: extra climb toward gear cap (not infinite top speed).
+            if (nosHeld && _tuning.NosBoostKmhPerSec > 0f && inGear && gearCap > 1f)
+            {
+                var nosGap = Math.Max(0f, gearCap - _speedKmh);
+                if (nosGap > 0f)
+                {
+                    var nosStep = _tuning.NosBoostKmhPerSec * speedScale * (float)dtSec;
+                    _speedKmh += Math.Min(nosGap, nosStep);
+                }
+            }
+
             if (inGear && gearCap > 1f)
                 _speedKmh = Math.Min(_speedKmh, gearCap);
         }
@@ -198,30 +217,25 @@ public sealed class TelemetrySynthesizer
         {
             var strength = Math.Clamp(_tuning.CrashDumpScale, 0f, 2f);
             var loss = ImpactSpeedLossAtFull * strength * (1f - throttle * 0.85f);
-            // Holding gas: never wipe the estimate — floor keep rises with throttle.
+            // Holding gas: never wipe the simulation — floor keep rises with throttle.
             var minKeep = 0.5f + 0.45f * throttle;
             var keep = Math.Clamp(1f - loss, minKeep, 1f);
             _speedKmh *= keep;
             _impactDumpCooldown = ImpactDumpCooldownSec;
         }
 
-        // Downshift / over-rev: taper toward the gear's ceiling — never hard-snap to gearCap.
-        if (inGear && _speedKmh > gearCap && _tuning.GearSettleKmhPerSec > 0f)
-        {
-            var over = _speedKmh - gearCap;
-            // Slightly stronger engine-brake feel the farther over the cap we are.
-            var overFactor = 1f + Math.Clamp(over / Math.Max(25f, gearCap * 0.3f), 0f, 1.25f);
-            var step = _tuning.GearSettleKmhPerSec * speedScale * overFactor * (float)dtSec;
-            _speedKmh = Math.Max(gearCap, _speedKmh - step);
-        }
+        // In gear you cannot exceed that gear's max speed (Blocklayer chart ceiling).
+        // No separate Gear-settle slider — downshift above the new cap just pins to the cap.
+        if (inGear && gearCap > 1f && _speedKmh > gearCap)
+            _speedKmh = gearCap;
 
         if (_speedKmh < 0.5f) _speedKmh = 0f;
         _speedKmh = Math.Clamp(_speedKmh, 0f, speedMax);
 
         var moving = _speedKmh > 1f || throttle > 0.04f;
-        // RPM follows how far through the current gear's speed band we are (speed / gear cap).
-        // Upshift raises the cap → fraction drops → RPM falls. Higher gears accelerate slower
-        // (Gear pull), so RPM also builds slower. Throttle must NOT yank RPM to max at low speed.
+        // Blocklayer: gear tops are at ChartRpm (redline / Shift At). In gear, RPM scales
+        // to that peak; Neutral can still free-rev to gauge Max RPM.
+        var chartRpm = Math.Clamp(_tuning.ChartRpm, rpmMin + 50f, rpmMax);
         var gearSpeedFrac = inGear && gearCap > 1f
             ? Math.Clamp(_speedKmh / gearCap, 0f, 1f)
             : 0f;
@@ -232,20 +246,16 @@ public sealed class TelemetrySynthesizer
             // Neutral: free-rev with throttle (full pedal can hit RpmMax).
             rpmFrac = t * t;
         }
+        else if (clutch > 0.35f)
+        {
+            // Clutch in: weaken road-speed coupling, allow throttle rev.
+            var c = (clutch - 0.35f) / 0.65f;
+            rpmFrac = Math.Clamp(gearSpeedFrac * (1f - 0.75f * c) + t * 0.45f * c, 0f, 1f);
+        }
         else
         {
-            var speedFracForRpm = gearSpeedFrac;
-            // Small load pull above the speed-based RPM — more in low gears, never a full bypass.
-            var loadPull = t * (0.12f + 0.10f * (1f - gearRatio)) * (1f - speedFracForRpm);
-            // Clutch in: weaken road-speed coupling, allow a bit more throttle rev.
-            if (clutch > 0.35f)
-            {
-                var c = (clutch - 0.35f) / 0.65f;
-                speedFracForRpm *= 1f - 0.75f * c;
-                loadPull = Math.Max(loadPull, t * 0.45f * c);
-            }
-            // Speed-linked only — do not snap rpmFrac to 1 before the gear pin (that jumped RPM).
-            rpmFrac = Math.Clamp(speedFracForRpm + loadPull, 0f, 1f);
+            // Pure speed×ratio — no throttle "load pull" fudge.
+            rpmFrac = gearSpeedFrac;
         }
 
         // Idle floor while the session is live (stopped in gear / N / lift). Never send 0 RPM
@@ -255,28 +265,25 @@ public sealed class TelemetrySynthesizer
             targetRpm = 0f;
         else if (!moving || (gear is "N" && t < 0.02f))
             targetRpm = rpmMin;
-        else
+        else if (!inGear)
             targetRpm = rpmMin + (rpmMax - rpmMin) * rpmFrac;
+        else
+            // In gear: ChartRpm × (speed/gearMax) — peaks at redline like Blocklayer.
+            targetRpm = Math.Clamp(chartRpm * rpmFrac, rpmMin, rpmMax);
 
-        if (gearChanged && sessionRunning)
+        // Gear change: snap RPM to the chart value for current speed in the new gear
+        // (Blocklayer shift — speed unchanged, RPM jumps with the ratio).
+        if (gearChanged && sessionRunning && inGear && moving)
         {
-            var prevIdx = GearIndex(prevGear);
-            var nextIdx = GearIndex(gear);
-            if (nextIdx > prevIdx && prevIdx >= 1)
-            {
-                // Upshift: drop most of the way to the new (lower) target immediately.
-                _rpm = targetRpm + (_rpm - targetRpm) * 0.18f;
-            }
-            else if (nextIdx >= 1 && nextIdx < prevIdx)
-            {
-                // Downshift: allow a short over-rev toward the new higher target.
-                _rpm = Math.Min(rpmMax, Math.Max(_rpm, targetRpm * 0.92f));
-            }
+            _rpm = targetRpm;
+            _revLimitCut = false;
         }
 
-        // Climb slower in taller / weaker-pull gears; fall faster (upshift / lift).
-        // Same tau all the way to the pin — no late "catch up to Max" shortcut (that jumped RPM).
-        var climbSec = 0.07f + 0.18f * Math.Clamp(2f - gearPull, 0f, 1.6f);
+        // Smooth toward target. In gear (clutch out) RPM is road-locked — keep tracking
+        // tight so lag does not "surge" into redline as speed finishes the gear.
+        var climbSec = inGear && clutch < 0.35f
+            ? 0.028f
+            : 0.07f + 0.18f * Math.Clamp(2f - gearPull, 0f, 1.6f);
         var fallSec = 0.045f;
         var rpmTau = targetRpm < _rpm - 15f ? fallSec : climbSec;
         var rpmAlpha = 1f - MathF.Exp((float)(-dtSec / Math.Max(0.02f, rpmTau)));
@@ -286,34 +293,54 @@ public sealed class TelemetrySynthesizer
         else
             _rpm = Math.Clamp(_rpm, 0f, rpmMax);
 
-        // Rev-limiter flutter when pinned — dip from current RPM only (never retarget to Max).
-        if (_tuning.RpmBounceAmount > 0.001f && sessionRunning && inGear && moving)
+        // Hard-cut rev-limiter: only after RPM actually reaches ChartRpm — never pull RPM
+        // up early (old 96%-of-gear arm + forced climb caused end-of-gear surges).
+        var limit = chartRpm;
+        var limiterOn = _tuning.RpmBounceAmount > 0.001f && sessionRunning && inGear && moving
+                        && t > 0.55f && clutch < 0.35f
+                        && (_revLimitCut || _rpm >= limit - 8f);
+        if (!limiterOn)
         {
-            var gearPin = Math.Clamp((gearSpeedFrac - 0.82f) / 0.18f, 0f, 1f)
-                          * Math.Clamp((t - 0.30f) / 0.45f, 0f, 1f);
-            var rpmPin = Math.Clamp((rpmFrac - 0.88f) / 0.12f, 0f, 1f)
-                         * Math.Clamp((t - 0.45f) / 0.40f, 0f, 1f);
-            var engage = Math.Max(gearPin, rpmPin);
-            if (engage > 0.01f)
+            _revLimitCut = false;
+        }
+        else
+        {
+            // Amount 100% ≈ 180 RPM hysteresis; 200% ≈ 360 RPM.
+            var hysteresis = Math.Clamp(80f + 200f * _tuning.RpmBounceAmount, 40f, 500f);
+            var floor = Math.Max(rpmMin, limit - hysteresis);
+            var hz = Math.Clamp(_tuning.RpmBounceHz, 2f, 30f);
+            var bandRate = Math.Max(hysteresis * 2f * hz, 1500f);
+
+            if (!_revLimitCut && _rpm >= limit - 8f)
+                _revLimitCut = true;
+
+            if (_revLimitCut)
             {
-                var hz = Math.Clamp(_tuning.RpmBounceHz, 2f, 30f);
-                _rpmBouncePhase += (float)(dtSec * Math.PI * 2.0 * hz);
-                if (_rpmBouncePhase > MathF.PI * 64f)
-                    _rpmBouncePhase -= MathF.PI * 64f;
-                var wave = MathF.Pow(MathF.Abs(MathF.Sin(_rpmBouncePhase)), 0.55f);
-                var depth = (rpmMax - rpmMin) * 0.10f * _tuning.RpmBounceAmount * engage;
-                _rpm = Math.Clamp(_rpm - depth * wave, rpmMin, rpmMax);
+                _rpm = Math.Max(floor, _rpm - bandRate * (float)dtSec);
+                _speedKmh = Math.Max(0f, _speedKmh - (2.5f + 4f * _tuning.RpmBounceAmount) * (float)dtSec);
+                if (_rpm <= floor + 2f)
+                    _revLimitCut = false;
+            }
+            else
+            {
+                // Recover after a cut — climb back, but never above road-speed target.
+                var recoverCap = Math.Min(limit, Math.Max(targetRpm, floor));
+                if (_rpm < recoverCap - 2f)
+                    _rpm = Math.Min(recoverCap, _rpm + bandRate * (float)dtSec);
             }
         }
 
         if (!sessionRunning)
+        {
             _rpm = 0f;
+            _revLimitCut = false;
+        }
 
         var rumbleTarget = sessionRunning ? vibMag : 0f;
         var rumbleAlpha = 1f - MathF.Exp((float)(-dtSec / RumbleSmoothSec));
         _rumble += (rumbleTarget - _rumble) * rumbleAlpha;
 
-        // Stay at 0 when stopped; otherwise report the integrated estimate.
+        // Stay at 0 when stopped; otherwise report the integrated simulation.
         var reportSpeed = !sessionRunning || _speedKmh < 0.5f ? 0f : _speedKmh;
 
         var speedMps = reportSpeed * KmhToMps;
@@ -377,7 +404,7 @@ public sealed class TelemetrySynthesizer
 
         // Do NOT set SessionPaused when OEM FFB goes quiet (ACTUATORSOFF / menus). SimHub
         // treats paused as a frozen/zeroed dash — idle RPM and Engine vibrations disappear
-        // even though we still send packets. Estimated telemetry has no real pause signal.
+        // even though we still send packets. Simulated telemetry has no real pause signal.
         return new TelemetryFrame(
             SessionRunning: sessionRunning,
             SessionPaused: false,
@@ -411,7 +438,9 @@ public sealed class TelemetrySynthesizer
             Impact: impact,
             RoadLoad: roadLoad,
             EngineVibration: engineVibration,
-            GearSpeedFrac: gearSpeedFrac);
+            GearSpeedFrac: gearSpeedFrac,
+            HandbrakeHeld: handbrakeHeld,
+            NosHeld: nosHeld);
     }
 
     public void Reset()
@@ -429,7 +458,7 @@ public sealed class TelemetrySynthesizer
         _prevCf = _prevPeriodic = 0;
         _impactDumpCooldown = 0;
         _suspensionPhase = 0;
-        _rpmBouncePhase = 0;
+        _revLimitCut = false;
         _engineLingerSec = 0;
     }
 
@@ -505,30 +534,6 @@ public sealed class TelemetrySynthesizer
 
         return _paddleArmed ? _paddleGear.ToString() : "N";
     }
-
-    private static float GearRpmRatio(string gear) => gear switch
-    {
-        "R" => 0.85f,
-        "1" => 0.55f,
-        "2" => 0.68f,
-        "3" => 0.80f,
-        "4" => 0.90f,
-        "5" => 0.97f,
-        "6" => 1.00f,
-        _ => 0.62f,
-    };
-
-    private static float GearPullFactor(string gear) => gear switch
-    {
-        "1" => 1.40f,
-        "2" => 1.20f,
-        "3" => 1.05f,
-        "4" => 0.92f,
-        "5" => 0.80f,
-        "6" => 0.70f,
-        "R" => 0.95f,
-        _ => 0.30f,
-    };
 
     private static int GearIndex(string gear) => gear switch
     {

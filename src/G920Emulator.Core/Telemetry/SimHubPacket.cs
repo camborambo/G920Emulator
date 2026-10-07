@@ -13,7 +13,7 @@ public static class SimHubPacket
 {
     public const string DefinitionUniqueId = "8c4e2b1a-9f70-4d3e-b6a1-2d5c8e0f1734";
     public const string DefinitionFileName = "G920Telemetry.simdef";
-    public const string SimHubGameName = "G920 Emulator (estimated)";
+    public const string SimHubGameName = "G920 Emulator (simulated)";
     public const uint GameSignature = 2863604573u;
     public const uint TelemetrySignature = 1228639197u;
     public const ushort LayoutMajorVersion = 1;
@@ -186,4 +186,8 @@ public readonly record struct TelemetryFrame(
     /// <summary>Live / ShakeIt engine-vib intensity 0..1 (RPM load × Engine scale). Not a UDP field.</summary>
     float EngineVibration,
     /// <summary>speed / current gear cap (0..1). Debug / Live only — not a UDP field.</summary>
-    float GearSpeedFrac);
+    float GearSpeedFrac,
+    /// <summary>Arcade handbrake button held. Live only — not a UDP field.</summary>
+    bool HandbrakeHeld,
+    /// <summary>Arcade NOS / turbo button held. Live only — not a UDP field.</summary>
+    bool NosHeld);

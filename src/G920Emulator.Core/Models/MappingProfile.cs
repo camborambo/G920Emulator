@@ -125,6 +125,8 @@ public sealed class MappingProfile
             GetOrCreate(target);
         foreach (var target in G920ControlInfo.FfbNudgeControls)
             GetOrCreate(target);
+        foreach (var target in G920ControlInfo.TelemetryArcadeControls)
+            GetOrCreate(target);
 
         FfbBindDefaults ??= new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
         // Re-key with ordinal-ignore comparer after JSON deserialize.

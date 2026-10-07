@@ -155,7 +155,7 @@
   "ManagerVersion": 2,
   "GameSignature": 2863604573,
   "TelemetrySignature": 1228639197,
-  "Name": "G920 Emulator (estimated)",
+  "Name": "G920 Emulator (simulated)",
   "UniqueId": "8c4e2b1a-9f70-4d3e-b6a1-2d5c8e0f1734",
   "DefaultUDPPort": 20778,
   "DetectionProcesses": [

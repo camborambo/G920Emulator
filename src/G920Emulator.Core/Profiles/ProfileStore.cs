@@ -609,13 +609,13 @@ public sealed class AppSettings
     public int TelemetryPort { get; set; } = SimHubPacket.DefaultPort;
     public int TelemetrySendHz { get; set; } = SimHubPacket.DefaultSendHz;
 
-    /// <summary>Estimated speed floor when moving (km/h). Stopped still reports 0.</summary>
+    /// <summary>Simulated speed floor when moving (km/h). Stopped still reports 0.</summary>
     public float TelemetrySpeedMinKmh { get; set; } = TelemetryTuning.DefaultSpeedMinKmh;
 
-    /// <summary>Estimated speed ceiling (km/h).</summary>
+    /// <summary>Simulated speed ceiling (km/h).</summary>
     public float TelemetrySpeedMaxKmh { get; set; } = TelemetryTuning.DefaultSpeedMaxKmh;
 
-    /// <summary>Idle / minimum estimated RPM.</summary>
+    /// <summary>Idle / minimum simulated RPM.</summary>
     public float TelemetryRpmMin { get; set; } = TelemetryTuning.DefaultRpmMin;
 
     /// <summary>Engine max / gauge ceiling (SimHub EngineMaxRpm).</summary>
@@ -636,19 +636,19 @@ public sealed class AppSettings
     /// <summary>Scale for ShakeIt Engine vibrations force (1 = 100%). RPM is always sent.</summary>
     public float TelemetryEngineVibrationScale { get; set; } = 1f;
 
-    /// <summary>Rev-limiter bounce depth when pinned at gear top (0 = off, 1 = 100%).</summary>
+    /// <summary>Hard-cut rev-limiter strength when pinned at gear top (0 = off, 1 = 100%).</summary>
     public float TelemetryRpmBounceAmount { get; set; } = TelemetryTuning.DefaultRpmBounceAmount;
 
-    /// <summary>Rev-limiter bounce flutter rate (Hz).</summary>
+    /// <summary>Hard-cut rev-limiter cycle rate (Hz).</summary>
     public float TelemetryRpmBounceHz { get; set; } = TelemetryTuning.DefaultRpmBounceHz;
 
-    /// <summary>Estimated full-throttle accel (km/h per second).</summary>
+    /// <summary>Simulated full-throttle accel (km/h per second).</summary>
     public float TelemetryAccelKmhPerSec { get; set; } = TelemetryTuning.DefaultAccelKmhPerSec;
 
-    /// <summary>Estimated full-brake decel (km/h per second).</summary>
+    /// <summary>Simulated full-brake decel (km/h per second).</summary>
     public float TelemetryBrakeKmhPerSec { get; set; } = TelemetryTuning.DefaultBrakeKmhPerSec;
 
-    /// <summary>Estimated coast / engine-brake (km/h per second).</summary>
+    /// <summary>Simulated coast / engine-brake (km/h per second).</summary>
     public float TelemetryCoastKmhPerSec { get; set; } = TelemetryTuning.DefaultCoastKmhPerSec;
 
     /// <summary>High-speed aero drag scale (1 = 100%).</summary>
@@ -663,12 +663,32 @@ public sealed class AppSettings
     /// <summary>FFB impact / heavy CF speed dump (1 = 100%).</summary>
     public float TelemetryCrashDumpScale { get; set; } = TelemetryTuning.DefaultCrashDumpScale;
 
+    /// <summary>Handbrake hold speed dump (km/h per second). Button bind lives on the input profile.</summary>
+    public float TelemetryHandbrakeKmhPerSec { get; set; } = TelemetryTuning.DefaultHandbrakeKmhPerSec;
+
+    /// <summary>NOS / turbo hold boost (km/h per second). Button bind lives on the input profile.</summary>
+    public float TelemetryNosBoostKmhPerSec { get; set; } = TelemetryTuning.DefaultNosBoostKmhPerSec;
+
     public float TelemetryGear1MaxKmh { get; set; } = TelemetryTuning.DefaultGear1MaxKmh;
     public float TelemetryGear2MaxKmh { get; set; } = TelemetryTuning.DefaultGear2MaxKmh;
     public float TelemetryGear3MaxKmh { get; set; } = TelemetryTuning.DefaultGear3MaxKmh;
     public float TelemetryGear4MaxKmh { get; set; } = TelemetryTuning.DefaultGear4MaxKmh;
     public float TelemetryGear5MaxKmh { get; set; } = TelemetryTuning.DefaultGear5MaxKmh;
     public float TelemetryGear6MaxKmh { get; set; } = TelemetryTuning.DefaultGear6MaxKmh;
+
+    /// <summary>Absolute gearbox ratios (Blocklayer). 0 = derive from max speeds.</summary>
+    public float TelemetryGear1Ratio { get; set; }
+    public float TelemetryGear2Ratio { get; set; }
+    public float TelemetryGear3Ratio { get; set; }
+    public float TelemetryGear4Ratio { get; set; }
+    public float TelemetryGear5Ratio { get; set; }
+    public float TelemetryGear6Ratio { get; set; }
+
+    /// <summary>Differential / final-drive ratio (Blocklayer Diff Ratio).</summary>
+    public float TelemetryDiffRatio { get; set; } = TelemetryTuning.DefaultDiffRatio;
+
+    /// <summary>Tire diameter in inches (Blocklayer).</summary>
+    public float TelemetryTireDiameterInches { get; set; } = TelemetryTuning.DefaultTireDiameterInches;
 
     public TelemetryTuning ToTelemetryTuning()
     {
@@ -692,12 +712,22 @@ public sealed class AppSettings
             GearPullScale = TelemetryGearPullScale,
             GearSettleKmhPerSec = TelemetryGearSettleKmhPerSec,
             CrashDumpScale = TelemetryCrashDumpScale,
+            HandbrakeKmhPerSec = TelemetryHandbrakeKmhPerSec,
+            NosBoostKmhPerSec = TelemetryNosBoostKmhPerSec,
+            Gear1Ratio = TelemetryGear1Ratio,
+            Gear2Ratio = TelemetryGear2Ratio,
+            Gear3Ratio = TelemetryGear3Ratio,
+            Gear4Ratio = TelemetryGear4Ratio,
+            Gear5Ratio = TelemetryGear5Ratio,
+            Gear6Ratio = TelemetryGear6Ratio,
             Gear1MaxKmh = TelemetryGear1MaxKmh,
             Gear2MaxKmh = TelemetryGear2MaxKmh,
             Gear3MaxKmh = TelemetryGear3MaxKmh,
             Gear4MaxKmh = TelemetryGear4MaxKmh,
             Gear5MaxKmh = TelemetryGear5MaxKmh,
             Gear6MaxKmh = TelemetryGear6MaxKmh,
+            DiffRatio = TelemetryDiffRatio,
+            TireDiameterInches = TelemetryTireDiameterInches,
         };
         tuning.Clamp();
         return tuning;
@@ -725,12 +755,22 @@ public sealed class AppSettings
         TelemetryGearPullScale = tuning.GearPullScale;
         TelemetryGearSettleKmhPerSec = tuning.GearSettleKmhPerSec;
         TelemetryCrashDumpScale = tuning.CrashDumpScale;
+        TelemetryHandbrakeKmhPerSec = tuning.HandbrakeKmhPerSec;
+        TelemetryNosBoostKmhPerSec = tuning.NosBoostKmhPerSec;
+        TelemetryGear1Ratio = tuning.Gear1Ratio;
+        TelemetryGear2Ratio = tuning.Gear2Ratio;
+        TelemetryGear3Ratio = tuning.Gear3Ratio;
+        TelemetryGear4Ratio = tuning.Gear4Ratio;
+        TelemetryGear5Ratio = tuning.Gear5Ratio;
+        TelemetryGear6Ratio = tuning.Gear6Ratio;
         TelemetryGear1MaxKmh = tuning.Gear1MaxKmh;
         TelemetryGear2MaxKmh = tuning.Gear2MaxKmh;
         TelemetryGear3MaxKmh = tuning.Gear3MaxKmh;
         TelemetryGear4MaxKmh = tuning.Gear4MaxKmh;
         TelemetryGear5MaxKmh = tuning.Gear5MaxKmh;
         TelemetryGear6MaxKmh = tuning.Gear6MaxKmh;
+        TelemetryDiffRatio = tuning.DiffRatio;
+        TelemetryTireDiameterInches = tuning.TireDiameterInches;
     }
 
     public void NormalizeTelemetryTuning()

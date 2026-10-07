@@ -749,8 +749,6 @@
                         </StackPanel>
                       </Expander>
                     </Border>
-
-                    <TextBlock x:Name="DriverText" Text="" Opacity="0.65" TextWrapping="Wrap" Margin="0,12,0,0"/>
                   </StackPanel>
                 </Grid>
               </ScrollViewer>
@@ -764,22 +762,30 @@
           <StackPanel Grid.Column="0">
             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
               <StackPanel>
-                <TextBlock Text="SimHub UDP" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
-                           ToolTip="Estimated speed/RPM/G-force + FFB rumble/impact for games with no Data Out. SimHub 9.11.5+ — activate G920 Emulator (estimated). Skip titles that already have a SimHub plugin. Leave Controller Vibration on if the game has it."/>
-                <CheckBox x:Name="TelemetryEnabledCheck" Content="Send telemetry while the bridge is running"
-                          Checked="TelemetrySettings_Changed" Unchecked="TelemetrySettings_Changed"/>
-                <DockPanel Margin="0,10,0,0">
-                  <TextBlock Text="Host" Width="72" VerticalAlignment="Center" Opacity="0.85"/>
+                <DockPanel Margin="0,0,0,10"
+                           ToolTip="Simulated speed/RPM/G-force + FFB rumble/impact for games with no Data Out. SimHub 9.11.5+ — activate G920 Emulator (simulated). Skip titles that already have a SimHub plugin. Leave Controller Vibration on if the game has it.">
+                  <Button x:Name="TelemetryEnabledButton" DockPanel.Dock="Right"
+                          Style="{StaticResource BridgeToggleStart}"
+                          MinWidth="88" MinHeight="28" Padding="12,5" Margin="0"
+                          VerticalAlignment="Center" HorizontalAlignment="Right"
+                          Content="Enable"
+                          Click="TelemetryEnabledButton_Click"
+                          ToolTip="Send simulated telemetry to SimHub while the bridge is running."/>
+                  <TextBlock Text="SimHub UDP" Style="{StaticResource SectionTitle}" Margin="0"
+                             VerticalAlignment="Center"/>
+                </DockPanel>
+                <DockPanel Margin="0,0,0,6">
+                  <TextBlock Text="Host" Width="48" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBox x:Name="TelemetryHostBox" Text="127.0.0.1" LostFocus="TelemetrySettings_Changed"/>
                 </DockPanel>
-                <DockPanel Margin="0,8,0,0">
-                  <TextBlock Text="Port" Width="72" VerticalAlignment="Center" Opacity="0.85"/>
+                <DockPanel Margin="0,0,0,6">
+                  <TextBlock Text="Port" Width="48" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBox x:Name="TelemetryPortBox" Text="20778" LostFocus="TelemetrySettings_Changed"
-                           ToolTip="Default 20778. Match this in SimHub Game Config for G920 Emulator (estimated)."/>
+                           ToolTip="Default 20778. Match this in SimHub Game Config for G920 Emulator (simulated)."/>
                 </DockPanel>
-                <DockPanel Margin="0,8,0,0"
+                <DockPanel Margin="0,0,0,10"
                            ToolTip="SimHub's External Sim loop is 60 Hz. Packets above that are ignored.">
-                  <TextBlock Text="Rate" Width="72" VerticalAlignment="Center" Opacity="0.85"/>
+                  <TextBlock Text="Rate" Width="48" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBlock x:Name="TelemetryHzValueText" DockPanel.Dock="Right" Width="48" Text="60 Hz"
                              VerticalAlignment="Center" HorizontalAlignment="Right"
                              Cursor="Hand" ToolTip="Click to type a value"
@@ -787,37 +793,38 @@
                   <Slider x:Name="TelemetryHzSlider" Minimum="30" Maximum="60" Value="60" TickFrequency="10"
                           IsSnapToTickEnabled="True" ValueChanged="TelemetryHzSlider_ValueChanged"/>
                 </DockPanel>
-                <Grid Margin="0,12,0,0">
+                <Grid>
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="8"/>
                     <ColumnDefinition Width="*"/>
                   </Grid.ColumnDefinitions>
-                  <Button Grid.Column="0" Margin="0" HorizontalAlignment="Stretch"
+                  <Button Grid.Column="0" Margin="0" Padding="10,6" HorizontalAlignment="Stretch"
                           Content="Register with SimHub" Click="TelemetryRegister_Click"
-                          ToolTip="Writes a .simlink so SimHub 9.11.5+ can load simhub/G920Telemetry.simdef. Then activate G920 Emulator (estimated) in SimHub."/>
-                  <Button Grid.Column="2" Margin="0" HorizontalAlignment="Stretch"
+                          ToolTip="Writes a .simlink so SimHub 9.11.5+ can load simhub/G920Telemetry.simdef. Then activate G920 Emulator (simulated) in SimHub."/>
+                  <Button Grid.Column="2" Margin="0" Padding="10,6" HorizontalAlignment="Stretch"
                           Content="Remove registration" Click="TelemetryUnregister_Click"
                           ToolTip="Deletes our SimHub .simlink. Restart SimHub so the game tile (and cached icon) disappear, then Register again."/>
                 </Grid>
-                <TextBlock x:Name="TelemetryStatusText" Opacity="0.75" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"
+                <TextBlock x:Name="TelemetryStatusText" Opacity="0.65" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"
                            Text="Telemetry: off"/>
               </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource CardBorder}">
+            <!-- Profile card (same pattern as FFB profile) -->
+            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
               <StackPanel>
                 <DockPanel Margin="0,0,0,8"
-                           ToolTip="Saved estimation presets (speed/RPM/gears/scales). Host, port, and rate stay in SimHub UDP above.">
+                           ToolTip="Saved simulation presets (speed/RPM/gears/scales). Host, port, and rate stay in SimHub UDP above.">
                   <TextBlock Text="Telemetry profile" Style="{StaticResource SectionTitle}" Margin="0" VerticalAlignment="Center"
-                             ToolTip="Saved estimation tuning for this setup. Separate from input and FFB profiles."/>
+                             ToolTip="Saved simulation tuning for this setup. Separate from input and FFB profiles."/>
                   <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Style="{StaticResource IconButton}" Margin="0,0,4,0" Click="SaveTelemetryProfileButton_Click"
-                            ToolTip="Save current estimation tuning to the selected telemetry profile.">
+                            ToolTip="Save current simulation tuning to the selected telemetry profile.">
                       <iconPacks:PackIconMaterial Kind="ContentSave" Width="14" Height="14" Foreground="#E8EAED"/>
                     </Button>
                     <Button Style="{StaticResource IconButton}" Margin="0,0,4,0" Click="SaveTelemetryProfileAsButton_Click"
-                            ToolTip="Save current estimation tuning as a new telemetry profile.">
+                            ToolTip="Save current simulation tuning as a new telemetry profile.">
                       <iconPacks:PackIconMaterial Kind="ContentSavePlus" Width="14" Height="14" Foreground="#E8EAED"/>
                     </Button>
                     <Button Style="{StaticResource IconButton}" Margin="0,0,4,0" Click="DefaultTelemetryProfileButton_Click"
@@ -830,15 +837,14 @@
                     </Button>
                   </StackPanel>
                 </DockPanel>
-                <ComboBox x:Name="TelemetryProfilesCombo" Margin="0,0,0,12" VerticalAlignment="Center"
-                          ToolTip="Select a telemetry estimation profile."
+                <ComboBox x:Name="TelemetryProfilesCombo" Margin="0,0,0,8" VerticalAlignment="Center"
+                          ToolTip="Select a telemetry simulation profile."
                           SelectionChanged="TelemetryProfilesCombo_SelectionChanged"/>
-                <TextBlock Opacity="0.65" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,10"
-                           Text="Arcade estimate from pedals + FFB. Walls/crashes use Impact dump — the game never reports true speed."/>
-
-                <!-- Ranges -->
-                <DockPanel Margin="0,0,0,6"
-                           ToolTip="Overall top estimated speed. Gear caps clamp to this.">
+                <TextBlock Opacity="0.65" FontSize="11" TextWrapping="Wrap"
+                           Text="Arcade simulation from pedals + FFB. Walls/crashes use Impact dump — the game never reports true speed."/>
+                <!-- Hidden: max speed is derived from tallest gear. -->
+                <DockPanel x:Name="TelemetrySpeedMaxPanel" Margin="0,8,0,0" Visibility="Collapsed"
+                           ToolTip="Derived from tallest gear max (top of gearing chart).">
                   <TextBlock x:Name="TelemetrySpeedMaxTitle" Text="Max speed" Width="128"
                              VerticalAlignment="Center" Opacity="0.85"
                              TextTrimming="None"/>
@@ -846,75 +852,21 @@
                              VerticalAlignment="Center" HorizontalAlignment="Right"
                              Cursor="Hand" ToolTip="Click to type a value"
                              MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetrySpeedMaxSlider" Minimum="12" Maximum="249" Value="217" TickFrequency="1"
+                  <Slider x:Name="TelemetrySpeedMaxSlider" Minimum="12" Maximum="404" Value="217" TickFrequency="1"
                           Margin="0,0,8,0" IsSnapToTickEnabled="True"
                           ValueChanged="TelemetryTuningSlider_ValueChanged"/>
                 </DockPanel>
+              </StackPanel>
+            </Border>
 
-                <DockPanel Margin="0,0,0,3" MinHeight="28"
-                           ToolTip="Idle (left) to engine max / gauge ceiling (right). Sent as EngineMaxRpm. Estimated RPM can climb to this value.">
-                  <TextBlock Text="RPM idle–max" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
-                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0"
-                              VerticalAlignment="Center">
-                    <TextBlock x:Name="TelemetryRpmMinValueText" Width="52" Text="800"
-                               VerticalAlignment="Center" HorizontalAlignment="Right"
-                               Cursor="Hand" ToolTip="Click to type idle RPM"
-                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                    <TextBlock Text="–" Width="14" Opacity="0.45" HorizontalAlignment="Center"
-                               VerticalAlignment="Center"/>
-                    <TextBlock x:Name="TelemetryRpmMaxValueText" Width="56" Text="8000"
-                               VerticalAlignment="Center" HorizontalAlignment="Right"
-                               Cursor="Hand" ToolTip="Click to type max RPM (EngineMaxRpm)"
-                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  </StackPanel>
-                  <controls:DualRangeSlider x:Name="TelemetryRpmRange"
-                                           Minimum="0" Maximum="12000"
-                                           LowerValue="800" UpperValue="8000"
-                                           TickFrequency="50" IsSnapToTickEnabled="True"
-                                           LowerValueChanged="TelemetryRangeThumb_Changed"
-                                           UpperValueChanged="TelemetryRangeThumb_Changed"
-                                           RangeChanged="TelemetryRange_Changed"/>
-                </DockPanel>
-                <DockPanel Margin="0,0,0,3"
-                           ToolTip="Absolute redline / shift point in RPM (SimHub EngineShiftRpm). Not a percent — SimHub may display it as % of max in Car Settings.">
-                  <TextBlock Text="Redline" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
-                  <TextBlock x:Name="TelemetryRpmRedlineValueText" DockPanel.Dock="Right" Width="76" Text="7200"
-                             VerticalAlignment="Center" HorizontalAlignment="Right"
-                             Cursor="Hand" ToolTip="Click to type redline RPM"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryRpmRedlineSlider" Minimum="100" Maximum="8000" Value="7200"
-                          TickFrequency="50" Margin="0,0,8,0" IsSnapToTickEnabled="True"
-                          ValueChanged="TelemetryTuningSlider_ValueChanged"/>
-                </DockPanel>
-                <DockPanel Margin="0,0,0,3"
-                           ToolTip="How hard RPM flutters at the rev limiter when speed/RPM is pinned at the gear top (0 = flat ceiling, 100% = default bounce, 200% = strong).">
-                  <TextBlock Text="RPM bounce" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
-                  <TextBlock x:Name="TelemetryRpmBounceAmountValueText" DockPanel.Dock="Right" Width="76" Text="55%"
-                             VerticalAlignment="Center" HorizontalAlignment="Right"
-                             Cursor="Hand" ToolTip="Click to type a value"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryRpmBounceAmountSlider" Minimum="0" Maximum="2" Value="0.55" TickFrequency="0.05"
-                          Margin="0,0,8,0" IsSnapToTickEnabled="False"
-                          ValueChanged="TelemetryTuningSlider_ValueChanged"/>
-                </DockPanel>
-                <DockPanel Margin="0,0,0,10"
-                           ToolTip="How fast the rev-limiter flutter pulses (Hz) when RPM bounce is active.">
-                  <TextBlock Text="Bounce rate" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
-                  <TextBlock x:Name="TelemetryRpmBounceHzValueText" DockPanel.Dock="Right" Width="76" Text="12 Hz"
-                             VerticalAlignment="Center" HorizontalAlignment="Right"
-                             Cursor="Hand" ToolTip="Click to type Hz"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryRpmBounceHzSlider" Minimum="2" Maximum="30" Value="12" TickFrequency="1"
-                          Margin="0,0,8,0" IsSnapToTickEnabled="True"
-                          ValueChanged="TelemetryTuningSlider_ValueChanged"/>
-                </DockPanel>
-
-                <!-- Dynamics -->
-                <TextBlock x:Name="TelemetryDynamicsTitle" Text="Speed dynamics (MPH/s)" Opacity="0.55" FontSize="11" Margin="0,2,0,2"
-                           ToolTip="Accel / Brake / Coast rates. Stored as km/h/s."/>
+            <!-- Effects: speed feel first -->
+            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock x:Name="TelemetryDynamicsTitle" Text="Speed dynamics (MPH/s)" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
+                           ToolTip="How quickly simulated speed builds and falls. Stored as km/h/s."/>
                 <DockPanel Margin="0,0,0,3"
                            ToolTip="Full-throttle acceleration before gear pull.">
-                  <TextBlock Text="Accel" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                  <TextBlock Text="Acceleration" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBlock x:Name="TelemetryAccelValueText" DockPanel.Dock="Right" Width="76" Text="34 MPH/s"
                              VerticalAlignment="Center" HorizontalAlignment="Right"
                              Cursor="Hand" ToolTip="Click to type a rate"
@@ -925,7 +877,7 @@
                 </DockPanel>
                 <DockPanel Margin="0,0,0,3"
                            ToolTip="Full-brake deceleration.">
-                  <TextBlock Text="Brake" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                  <TextBlock Text="Brake Force" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBlock x:Name="TelemetryBrakeDynValueText" DockPanel.Dock="Right" Width="76" Text="56 MPH/s"
                              VerticalAlignment="Center" HorizontalAlignment="Right"
                              Cursor="Hand" ToolTip="Click to type a rate"
@@ -956,30 +908,24 @@
                           Margin="0,0,8,0" IsSnapToTickEnabled="False"
                           ValueChanged="TelemetryTuningSlider_ValueChanged"/>
                 </DockPanel>
-                <DockPanel Margin="0,0,0,3"
-                           ToolTip="How much gear changes acceleration (and thus how fast RPM builds). Low gears pull harder; high gears softer. 0% = same Accel in every gear.">
+                <DockPanel x:Name="TelemetryGearPullPanel" Margin="0,0,0,3" Visibility="Collapsed">
                   <TextBlock Text="Gear pull" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBlock x:Name="TelemetryGearPullValueText" DockPanel.Dock="Right" Width="76" Text="100%"
-                             VerticalAlignment="Center" HorizontalAlignment="Right"
-                             Cursor="Hand" ToolTip="Click to type a value"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                             VerticalAlignment="Center" HorizontalAlignment="Right"/>
                   <Slider x:Name="TelemetryGearPullSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.05"
                           Margin="0,0,8,0" IsSnapToTickEnabled="False"
                           ValueChanged="TelemetryTuningSlider_ValueChanged"/>
                 </DockPanel>
-                <DockPanel Margin="0,0,0,3"
-                           ToolTip="After a downshift (or any time speed is above that gear's cap), how fast estimated speed tapers down toward the cap. 0 = no settle — only coast/brake/aero.">
+                <DockPanel x:Name="TelemetryGearSettlePanel" Margin="0,0,0,3" Visibility="Collapsed">
                   <TextBlock Text="Gear settle" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBlock x:Name="TelemetryGearSettleValueText" DockPanel.Dock="Right" Width="76" Text="25 MPH/s"
-                             VerticalAlignment="Center" HorizontalAlignment="Right"
-                             Cursor="Hand" ToolTip="Click to type a rate"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                             VerticalAlignment="Center" HorizontalAlignment="Right"/>
                   <Slider x:Name="TelemetryGearSettleSlider" Minimum="0" Maximum="124" Value="25" TickFrequency="1"
                           Margin="0,0,8,0" IsSnapToTickEnabled="True"
                           ValueChanged="TelemetryTuningSlider_ValueChanged"/>
                 </DockPanel>
-                <DockPanel Margin="0,0,0,10"
-                           ToolTip="How hard FFB impact spikes cut estimated speed. 0% = off. Holding throttle keeps most speed.">
+                <DockPanel
+                           ToolTip="How hard FFB impact spikes cut simulated speed. 0% = off. Holding throttle keeps most speed.">
                   <TextBlock Text="Impact dump" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBlock x:Name="TelemetryCrashDumpValueText" DockPanel.Dock="Right" Width="76" Text="50%"
                              VerticalAlignment="Center" HorizontalAlignment="Right"
@@ -989,73 +935,215 @@
                           Margin="0,0,8,0" IsSnapToTickEnabled="False"
                           ValueChanged="TelemetryTuningSlider_ValueChanged"/>
                 </DockPanel>
+              </StackPanel>
+            </Border>
 
-                <!-- Per-gear caps -->
-                <TextBlock x:Name="TelemetryGearMaxTitle" Text="Gear caps" Opacity="0.55" FontSize="11" Margin="0,2,0,2"
-                           ToolTip="Soft top speed per gear. Overspeed tapers via Gear settle (not an instant snap). Clamped to Max speed. Saved as km/h."/>
-                <DockPanel Margin="0,0,0,2" ToolTip="1st gear top speed">
-                  <TextBlock Text="1" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
-                  <TextBlock x:Name="TelemetryGear1MaxValueText" DockPanel.Dock="Right" Width="76" Text="43 MPH"
+            <!-- Gearing — accuracy -->
+            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock x:Name="TelemetryGearMaxTitle" Text="Gearing" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
+                           ToolTip="Match your car’s ratios, final drive, and tire size. Max speeds follow Redline: MPH = (tire × RPM) / (336 × gear × diff)."/>
+                <DockPanel Margin="0,0,0,3"
+                           ToolTip="Blocklayer 'Shift At' RPM — each gear’s max speed is road speed at this RPM (SimHub EngineShiftRpm).">
+                  <TextBlock Text="Redline / shift" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                  <TextBlock x:Name="TelemetryRpmRedlineValueText" DockPanel.Dock="Right" Width="76" Text="6000"
                              VerticalAlignment="Center" HorizontalAlignment="Right"
-                             Cursor="Hand" ToolTip="Click to type a value"
+                             Cursor="Hand" ToolTip="Click to type shift/redline RPM"
                              MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear1MaxSlider" Minimum="3" Maximum="249" Value="43" TickFrequency="1"
-                          Margin="0,0,8,0" IsSnapToTickEnabled="True"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                  <Slider x:Name="TelemetryRpmRedlineSlider" Minimum="100" Maximum="8000" Value="6000"
+                          TickFrequency="50" Margin="0,0,8,0" IsSnapToTickEnabled="True"
+                          ValueChanged="TelemetryTuningSlider_ValueChanged"/>
                 </DockPanel>
-                <DockPanel Margin="0,0,0,2" ToolTip="2nd gear top speed">
-                  <TextBlock Text="2" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
-                  <TextBlock x:Name="TelemetryGear2MaxValueText" DockPanel.Dock="Right" Width="76" Text="75 MPH"
+                <DockPanel Margin="0,0,0,3"
+                           ToolTip="Blocklayer Diff Ratio (axle / final drive). Higher = shorter overall gearing; gearbox ratios stay the same; max speeds recalculate.">
+                  <TextBlock Text="Diff / final drive" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                  <TextBlock x:Name="TelemetryDiffRatioValueText" DockPanel.Dock="Right" Width="76" Text="3.42"
                              VerticalAlignment="Center" HorizontalAlignment="Right"
-                             Cursor="Hand" ToolTip="Click to type a value"
+                             Cursor="Hand" ToolTip="Click to type a ratio"
                              MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear2MaxSlider" Minimum="3" Maximum="249" Value="75" TickFrequency="1"
-                          Margin="0,0,8,0" IsSnapToTickEnabled="True"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                  <Slider x:Name="TelemetryDiffRatioSlider" Minimum="1.5" Maximum="6.5" Value="3.42" TickFrequency="0.01"
+                          Margin="0,0,8,0" IsSnapToTickEnabled="False"
+                          ValueChanged="TelemetryDiffRatioSlider_ValueChanged"/>
                 </DockPanel>
-                <DockPanel Margin="0,0,0,2" ToolTip="3rd gear top speed">
-                  <TextBlock Text="3" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
-                  <TextBlock x:Name="TelemetryGear3MaxValueText" DockPanel.Dock="Right" Width="76" Text="109 MPH"
+                <DockPanel Margin="0,0,0,8"
+                           ToolTip="Blocklayer tire diameter (inches). Larger tire → higher max speed in every gear; gearbox ratios stay the same.">
+                  <TextBlock Text="Tire diameter" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                  <TextBlock x:Name="TelemetryTireDiameterValueText" DockPanel.Dock="Right" Width="76" Text='27"'
                              VerticalAlignment="Center" HorizontalAlignment="Right"
-                             Cursor="Hand" ToolTip="Click to type a value"
+                             Cursor="Hand" ToolTip="Click to type inches"
                              MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear3MaxSlider" Minimum="3" Maximum="249" Value="109" TickFrequency="1"
-                          Margin="0,0,8,0" IsSnapToTickEnabled="True"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                  <Slider x:Name="TelemetryTireDiameterSlider" Minimum="18" Maximum="40" Value="27" TickFrequency="0.1"
+                          Margin="0,0,8,0" IsSnapToTickEnabled="False"
+                          ValueChanged="TelemetryTireDiameterSlider_ValueChanged"/>
                 </DockPanel>
-                <DockPanel Margin="0,0,0,2" ToolTip="4th gear top speed">
-                  <TextBlock Text="4" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
-                  <TextBlock x:Name="TelemetryGear4MaxValueText" DockPanel.Dock="Right" Width="76" Text="143 MPH"
-                             VerticalAlignment="Center" HorizontalAlignment="Right"
-                             Cursor="Hand" ToolTip="Click to type a value"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear4MaxSlider" Minimum="3" Maximum="249" Value="143" TickFrequency="1"
-                          Margin="0,0,8,0" IsSnapToTickEnabled="True"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
-                </DockPanel>
-                <DockPanel Margin="0,0,0,2" ToolTip="5th gear top speed">
-                  <TextBlock Text="5" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
-                  <TextBlock x:Name="TelemetryGear5MaxValueText" DockPanel.Dock="Right" Width="76" Text="177 MPH"
-                             VerticalAlignment="Center" HorizontalAlignment="Right"
-                             Cursor="Hand" ToolTip="Click to type a value"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear5MaxSlider" Minimum="3" Maximum="249" Value="177" TickFrequency="1"
-                          Margin="0,0,8,0" IsSnapToTickEnabled="True"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
-                </DockPanel>
-                <DockPanel Margin="0,0,0,10" ToolTip="6th gear top speed (usually matches Max speed)">
-                  <TextBlock Text="6" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
-                  <TextBlock x:Name="TelemetryGear6MaxValueText" DockPanel.Dock="Right" Width="76" Text="217 MPH"
-                             VerticalAlignment="Center" HorizontalAlignment="Right"
-                             Cursor="Hand" ToolTip="Click to type a value"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear6MaxSlider" Minimum="3" Maximum="249" Value="217" TickFrequency="1"
-                          Margin="0,0,8,0" IsSnapToTickEnabled="True"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
-                </DockPanel>
+                <TextBlock Text="Gear ratios → top speed @ redline" Opacity="0.45" FontSize="10" Margin="0,0,0,2"
+                           ToolTip="Edit ratio or max — the other updates. Absolute gearbox ratios (6th can be overdrive)."/>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="22"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="52"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="72"/>
+                  </Grid.ColumnDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                  </Grid.RowDefinitions>
+                  <TextBlock Grid.Row="0" Grid.Column="1" Text="Ratio" Opacity="0.45" FontSize="10" Margin="0,0,0,2"/>
+                  <TextBlock Grid.Row="0" Grid.Column="3" Text="Top speed" Opacity="0.45" FontSize="10" Margin="0,0,0,2"/>
 
-                <!-- ShakeIt / FFB → SimHub -->
-                <TextBlock Text="ShakeIt / FFB scales" Opacity="0.55" FontSize="11" Margin="0,2,0,2"/>
+                  <TextBlock Grid.Row="1" Grid.Column="0" Text="1" VerticalAlignment="Center" Opacity="0.85"/>
+                  <Slider x:Name="TelemetryGear1RatioSlider" Grid.Row="1" Grid.Column="1" Minimum="0.3" Maximum="8" Value="2.97" TickFrequency="0.01"
+                          Margin="0,0,6,3" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"
+                          ToolTip="Absolute gearbox ratio (Blocklayer). Higher = shorter gear / lower max speed."/>
+                  <TextBlock x:Name="TelemetryGear1RatioValueText" Grid.Row="1" Grid.Column="2" Text="2.97" Margin="0,0,6,3"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  <Slider x:Name="TelemetryGear1MaxSlider" Grid.Row="1" Grid.Column="3" Minimum="3" Maximum="404" Value="43" TickFrequency="1"
+                          Margin="0,0,6,3" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearMaxSlider_ValueChanged" ToolTip="1st gear top speed"/>
+                  <TextBlock x:Name="TelemetryGear1MaxValueText" Grid.Row="1" Grid.Column="4" Text="43 MPH" Margin="0,0,0,3"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+
+                  <TextBlock Grid.Row="2" Grid.Column="0" Text="2" VerticalAlignment="Center" Opacity="0.85"/>
+                  <Slider x:Name="TelemetryGear2RatioSlider" Grid.Row="2" Grid.Column="1" Minimum="0.3" Maximum="8" Value="2.07" TickFrequency="0.01"
+                          Margin="0,0,6,3" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                  <TextBlock x:Name="TelemetryGear2RatioValueText" Grid.Row="2" Grid.Column="2" Text="2.07" Margin="0,0,6,3"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  <Slider x:Name="TelemetryGear2MaxSlider" Grid.Row="2" Grid.Column="3" Minimum="3" Maximum="404" Value="75" TickFrequency="1"
+                          Margin="0,0,6,3" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                  <TextBlock x:Name="TelemetryGear2MaxValueText" Grid.Row="2" Grid.Column="4" Text="75 MPH" Margin="0,0,0,3"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+
+                  <TextBlock Grid.Row="3" Grid.Column="0" Text="3" VerticalAlignment="Center" Opacity="0.85"/>
+                  <Slider x:Name="TelemetryGear3RatioSlider" Grid.Row="3" Grid.Column="1" Minimum="0.3" Maximum="8" Value="1.43" TickFrequency="0.01"
+                          Margin="0,0,6,3" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                  <TextBlock x:Name="TelemetryGear3RatioValueText" Grid.Row="3" Grid.Column="2" Text="1.43" Margin="0,0,6,3"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  <Slider x:Name="TelemetryGear3MaxSlider" Grid.Row="3" Grid.Column="3" Minimum="3" Maximum="404" Value="109" TickFrequency="1"
+                          Margin="0,0,6,3" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                  <TextBlock x:Name="TelemetryGear3MaxValueText" Grid.Row="3" Grid.Column="4" Text="109 MPH" Margin="0,0,0,3"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+
+                  <TextBlock Grid.Row="4" Grid.Column="0" Text="4" VerticalAlignment="Center" Opacity="0.85"/>
+                  <Slider x:Name="TelemetryGear4RatioSlider" Grid.Row="4" Grid.Column="1" Minimum="0.3" Maximum="8" Value="1.00" TickFrequency="0.01"
+                          Margin="0,0,6,3" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                  <TextBlock x:Name="TelemetryGear4RatioValueText" Grid.Row="4" Grid.Column="2" Text="1.00" Margin="0,0,6,3"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  <Slider x:Name="TelemetryGear4MaxSlider" Grid.Row="4" Grid.Column="3" Minimum="3" Maximum="404" Value="143" TickFrequency="1"
+                          Margin="0,0,6,3" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                  <TextBlock x:Name="TelemetryGear4MaxValueText" Grid.Row="4" Grid.Column="4" Text="143 MPH" Margin="0,0,0,3"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+
+                  <TextBlock Grid.Row="5" Grid.Column="0" Text="5" VerticalAlignment="Center" Opacity="0.85"/>
+                  <Slider x:Name="TelemetryGear5RatioSlider" Grid.Row="5" Grid.Column="1" Minimum="0.3" Maximum="8" Value="0.84" TickFrequency="0.01"
+                          Margin="0,0,6,3" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                  <TextBlock x:Name="TelemetryGear5RatioValueText" Grid.Row="5" Grid.Column="2" Text="0.84" Margin="0,0,6,3"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  <Slider x:Name="TelemetryGear5MaxSlider" Grid.Row="5" Grid.Column="3" Minimum="3" Maximum="404" Value="177" TickFrequency="1"
+                          Margin="0,0,6,3" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                  <TextBlock x:Name="TelemetryGear5MaxValueText" Grid.Row="5" Grid.Column="4" Text="177 MPH" Margin="0,0,0,3"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+
+                  <TextBlock Grid.Row="6" Grid.Column="0" Text="6" VerticalAlignment="Center" Opacity="0.85"/>
+                  <Slider x:Name="TelemetryGear6RatioSlider" Grid.Row="6" Grid.Column="1" Minimum="0.3" Maximum="8" Value="0.56" TickFrequency="0.01"
+                          Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"
+                          ToolTip="Absolute 6th gear ratio (Blocklayer often ~0.56 overdrive). Determines 6th max speed with Diff + Tire + Redline."/>
+                  <TextBlock x:Name="TelemetryGear6RatioValueText" Grid.Row="6" Grid.Column="2" Text="0.56" Margin="0,0,6,0"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  <Slider x:Name="TelemetryGear6MaxSlider" Grid.Row="6" Grid.Column="3" Minimum="3" Maximum="404" Value="217" TickFrequency="1"
+                          Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"
+                          ToolTip="6th gear max speed at Redline / shift RPM (Blocklayer formula)."/>
+                  <TextBlock x:Name="TelemetryGear6MaxValueText" Grid.Row="6" Grid.Column="4" Text="217 MPH"
+                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock Text="Engine / RPM" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
+                           ToolTip="Gauge range and rev-limiter feel. Gear top speeds use Redline in Gearing, not Max RPM."/>
+                <DockPanel Margin="0,0,0,3" MinHeight="28"
+                           ToolTip="Idle (left) · Max RPM (right). Max RPM is the SimHub gauge ceiling (EngineMaxRpm). Gear tops follow Redline in Gearing.">
+                  <TextBlock Text="RPM idle–max" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="8,0,0,0"
+                              VerticalAlignment="Center">
+                    <TextBlock x:Name="TelemetryRpmMinValueText" Width="52" Text="800"
+                               VerticalAlignment="Center" HorizontalAlignment="Right"
+                               Cursor="Hand" ToolTip="Click to type idle RPM"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <TextBlock Text="–" Width="14" Opacity="0.45" HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TelemetryRpmMaxValueText" Width="56" Text="8000"
+                               VerticalAlignment="Center" HorizontalAlignment="Right"
+                               Cursor="Hand" ToolTip="Click to type max RPM (EngineMaxRpm)"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  </StackPanel>
+                  <controls:DualRangeSlider x:Name="TelemetryRpmRange"
+                                           Minimum="0" Maximum="12000"
+                                           LowerValue="800" UpperValue="8000"
+                                           TickFrequency="50" IsSnapToTickEnabled="True"
+                                           LowerValueChanged="TelemetryRangeThumb_Changed"
+                                           UpperValueChanged="TelemetryRangeThumb_Changed"
+                                           RangeChanged="TelemetryRange_Changed"/>
+                </DockPanel>
+                <DockPanel Margin="0,0,0,3"
+                           ToolTip="Hard-cut rev-limiter depth when pinned at Redline / gear top (0 = off, 100% ≈ 180 RPM drop before restore, 200% ≈ 360 RPM).">
+                  <TextBlock Text="Rev-limiter" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                  <TextBlock x:Name="TelemetryRpmBounceAmountValueText" DockPanel.Dock="Right" Width="76" Text="55%"
+                             VerticalAlignment="Center" HorizontalAlignment="Right"
+                             Cursor="Hand" ToolTip="Click to type a value"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  <Slider x:Name="TelemetryRpmBounceAmountSlider" Minimum="0" Maximum="2" Value="0.55" TickFrequency="0.05"
+                          Margin="0,0,8,0" IsSnapToTickEnabled="False"
+                          ValueChanged="TelemetryTuningSlider_ValueChanged"/>
+                </DockPanel>
+                <DockPanel
+                           ToolTip="How fast the hard-cut cycles on/off (Hz) while the rev-limiter is engaged.">
+                  <TextBlock Text="Limiter rate" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                  <TextBlock x:Name="TelemetryRpmBounceHzValueText" DockPanel.Dock="Right" Width="76" Text="12 Hz"
+                             VerticalAlignment="Center" HorizontalAlignment="Right"
+                             Cursor="Hand" ToolTip="Click to type Hz"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  <Slider x:Name="TelemetryRpmBounceHzSlider" Minimum="2" Maximum="30" Value="12" TickFrequency="1"
+                          Margin="0,0,8,0" IsSnapToTickEnabled="True"
+                          ValueChanged="TelemetryTuningSlider_ValueChanged"/>
+                </DockPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock Text="ShakeIt / FFB scales" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"/>
                 <DockPanel Margin="0,0,0,3"
                            ToolTip="Multiply ShakeIt Engine vibrations force (RPM load × this scale). RPM values stay accurate for dashes.">
                   <TextBlock Text="Engine" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
@@ -1101,34 +1189,89 @@
                 </DockPanel>
               </StackPanel>
             </Border>
+
+            <!-- Arcade handbrake / NOS — hardware bind on input profile (same Bind dialog as FFB) -->
+            <Border Style="{StaticResource CardBorder}">
+              <StackPanel>
+                <TextBlock Text="Arcade buttons" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
+                           ToolTip="Bind a hardware button (same dialog as FFB). Hold to dump or boost simulated speed. Saved on the input profile; strength/boost stay on the telemetry profile."/>
+                <DockPanel Margin="0,2,0,0"
+                           ToolTip="Hold the bound button to dump speed (stacks with Brake Force). Bind assigns hardware like FFB effect binds.">
+                  <TextBlock Text="Handbrake" Width="88" VerticalAlignment="Center" Opacity="0.85"/>
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="TelemetryHandbrakeStrengthValueText" Width="72" Text="50 MPH/s"
+                               VerticalAlignment="Center" TextAlignment="Right" Margin="0,0,6,0"
+                               Cursor="Hand" ToolTip="Click to type a rate"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Button x:Name="TelemetryHandbrakeBindButton" Style="{StaticResource FfbBindButton}" Content="Bind"
+                            Click="TelemetryHandbrakeBind_Click"/>
+                  </StackPanel>
+                  <Slider x:Name="TelemetryHandbrakeStrengthSlider" Minimum="0" Maximum="124" Value="50" TickFrequency="1"
+                          IsSnapToTickEnabled="True"
+                          ValueChanged="TelemetryTuningSlider_ValueChanged"/>
+                </DockPanel>
+                <DockPanel Margin="0,8,0,0"
+                           ToolTip="Hold the bound button for extra accel toward the current gear max (not infinite top speed).">
+                  <TextBlock Text="NOS / Turbo" Width="88" VerticalAlignment="Center" Opacity="0.85"/>
+                  <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="TelemetryNosBoostValueText" Width="72" Text="25 MPH/s"
+                               VerticalAlignment="Center" TextAlignment="Right" Margin="0,0,6,0"
+                               Cursor="Hand" ToolTip="Click to type a rate"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Button x:Name="TelemetryNosBindButton" Style="{StaticResource FfbBindButton}" Content="Bind"
+                            Click="TelemetryNosBind_Click"/>
+                  </StackPanel>
+                  <Slider x:Name="TelemetryNosBoostSlider" Minimum="0" Maximum="93" Value="25" TickFrequency="1"
+                          IsSnapToTickEnabled="True"
+                          ValueChanged="TelemetryTuningSlider_ValueChanged"/>
+                </DockPanel>
+              </StackPanel>
+            </Border>
           </StackPanel>
           <StackPanel Grid.Column="2">
             <Border Style="{StaticResource CardBorder}">
               <StackPanel>
-                <TextBlock Text="Live" Style="{StaticResource SectionTitle}"/>
-                <TextBlock x:Name="TelemetryGearText" Text="Gear N" FontWeight="SemiBold" Margin="0,4,0,8"/>
+                <TextBlock Text="Live Telemetry" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"/>
+
+                <!-- Pedals / wheel (mapped inputs) -->
+                <TextBlock Text="Inputs" Opacity="0.55" FontSize="11" Margin="0,0,0,6"/>
                 <TextBlock x:Name="TelemetrySteerText" Text="Steering: 0.00" FontSize="11" Opacity="0.85"/>
-                <ProgressBar x:Name="TelemetrySteerBar" Height="7" Minimum="-1" Maximum="1" Value="0" Margin="0,3,0,8"
+                <ProgressBar x:Name="TelemetrySteerBar" Height="7" Minimum="-1" Maximum="1" Value="0" Margin="0,2,0,6"
                              Foreground="#2A9D8F"/>
                 <TextBlock x:Name="TelemetryThrottleText" Text="Throttle: 0%" FontSize="11" Opacity="0.85"/>
-                <ProgressBar x:Name="TelemetryThrottleBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,8"
+                <ProgressBar x:Name="TelemetryThrottleBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,2,0,6"
                              Foreground="#1F6F4A"/>
                 <TextBlock x:Name="TelemetryBrakeText" Text="Brake: 0%" FontSize="11" Opacity="0.85"/>
-                <ProgressBar x:Name="TelemetryBrakeBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,8"
+                <ProgressBar x:Name="TelemetryBrakeBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,2,0,6"
                              Foreground="#B33A3A"/>
                 <TextBlock x:Name="TelemetryClutchText" Text="Clutch: 0%" FontSize="11" Opacity="0.85"/>
-                <ProgressBar x:Name="TelemetryClutchBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,8"
+                <ProgressBar x:Name="TelemetryClutchBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,2,0,10"
                              Foreground="#C9A227"/>
-                <TextBlock Text="Estimated" Opacity="0.55" FontSize="11" Margin="0,4,0,6"/>
+
+                <!-- Arcade vehicle state sent to SimHub -->
+                <TextBlock Text="Simulated" Opacity="0.55" FontSize="11" Margin="0,2,0,6"/>
+                <TextBlock x:Name="TelemetryGearText" Text="Gear N" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,6"/>
                 <TextBlock x:Name="TelemetrySpeedText" Text="Speed: 0 MPH" FontSize="11" Opacity="0.85"/>
-                <ProgressBar x:Name="TelemetrySpeedBar" Height="7" Minimum="0" Maximum="350" Value="0" Margin="0,3,0,8" Foreground="#2A9D8F"/>
+                <ProgressBar x:Name="TelemetrySpeedBar" Height="7" Minimum="0" Maximum="350" Value="0" Margin="0,2,0,6" Foreground="#2A9D8F"/>
                 <TextBlock x:Name="TelemetryRpmText" Text="RPM: 0" FontSize="11" Opacity="0.85"/>
-                <ProgressBar x:Name="TelemetryRpmBar" Height="7" Minimum="0" Maximum="8000" Value="0" Margin="0,3,0,8" Foreground="#C9A227"/>
+                <ProgressBar x:Name="TelemetryRpmBar" Height="7" Minimum="0" Maximum="8000" Value="0" Margin="0,2,0,6" Foreground="#C9A227"/>
                 <TextBlock x:Name="TelemetryEngineVibText" Text="Engine vibration: 0%" FontSize="11" Opacity="0.85"/>
-                <ProgressBar x:Name="TelemetryEngineVibBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,8" Foreground="#C97B27"/>
-                <TextBlock Text="G-force circle" Opacity="0.55" FontSize="11" Margin="0,4,0,6"
-                           ToolTip="Vehicle-frame G-G (same signs as SimHub): up = accel, down = brake, left/right = turn direction. Outer ring = 2 g."/>
-                <Grid Width="168" Height="168" HorizontalAlignment="Left" Margin="0,0,0,8"
+                <ProgressBar x:Name="TelemetryEngineVibBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,2,0,8" Foreground="#C97B27"/>
+                <DockPanel Margin="0,0,0,4">
+                  <Ellipse x:Name="TelemetryHandbrakeLiveDot" DockPanel.Dock="Right" Width="10" Height="10"
+                           Fill="#3A4254" Stroke="#2A3140" StrokeThickness="1" VerticalAlignment="Center"
+                           ToolTip="Handbrake"/>
+                  <TextBlock Text="Handbrake" FontSize="11" Opacity="0.85" VerticalAlignment="Center"/>
+                </DockPanel>
+                <DockPanel Margin="0,0,0,8">
+                  <Ellipse x:Name="TelemetryNosLiveDot" DockPanel.Dock="Right" Width="10" Height="10"
+                           Fill="#3A4254" Stroke="#2A3140" StrokeThickness="1" VerticalAlignment="Center"
+                           ToolTip="NOS / Turbo"/>
+                  <TextBlock Text="NOS / Turbo" FontSize="11" Opacity="0.85" VerticalAlignment="Center"/>
+                </DockPanel>
+                <TextBlock Text="G-force" Opacity="0.45" FontSize="10" Margin="0,2,0,4"
+                           ToolTip="Vehicle-frame G-G (same signs as SimHub): up = accel, down = brake, left/right = turn. Outer ring = 2 g."/>
+                <Grid Width="168" Height="168" HorizontalAlignment="Left" Margin="0,0,0,4"
                       ToolTip="Up = accel (+surge), down = brake (−surge), left = left turn (+sway). Outer 2 g, inner 1 g.">
                   <Canvas x:Name="TelemetryGForceCanvas" Width="168" Height="168" ClipToBounds="True">
                     <Ellipse Width="160" Height="160" Canvas.Left="4" Canvas.Top="4"
@@ -1151,15 +1294,17 @@
                   </Canvas>
                 </Grid>
                 <TextBlock x:Name="TelemetryGForceText" Text="0.00 g  ·  surge 0.00  sway 0.00  heave 0.00"
-                           FontSize="11" Opacity="0.85" Margin="0,0,0,8"
+                           FontSize="11" Opacity="0.85" Margin="0,0,0,10" TextWrapping="Wrap"
                            ToolTip="XY magnitude and vehicle-frame axes in g (same signs as SimHub Local*Ms2 / 9.81). surge+: throttle, surge−: brake, sway+: left."/>
-                <TextBlock Text="From FFB" Opacity="0.55" FontSize="11" Margin="0,4,0,6"/>
+
+                <!-- FFB-derived channels -->
+                <TextBlock Text="From FFB" Opacity="0.55" FontSize="11" Margin="0,2,0,6"/>
                 <TextBlock x:Name="TelemetryRumbleText" Text="Surface rumble: 0%" FontSize="11" Opacity="0.85"/>
-                <ProgressBar x:Name="TelemetryRumbleBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,8" Foreground="#1F6F4A"/>
+                <ProgressBar x:Name="TelemetryRumbleBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,2,0,6" Foreground="#1F6F4A"/>
                 <TextBlock x:Name="TelemetryImpactText" Text="Impact: 0%" FontSize="11" Opacity="0.85"/>
-                <ProgressBar x:Name="TelemetryImpactBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,8" Foreground="#B33A3A"/>
+                <ProgressBar x:Name="TelemetryImpactBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,2,0,6" Foreground="#B33A3A"/>
                 <TextBlock x:Name="TelemetryLoadText" Text="Road load: 0%" FontSize="11" Opacity="0.85"/>
-                <ProgressBar x:Name="TelemetryLoadBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,3,0,0" Foreground="#5B7C99"/>
+                <ProgressBar x:Name="TelemetryLoadBar" Height="7" Minimum="0" Maximum="1" Value="0" Margin="0,2,0,0" Foreground="#5B7C99"/>
               </StackPanel>
             </Border>
           </StackPanel>

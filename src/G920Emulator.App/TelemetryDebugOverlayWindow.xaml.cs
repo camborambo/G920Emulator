@@ -52,7 +52,7 @@ public partial class TelemetryDebugOverlayWindow : Window
         string Row(string key, string value) => $"  {key,-18} {value}{nl}";
 
         return
-            "Estimated" + nl +
+            "Simulated" + nl +
             Row("speed km/h", $"{t.SpeedKmh:0.0}") +
             Row("gear speed %", $"{t.GearSpeedFrac * 100:0.0}%") +
             Row("rpm", $"{t.EngineRpm:0} ({(t.EngineMaxRpm > 1 ? t.EngineRpm / t.EngineMaxRpm * 100 : 0):0.0}% of max)") +
@@ -67,6 +67,8 @@ public partial class TelemetryDebugOverlayWindow : Window
             Row("clutch", $"{t.Clutch:0.00}") +
             Row("steering", $"{t.Steering:+0.00;-0.00;0.00}") +
             Row("gear", string.IsNullOrEmpty(t.Gear) ? "N" : t.Gear) +
+            Row("handbrake", t.HandbrakeHeld ? "held" : "—") +
+            Row("NOS / turbo", t.NosHeld ? "held" : "—") +
             nl +
             "G-force" + nl +
             Row("surge g", $"{t.LocalSurgeMs2 / g:+0.00;-0.00;0.00}") +
