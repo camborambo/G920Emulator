@@ -177,6 +177,109 @@
     </Setter>
   </Style>
 
+  <!-- Circle thumb + green fill (matches DualRangeSlider) -->
+  <Style x:Key="AppSliderThumb" TargetType="Thumb">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="Width" Value="14"/>
+    <Setter Property="Height" Value="14"/>
+    <Setter Property="IsTabStop" Value="False"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Thumb">
+          <Ellipse x:Name="Grip" Width="14" Height="14"
+                   Fill="{StaticResource TextPrimary}"
+                   Stroke="{StaticResource AccentPrimary}"
+                   StrokeThickness="1.5"
+                   Cursor="Hand"/>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Grip" Property="Stroke" Value="{StaticResource AccentPrimaryHover}"/>
+            </Trigger>
+            <Trigger Property="IsDragging" Value="True">
+              <Setter TargetName="Grip" Property="Fill" Value="#FFFFFF"/>
+              <Setter TargetName="Grip" Property="Stroke" Value="{StaticResource AccentPrimaryHover}"/>
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <Style x:Key="AppSliderTrackButton" TargetType="RepeatButton">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="IsTabStop" Value="False"/>
+    <Setter Property="Focusable" Value="False"/>
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RepeatButton">
+          <Border Background="{TemplateBinding Background}" Height="4" CornerRadius="2"
+                  VerticalAlignment="Center"/>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <ControlTemplate x:Key="AppHorizontalSliderTemplate" TargetType="Slider">
+    <Grid VerticalAlignment="Center" MinHeight="28" SnapsToDevicePixels="True">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto" MinHeight="28"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <TickBar x:Name="TopTick" Grid.Row="0" Placement="Top" Height="4" Visibility="Collapsed"
+               Fill="{StaticResource TextMuted}"/>
+      <!-- Full track -->
+      <Border Grid.Row="1" Height="4" VerticalAlignment="Center" Margin="7,0"
+              Background="{StaticResource BorderSubtle}" CornerRadius="2"/>
+      <Track x:Name="PART_Track" Grid.Row="1" Margin="7,0">
+        <!-- Filled range from Minimum → Value -->
+        <Track.DecreaseRepeatButton>
+          <RepeatButton Style="{StaticResource AppSliderTrackButton}"
+                        Command="{x:Static Slider.DecreaseLarge}"
+                        Background="{StaticResource AccentPrimary}"/>
+        </Track.DecreaseRepeatButton>
+        <Track.Thumb>
+          <Thumb Style="{StaticResource AppSliderThumb}"/>
+        </Track.Thumb>
+        <Track.IncreaseRepeatButton>
+          <RepeatButton Style="{StaticResource AppSliderTrackButton}"
+                        Command="{x:Static Slider.IncreaseLarge}"
+                        Background="Transparent"/>
+        </Track.IncreaseRepeatButton>
+      </Track>
+      <TickBar x:Name="BottomTick" Grid.Row="2" Placement="Bottom" Height="4" Visibility="Collapsed"
+               Fill="{StaticResource TextMuted}"/>
+    </Grid>
+    <ControlTemplate.Triggers>
+      <Trigger Property="TickPlacement" Value="TopLeft">
+        <Setter TargetName="TopTick" Property="Visibility" Value="Visible"/>
+      </Trigger>
+      <Trigger Property="TickPlacement" Value="BottomRight">
+        <Setter TargetName="BottomTick" Property="Visibility" Value="Visible"/>
+      </Trigger>
+      <Trigger Property="TickPlacement" Value="Both">
+        <Setter TargetName="TopTick" Property="Visibility" Value="Visible"/>
+        <Setter TargetName="BottomTick" Property="Visibility" Value="Visible"/>
+      </Trigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Opacity" Value="0.45"/>
+      </Trigger>
+    </ControlTemplate.Triggers>
+  </ControlTemplate>
+
+  <Style TargetType="Slider">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="Background" Value="Transparent"/>
+    <Setter Property="Foreground" Value="{StaticResource AccentPrimary}"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="MinHeight" Value="28"/>
+    <Setter Property="VerticalAlignment" Value="Center"/>
+    <Setter Property="SnapsToDevicePixels" Value="True"/>
+    <Setter Property="Stylus.IsPressAndHoldEnabled" Value="False"/>
+    <Setter Property="Template" Value="{StaticResource AppHorizontalSliderTemplate}"/>
+  </Style>
+
   <!-- Compact live-strip bars; Foreground is the fill color -->
   <Style TargetType="ProgressBar">
     <Setter Property="Height" Value="7"/>

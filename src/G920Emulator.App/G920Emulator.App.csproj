@@ -36,7 +36,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\docs\driver-install.md" Link="docs\driver-install.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\simhub\**\*" Link="simhub\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Built by publish.ps1 / explicit build of G920Emulator.SimHubPlugin -->
+    <None Include="..\G920Emulator.SimHubPlugin\bin\Release\G920Emulator.SimHubPlugin.dll"
+          Link="simhub\G920Emulator.SimHubPlugin.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Condition="Exists('..\G920Emulator.SimHubPlugin\bin\Release\G920Emulator.SimHubPlugin.dll')" />
     <None Include="..\..\native\README.md" Link="native\README.md" CopyToOutputDirectory="PreserveNewest" />
     <!-- Bundled WinUHid package (no download required) -->
     <None Include="..\..\native\winuhid\**\*" Link="winuhid\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

@@ -158,6 +158,10 @@ public static class DiagnosticsExporter
             sb.AppendLine("  Last input profile: " + (settings.LastProfileName ?? "(none)"));
             sb.AppendLine("  Last FFB profile: " + (settings.LastFfbProfileName ?? "(none)"));
             sb.AppendLine("  Hidden devices (UI list): " + settings.HiddenDeviceIds.Count);
+            sb.AppendLine("  Telemetry enabled: " + settings.TelemetryEnabled);
+            sb.AppendLine($"  Telemetry UDP: {settings.TelemetryHost}:{settings.TelemetryPort} @ {settings.TelemetrySendHz} Hz");
+            sb.AppendLine($"  Telemetry tuning: max speed {settings.TelemetrySpeedMaxKmh:0} km/h, rpm idle {settings.TelemetryRpmMin:0} redline {settings.TelemetryRpmRedline:0} max {settings.TelemetryRpmMax:0}, bounce×{settings.TelemetryRpmBounceAmount:0.00} @{settings.TelemetryRpmBounceHz:0}Hz, accel {settings.TelemetryAccelKmhPerSec:0}/s brake {settings.TelemetryBrakeKmhPerSec:0}/s coast {settings.TelemetryCoastKmhPerSec:0}/s settle {settings.TelemetryGearSettleKmhPerSec:0}/s aero×{settings.TelemetryAeroDragScale:0.00} gear×{settings.TelemetryGearPullScale:0.00} crash×{settings.TelemetryCrashDumpScale:0.00}, engine×{settings.TelemetryEngineVibrationScale:0.00} rumble×{settings.TelemetrySurfaceRumbleScale:0.00} impact×{settings.TelemetryImpactScale:0.00} load×{settings.TelemetryRoadLoadScale:0.00}");
+            sb.AppendLine($"  Telemetry gear max km/h: {settings.ToTelemetryTuning().FormatGearTopSpeeds()}");
         }
         catch (Exception ex)
         {
@@ -211,6 +215,11 @@ public static class DiagnosticsExporter
         sb.AppendLine("  FFB profile: " + (live.ActiveFfbProfile ?? "(none)"));
         sb.AppendLine("  FFB source id: " + (live.FfbSourceDeviceId ?? "(none)"));
         sb.AppendLine("  FFB source name: " + (live.FfbSourceDeviceName ?? "(none)"));
+        sb.AppendLine("  Telemetry: " + (string.IsNullOrWhiteSpace(live.TelemetryStatus) ? "(none)" : live.TelemetryStatus));
+        if (live.Telemetry is { } tel)
+        {
+            sb.AppendLine($"  Telemetry frame: gear={tel.Gear} speed={tel.SpeedKmh:0} rpm={tel.EngineRpm:0} surge={tel.LocalSurgeMs2:0.0} sway={tel.LocalSwayMs2:0.0} heave={tel.LocalHeaveMs2:0.0} rumble={tel.SurfaceRumble:0.00} impact={tel.Impact:0.00} load={tel.RoadLoad:0.00}");
+        }
         sb.AppendLine($"  Master gain: {live.MasterGain:0.##}  Invert: {live.FfbInvert}");
 
         if (live.Ffb is { } d)

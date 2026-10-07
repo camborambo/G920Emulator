@@ -13,14 +13,15 @@ flowchart LR
   Oem -->|SharedMem| Bridge[BridgeService]
   Hub -->|PhysicalSteer| Oem
   Bridge --> Base[Physical_FFB_base]
+  Bridge -->|UDP_60Hz| SimHub[SimHub_ExternalSim]
 ```
 
 ## Layers
 
 | Layer | Project / binary | Role |
 |-------|------------------|------|
-| UI | `src/G920Emulator.App` | Profiles, bindings, dependencies, FFB device selection, live meters, Debug Overlay, Effect Changes Overlay, GitHub update zip download |
-| Bridge | `src/G920Emulator.Core` | Poll loop (~500 Hz), mapping, OEM shared-memory I/O, FFB apply |
+| UI | `src/G920Emulator.App` | Profiles, bindings, dependencies, FFB device selection, live meters, FFB Debug Overlay, Telemetry Debug Overlay, Effect Changes Overlay, Telemetry (SimHub UDP), GitHub update zip download |
+| Bridge | `src/G920Emulator.Core` | Poll loop (~500 Hz), mapping, OEM shared-memory I/O, FFB apply, optional SimHub telemetry UDP |
 | Virtual HID | `src/G920Emulator.VirtualHid` | WinUHid device, G920 report descriptor, OEM registry / COM registration |
 | OEM FFB driver | `native/g920ffb/g920ffb.dll` | `IDirectInputEffectDriver` loaded by DirectInput when games create effects |
 | System driver | WinUHid (bundled) | Exposes the virtual HID device to Windows / games |
@@ -74,4 +75,4 @@ Research notes: [research-logitech-g920.md](research-logitech-g920.md).
 - **Migration:** copies **input** `profiles\*.json` and `settings.json` once from (1) next-to-exe leftovers and (2) `%AppData%\N4Sunbound` — never overwrites existing AppData files. Next-to-exe `ffb-profiles\` are **not** migrated; legacy inline FFB fields on input JSON can still become a named FFB profile on load.
 - **Identity:** each `SourceRef` stores `deviceId` (instance GUID) and `productId` (product GUID); `DeviceBindingResolver` remaps instance ids when the product is still attached.
 - **Portable opt-in:** `portable.txt` beside the exe keeps `profiles\`, `ffb-profiles\`, and `settings.json` next to the app (runtime-created; not shipped).
-- UI: input Saved dropdown + Export / Import; FFB profile dropdown + Save / Save As / Delete under Force feedback.
+- UI: input Saved dropdown + Export / Import; FFB profile dropdown + Save / Save As / Delete under Force feedback; **Telemetry** tab for SimHub UDP (External Sim `.simdef` in `simhub/`).

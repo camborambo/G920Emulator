@@ -163,6 +163,7 @@ public static class HidGamepadFilterStrip
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
+            WorkingDirectory = Path.GetTempPath(),
         };
         using var p = Process.Start(psi);
         if (p is null) return false;

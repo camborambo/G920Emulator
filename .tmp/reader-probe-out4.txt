@@ -1,0 +1,236 @@
+CodemastersManager base=GameReaderCommon.GameManagerBase`2[CodemastersReader.TelemetryPacket,GameReaderCommon.UDP.BinaryUDPReader`1[CodemastersReader.TelemetryPacket]]
+ctor(System.Boolean forceF1)
+  Queue`1..ctor
+  GameManagerBase`2..ctor
+  ldstr TrackNames
+  LookupTable.For
+  ldstr CarNames
+  LookupTable.For
+
+F12025 ctors:
+ctor()
+  ldstr 16,soft,s
+  ldstr 17,medium,m
+  ldstr 18,hard,h
+  ldstr 7,inter,i
+  ldstr 8,wet,w
+  CompoundMapping.ToCompoundMapper
+  ldstr 15,wet,w
+  ldstr 19,super soft,ss
+  ldstr 20,soft,s
+  ldstr 21,medium,m
+  ldstr 22,hard,h
+  CompoundMapping.ToCompoundMapper
+  GameManagerBase`2..ctor
+
+==== OmsiReader ====
+OmsiReader.Omsi2InstallManager : GameInstallManagerBase
+ ctor(String)
+  GameInstallManagerBase..ctor
+  ldstr SOFTWARE\aerosoft\OMSI 2
+  RegistryKey.OpenSubKey
+  ldstr Product_Path
+  RegistryKey.GetValue
+ M ConfigureGame
+ M GetInstallStatus
+OmsiReader.OmsiData : ValueType
+OmsiReader.OMSI2Manager : SimpleGameManagerBase`2
+ ctor()
+  SimpleGameManagerBase`2..ctor
+  ldstr $OMSI_SIMHUB$
+  SharedMemoryReaderLegacy`1..ctor
+  GameManagerBase`3.set_datareader
+  GameManagerBase`3.get_datareader
+  SharedMemoryReaderLegacy`1.Start
+ M GD_MaxGears
+ M GD_EngineMap
+ M GD_GetFeedbackCapabilities
+ M GD_FeedbackData
+ M GD_TurnIndicatorLeft
+ M GD_TurnIndicatorRight
+ M GD_OrientationPitch
+ M GD_OrientationRoll
+ M GD_OrientationYaw
+ M GD_AccelerationSway
+ M GD_AccelerationHeave
+ M GD_AccelerationSurge
+ M IsGameInMenus
+ M Exit
+ M GetDataSample
+ M IsGameInRace
+ M GetNewRawData
+ M GD_SpeedKmh
+ M GD_Rpms
+ M GD_Gear
+ M GD_MaxFuel
+ M GD_WaterTemperature
+ M GD_Fuel
+ M GD_MaxRpm
+ M IsGamePaused
+ M IsGameRunning
+ M PreParseData
+
+==== types implementing IGameManager in plugins ====
+SimHub.Plugins.CustomGames.ControllerGameManager : SimpleGameManagerBase`2
+SimHub.Plugins.ExternalSims.Runtime.ExternalSimManager : GameManagerBase`2
+SimHub.Plugins.ExternalSims.Runtime.ExternalSimManagerV2 : ExternalSimManager
+GameConfigurationManagerItemModel.get_SupportedGameManager()
+GameConfigurationManagerItemModel.set_SupportedGameManager(SupportedGameManager)
+GameSettings.get_CurrentReader()
+GameSettings.set_CurrentReader(String)
+SupportedGameManagerGameReader.get_ReaderName()
+SupportedGameManagerGameReader.set_ReaderName(String)
+MetadataContext.get_Reader()
+MetadataContext.get_PeReader()
+SupportedGameManager.CreateReader(SupportedGameManagerGameReader)
+SupportedGameManager.get_Readers()
+SupportedGameManager.set_Readers(List`1)
+SupportedGameManager.get_HasReaderChoice()
+SupportedGameManager.get_NameAndReader()
+SupportedGameManager.get_ReaderDescription()
+SupportedGameManager.get_CurrentReader()
+SupportedGameManager.set_CurrentReader(SupportedGameManagerGameReader)
+<>c__DisplayClass135_0.<get_CurrentReader>b__0(SupportedGameManagerGameReader)
+PluginManager.<set_GameManager>b__176_0(Boolean,IGameManager)
+PluginManager.<set_GameManager>b__176_1(Int32,Boolean,IGameManager)
+PluginManager.<set_GameManager>b__176_2(Double,IGameManager)
+PluginManager.<set_GameManager>b__176_3(IGameManager)
+PluginManager.<set_GameManager>b__176_4(String,IGameManager)
+PluginManager.<set_GameManager>b__176_5(Object,EventArgs)
+PluginManager.<set_GameManager>b__176_6(Object,String,Boolean)
+PluginManager.<set_GameManager>b__176_7(Object,EventArgs)
+PluginManager.get_GameManager()
+PluginManager.set_GameManager(IGameManager)
+<>c__DisplayClass176_0.<set_GameManager>b__8()
+<>c__DisplayClass176_1.<set_GameManager>b__9()
+<>c__DisplayClass176_2.<set_GameManager>b__10()
+<>c__DisplayClass176_3.<set_GameManager>b__11()
+<>c__DisplayClass176_4.<set_GameManager>b__12()
+<>c__DisplayClass176_5.<set_GameManager>b__13(PluginManager,String)
+ExternalSettingsValuesStore.get_SupportedGameManager()
+ExternalSettingsValuesStoreSettings.get_CurrentGameManager()
+GroupInfo.get_SupportedGameManager()
+GroupInfo.set_SupportedGameManager(SupportedGameManager)
+IProfile.get_SupportedGameManager()
+ProfileBase`2.get_SupportedGameManager()
+ProfileBase`2.<get_SupportedGameManager>b__50_0(SupportedGameManager)
+ProfileGame.get_SupportedGameManager()
+ProfileGame.set_SupportedGameManager(SupportedGameManager)
+ProfileSettingsBase`2.get_CurrentGameManager()
+ProfileSettingsBase`2.<get_CurrentGameManager>b__54_0(SupportedGameManager)
+WindProfile.get_SupportedGameManager()
+WindSettings`1.get_CurrentGameManager()
+WindSettingsBase.get_CurrentGameManager()
+ShakeItDeviceSettings`1.get_CurrentGameManager()
+ShakeItProfile.get_SupportedGameManager()
+ShakeItSettings`1.get_CurrentGameManager()
+ShakeItSettings.get_CurrentGameManager()
+ABSActiveEffectContainer.get_CurrentGameManager()
+AccelerationGforceContainer.get_CurrentGameManager()
+LateralGforceContainer.get_CurrentGameManager()
+AcceleratingGroupContainer.get_CurrentGameManager()
+ThrottlePressedGroupContainer.get_CurrentGameManager()
+BrakePressedGroupContainer.get_CurrentGameManager()
+DeceleratingGroupContainer.get_CurrentGameManager()
+ConditionalGroupContainer.get_CurrentGameManager()
+GroupContainer.get_CurrentGameManager()
+FlightsWingsLoadContainer.get_CurrentGameManager()
+GearMissedContainer.get_CurrentGameManager()
+ImpactEffectContainer.get_CurrentGameManager()
+JumpContainer.get_CurrentGameManager()
+LocalizedSpeedContainer.get_CurrentGameManager()
+RPMSoundEffectContainer.get_CurrentGameManager()
+TCActiveEffectContainer.get_CurrentGameManager()
+TouchdownEffectContainer.get_CurrentGameManager()
+TractionLossContainer.get_CurrentGameManager()
+WheelsSpinAndLockContainer.get_CurrentGameManager()
+WheelsLockContainer.get_CurrentGameManager()
+CustomEffectContainer.get_CurrentGameManager()
+DecelerationGforceContainer.get_CurrentGameManager()
+GearGrindingContainer.get_CurrentGameManager()
+StaticWindContainer.get_CurrentGameManager()
+VirtualABSEffectContainer.get_CurrentGameManager()
+GearEffectContainer.get_CurrentGameManager()
+GForceContainerBase.get_CurrentGameManager()
+RoadTextureContainer.get_CurrentGameManager()
+RPMContainer.get_CurrentGameManager()
+InterhapticsWheelsRumbleContainer.get_CurrentGameManager()
+WheelsRumbleContainer.get_CurrentGameManager()
+WheelsVibrationContainer.get_CurrentGameManager()
+WheelsImpactContainer.get_CurrentGameManager()
+SpeedContainer.get_CurrentGameManager()
+WheelsSlipContainer.get_CurrentGameManager()
+EffectsContainerBase`1.get_CurrentGameManager()
+EffectsContainerBase.get_CurrentGameManager()
+EffectsContainerBase.<get_CurrentGameManager>b__87_0(SupportedGameManager)
+ShakeitSettingsMotorsWithFrequencyOutputManagerBase`2.get_CurrentGameManager()
+<GetPlacements>d__15.System.Collections.Generic.IEnumerator<GameReaderCommon.Enums.FFBPlacement>.get_Current()
+<GetPlacements>d__15.System.Collections.Generic.IEnumerable<GameReaderCommon.Enums.FFBPlacement>.GetEnumerator()
+MatrixSettings.get_CurrentGameManager()
+RGBMatrixProfile.get_SupportedGameManager()
+Profile.get_SupportedGameManager()
+LedsSettings.get_CurrentGameManager()
+DataRecord.get_GameReader()
+DataRecord.set_GameReader(String)
+ControllerGameManager.GetGameAndReaderReplayPath()
+ControllerGameManager.GetRelativeGameAndReaderReplayPath()
+ControllerGameManager.get_datareader()
+ControllerGameManager.set_datareader(DummyReader)
+ControllerGameManager.SetReaderSubCode(String)
+ControllerGameManager.GetReaderSubCode()
+ControllerGameManager.get_ReplayReader()
+CustomSupportedGameManager.CreateReader(SupportedGameManagerGameReader)
+CustomSupportedGameManager.InitReaders()
+CustomSupportedGameManager.get_ControllerGameManagerInstance()
+CustomSupportedGameManager.get_CustomSupportedGameManagerSettings()
+CustomSupportedGameManager.get_Readers()
+CustomSupportedGameManager.set_Readers(List`1)
+CustomSupportedGameManager.get_HasReaderChoice()
+CustomSupportedGameManager.get_NameAndReader()
+CustomSupportedGameManager.get_ReaderDescription()
+CustomSupportedGameManager.get_CurrentReader()
+CustomSupportedGameManager.set_CurrentReader(SupportedGameManagerGameReader)
+<>c.<InitReaders>b__7_0()
+CustomSupportedGameManagerSettings.get_CustomSupportedGameManager()
+CustomSupportedGameManagerSettings.set_CustomSupportedGameManager(CustomSupportedGameManager)
+GameInputToTelemetrySettingsDialog.get_CustomSupportedGameManager()
+GameInputToTelemetrySettingsDialog.set_CustomSupportedGameManager(CustomSupportedGameManager)
+GameInputToTelemetrySettings.get_CustomSupportedGameManager()
+GameInputToTelemetrySettings.set_CustomSupportedGameManager(CustomSupportedGameManager)
+<GetValues>d__17.System.Collections.Generic.IEnumerator<GameReaderCommon.ExposableObject>.get_Current()
+<GetValues>d__17.System.Collections.Generic.IEnumerable<GameReaderCommon.ExposableObject>.GetEnumerator()
+ExternalSimManager.GetNewReader(Int32)
+ExternalSimManager.GetGameAndReaderReplayPath()
+ExternalSimManager.GetRelativeGameAndReaderReplayPath()
+ExternalSimManager.get_datareader()
+ExternalSimManager.set_datareader(ExternalSimUDPReader)
+ExternalSimManager.SetReaderSubCode(String)
+ExternalSimManager.GetReaderSubCode()
+ExternalSimManager.get_ReplayReader()
+ExternalSimManagerV2.GetNewReader(Int32)
+ExternalSimManagerV2.GetGameAndReaderReplayPath()
+ExternalSimManagerV2.GetRelativeGameAndReaderReplayPath()
+ExternalSimManagerV2.get_datareader()
+ExternalSimManagerV2.set_datareader(ExternalSimUDPReader)
+ExternalSimManagerV2.SetReaderSubCode(String)
+ExternalSimManagerV2.GetReaderSubCode()
+ExternalSimManagerV2.get_ReplayReader()
+ExternalSupportedSimManager.CreateReader(SupportedGameManagerGameReader)
+ExternalSupportedSimManager.InitReaders()
+ExternalSupportedSimManager.get_Readers()
+ExternalSupportedSimManager.set_Readers(List`1)
+ExternalSupportedSimManager.get_HasReaderChoice()
+ExternalSupportedSimManager.get_NameAndReader()
+ExternalSupportedSimManager.get_ReaderDescription()
+ExternalSupportedSimManager.get_CurrentReader()
+ExternalSupportedSimManager.set_CurrentReader(SupportedGameManagerGameReader)
+<>c.<InitReaders>b__7_0()
+ExternalSimUDPReader.ExternalGameUDPReader_OnAcceptBytes(Object,Byte[],AcceptEventArgs)
+OutputMappingProfilesSettings.get_CurrentGameManager()
+OutputMappingProfile.get_SupportedGameManager()
+BeltTensionnerProfile.get_SupportedGameManager()
+BeltTensionnerSettings.get_CurrentGameManager()
+DashPlaylistSettings.get_CurrentGameManager()
+DashPlaylistSettings.<get_CurrentGameManager>b__15_0(SupportedGameManager)
+ConfigurationSyncSettings.get_CurrentGameManager()
+ConfigurationSyncSettingsProfile.get_SupportedGameManager()

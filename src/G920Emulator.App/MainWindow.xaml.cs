@@ -18,6 +18,7 @@ using G920Emulator.Core.Models;
 using G920Emulator.Core.Profiles;
 using G920Emulator.Core.Ffb;
 using G920Emulator.Core.Setup;
+using G920Emulator.Core.Telemetry;
 using G920Emulator.VirtualHid;
 
 namespace G920Emulator.App;
@@ -35,6 +36,7 @@ public partial class MainWindow : Window
     private MappingProfile _profile = MappingProfile.CreateDefault();
     private bool _suppressProfileCombo;
     private bool _suppressFfbProfileCombo;
+    private bool _suppressTelemetryProfileCombo;
     private bool _bindingDialogOpen;
     private bool _ffbTestSliderSilent;
     private bool _effectGainSliderSilent;
@@ -43,6 +45,10 @@ public partial class MainWindow : Window
     private readonly long[] _ffbNudgeHoldStart = new long[G920ControlInfo.FfbNudgeControls.Length];
     private TextBox? _ffbValueEditBox;
     private TextBlock? _ffbValueEditLabel;
+    private TextBox? _telemetryValueEditBox;
+    private TextBlock? _telemetryValueEditLabel;
+    /// <summary>True = UI shows/adjusts mph; false = km/h. SimHub always gets km/h.</summary>
+    private bool _telemetryUseMph = true;
     private string? _shownLinkStatus;
     private CancellationTokenSource? _ffbPulseCts;
     private long _lastFfbDiagUiTick;
@@ -54,10 +60,12 @@ public partial class MainWindow : Window
     private WindowState _restoreWindowState = WindowState.Normal;
     private TrayIcon? _trayIcon;
     private DebugOverlayWindow? _debugOverlay;
+    private TelemetryDebugOverlayWindow? _telemetryDebugOverlay;
     private EffectChangesOverlayWindow? _effectChangesOverlay;
     private bool _effectChangesOverlayEnabled = true;
     private readonly CancellationTokenSource _updateCheckCts = new();
     private GitHubReleaseInfo? _pendingRelease;
+    private bool _telemetryUiBusy;
 
     public MainWindow()
     {
@@ -96,6 +104,9 @@ public partial class MainWindow : Window
             DarkTitleBar.TryApply(hwnd);
             _bridge.BindFfbWindow(hwnd);
             try { OemRegistrationSession.RecoverIfDirty(); } catch { /* ignore */ }
+            // Crash/kill mid-session: restore HidHide off the UI thread (never block Loaded).
+            if (!_bridge.IsRunning && DependencyChecker.HasPendingHidHideSnapshot)
+                _ = RestorePendingHidHideOnLaunchAsync();
             _ = RefreshDevicesAsync(restoreHidden: false);
             UpdateDependencyUi();
             RefreshDebugSessionUi();
@@ -121,23 +132,32 @@ public partial class MainWindow : Window
     private static readonly Brush OkBorderBrush = new SolidColorBrush(Color.FromRgb(0x2A, 0x31, 0x40));
 
     private bool _exitTeardownStarted;
+    /// <summary>Set only after HidHide restore + teardown finish — then Close may proceed.</summary>
+    private bool _exitAllowed;
 
     private void OnClosing(object? sender, CancelEventArgs e)
     {
-        if (_exitTeardownStarted)
+        if (_exitAllowed)
         {
-            // Second Close after teardown — allow the window to shut down.
             e.Cancel = false;
             return;
         }
 
-        DisposeTrayIcon();
-        CloseDebugOverlay(saveEnabled: false);
-        CloseEffectChangesOverlay();
-        try { _updateCheckCts.Cancel(); } catch { /* ignore */ }
+        // Block Alt+F4 / X / Exit until HidHide restore (if any) finishes.
         e.Cancel = true;
+        if (_exitTeardownStarted)
+            return;
+
         _exitTeardownStarted = true;
         _bridgeBusy = true;
+        try { IsEnabled = false; } catch { /* ignore */ }
+        try { SetBridgeControls(running: _bridge.IsRunning, busy: true); } catch { /* ignore */ }
+
+        DisposeTrayIcon();
+        CloseDebugOverlay(saveEnabled: false);
+        CloseTelemetryDebugOverlay(saveEnabled: false);
+        CloseEffectChangesOverlay();
+        try { _updateCheckCts.Cancel(); } catch { /* ignore */ }
         _uiTimer.Stop();
         _ffbProfilePushTimer.Stop();
         _ffbPulseCts?.Cancel();
@@ -151,7 +171,11 @@ public partial class MainWindow : Window
         }
         catch { /* ignore autosave failures on close */ }
 
-        StatusText.Text = "Shutting down…";
+        var needsHidHideRestore = DependencyChecker.HasPendingHidHideSnapshot;
+        StatusText.Text = needsHidHideRestore
+            ? "Restoring HidHide (brief)… then exit."
+            : "Shutting down…";
+
         try
         {
             VirtualG920Device.LogHostIngress = false;
@@ -159,35 +183,81 @@ public partial class MainWindow : Window
         }
         catch { /* ignore */ }
 
-        // Tear down off the UI thread. Cap wait — WinUHid/DI can hang forever and
-        // Dispatcher.Invoke would deadlock if the UI were still inside a DI Poll.
-        _ = Task.Run(() =>
-        {
-            try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
-            try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
-            try { OemRegistrationSession.KillLegacySessionWatchProcesses(); } catch { /* ignore */ }
+        _ = FinishExitAsync(needsHidHideRestore);
+    }
 
-            var dispose = Task.Run(() =>
+    private async Task RestorePendingHidHideOnLaunchAsync()
+    {
+        try
+        {
+            StatusText.Text = "Restoring HidHide from the last session…";
+            var (ok, msg) = await Task.Run(() =>
+                    DependencyChecker.EndHidHideSession(timeoutMs: DependencyChecker.HidHideRestoreStopTimeoutMs))
+                .ConfigureAwait(true);
+            StatusText.Text = ok
+                ? "Restored HidHide from the last interrupted session."
+                : msg;
+            try { UpdateDependencyUi(); } catch { /* ignore */ }
+        }
+        catch { /* ignore */ }
+    }
+
+    private async Task FinishExitAsync(bool restoreHidHide)
+    {
+        try
+        {
+            InstallFolderGuard.LeaveInstallFolder();
+            // Do not spawn deferred pnputil cleanup during exit — orphans pin the install folder.
+            VirtualG920Device.SuppressDeferredDeviceCleanup = true;
+
+            await Task.Run(() =>
+            {
+                try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
+            }).ConfigureAwait(true);
+
+            await Task.Run(() =>
+            {
+                try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
+                try { OemRegistrationSession.KillLegacySessionWatchProcesses(); } catch { /* ignore */ }
+            }).ConfigureAwait(true);
+
+            if (restoreHidHide || DependencyChecker.HasPendingHidHideSnapshot)
+            {
+                StatusText.Text = "Restoring HidHide (brief)… then exit.";
+                var (ok, msg) = await Task.Run(() =>
+                        DependencyChecker.EndHidHideSession(timeoutMs: DependencyChecker.HidHideRestoreExitTimeoutMs))
+                    .ConfigureAwait(true);
+                StatusText.Text = ok
+                    ? "HidHide restored. Finishing shutdown…"
+                    : msg + " Finishing shutdown…";
+            }
+            else
+            {
+                StatusText.Text = "Shutting down…";
+            }
+
+            try { DependencyChecker.KillOrphanHidHideHelpers(); } catch { /* ignore */ }
+
+            await Task.Run(() =>
             {
                 try { _bridge.Dispose(); } catch { /* ignore */ }
                 try { _virtual.Dispose(); } catch { /* ignore */ }
-            });
-            try { dispose.Wait(3500); } catch { /* ignore */ }
+            }).ConfigureAwait(true);
 
-            try
-            {
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    try { Close(); }
-                    catch { /* ignore */ }
-                }));
-            }
-            catch { /* ignore */ }
-
-            // Hard exit so abandoned native teardown / LongRunning tasks cannot keep the EXE alive.
-            try { Thread.Sleep(400); } catch { /* ignore */ }
+            try { DependencyChecker.KillOrphanHidHideHelpers(); } catch { /* ignore */ }
+        }
+        catch
+        {
+            try { DependencyChecker.KillOrphanHidHideHelpers(); } catch { /* ignore */ }
+        }
+        finally
+        {
+            InstallFolderGuard.LeaveInstallFolder();
+            try { DependencyChecker.KillOrphanHidHideHelpers(); } catch { /* ignore */ }
+            _exitAllowed = true;
+            // Hard exit so abandoned native teardown cannot keep the EXE locking the folder.
             Environment.Exit(0);
-        });
+        }
     }
 
     private DependencyReport ProbeDependencies() =>
@@ -199,10 +269,10 @@ public partial class MainWindow : Window
 
     private void MainTab_Checked(object sender, RoutedEventArgs e)
     {
-        if (InputPanel is null || FfbPanel is null) return;
-        var input = InputTabRadio.IsChecked == true;
-        InputPanel.Visibility = input ? Visibility.Visible : Visibility.Collapsed;
-        FfbPanel.Visibility = input ? Visibility.Collapsed : Visibility.Visible;
+        if (InputPanel is null || FfbPanel is null || TelemetryPanel is null) return;
+        InputPanel.Visibility = InputTabRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        FfbPanel.Visibility = FfbTabRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        TelemetryPanel.Visibility = TelemetryTabRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void UpdateDependencyUi()
@@ -307,14 +377,56 @@ public partial class MainWindow : Window
             MinimizeToTrayMenuItem.IsChecked = _minimizeToTray;
         if (DebugOverlayMenuItem is not null)
             DebugOverlayMenuItem.IsChecked = settings.DebugOverlay;
+        if (TelemetryDebugOverlayMenuItem is not null)
+            TelemetryDebugOverlayMenuItem.IsChecked = settings.TelemetryDebugOverlay;
         _effectChangesOverlayEnabled = settings.EffectChangesOverlay;
         if (EffectChangesOverlayMenuItem is not null)
             EffectChangesOverlayMenuItem.IsChecked = _effectChangesOverlayEnabled;
         if (CheckForUpdatesMenuItem is not null)
             CheckForUpdatesMenuItem.IsChecked = settings.CheckForUpdates;
+        if (AutoApplyHidHideMenuItem is not null)
+            AutoApplyHidHideMenuItem.IsChecked = settings.AutoApplyHidHideConfigOnStart;
+        if (UnloadHidHideMenuItem is not null)
+            UnloadHidHideMenuItem.IsChecked = settings.UnloadHidHideConfigWhenStopped;
+        _telemetryUseMph = !string.Equals(settings.TelemetrySpeedUnit, "kmh", StringComparison.OrdinalIgnoreCase);
+        if (TelemetryUnitKmhMenuItem is not null)
+            TelemetryUnitKmhMenuItem.IsChecked = !_telemetryUseMph;
+        ApplyTelemetrySettingsToUi(settings);
+        RefreshTelemetryProfilesCombo(settings.LastTelemetryProfileName);
+        PushTelemetryToBridge(settings);
         if (!_effectChangesOverlayEnabled)
             CloseEffectChangesOverlay();
         ApplyDebugOverlay(settings.DebugOverlay);
+        ApplyTelemetryDebugOverlay(settings.TelemetryDebugOverlay);
+    }
+
+    private void TelemetryUnitKmhMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        // WPF toggles IsChecked before Click — checked means metric UI.
+        var useKmh = TelemetryUnitKmhMenuItem?.IsChecked == true;
+        _telemetryUseMph = !useKmh;
+        UpdateAppSettings(s => s.TelemetrySpeedUnit = useKmh ? "kmh" : "mph");
+        StatusText.Text = useKmh
+            ? "Telemetry unit: km/h / km/h/s."
+            : "Telemetry unit: MPH / MPH/s (default).";
+    }
+
+    private void AutoApplyHidHideMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var enabled = AutoApplyHidHideMenuItem?.IsChecked == true;
+        UpdateAppSettings(s => s.AutoApplyHidHideConfigOnStart = enabled);
+        StatusText.Text = enabled
+            ? "Apply HidHide on Start — Start will whitelist this app and hide Gaming-list devices."
+            : "Apply HidHide on Start off — Start will not change HidHide (manual).";
+    }
+
+    private void UnloadHidHideMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var enabled = UnloadHidHideMenuItem?.IsChecked == true;
+        UpdateAppSettings(s => s.UnloadHidHideConfigWhenStopped = enabled);
+        StatusText.Text = enabled
+            ? "Restore my HidHide on Stop — Start can save your setup and put it back on Stop."
+            : "Restore my HidHide on Stop off — Stop leaves HidHide as Start left it.";
     }
 
     private void CheckForUpdatesMenuItem_Click(object sender, RoutedEventArgs e)
@@ -518,8 +630,17 @@ public partial class MainWindow : Window
         var enabled = DebugOverlayMenuItem?.IsChecked == true;
         UpdateAppSettings(s => s.DebugOverlay = enabled);
         StatusText.Text = enabled
-            ? "Debug Overlay on — live inputs and FFB stay on top of the game."
-            : "Debug Overlay off.";
+            ? "FFB Debug Overlay on — live inputs and FFB stay on top of the game."
+            : "FFB Debug Overlay off.";
+    }
+
+    private void TelemetryDebugOverlayMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var enabled = TelemetryDebugOverlayMenuItem?.IsChecked == true;
+        UpdateAppSettings(s => s.TelemetryDebugOverlay = enabled);
+        StatusText.Text = enabled
+            ? "Telemetry Debug Overlay on — live SimHub packet stays on top of the game."
+            : "Telemetry Debug Overlay off.";
     }
 
     private void ApplyDebugOverlay(bool enabled)
@@ -528,6 +649,14 @@ public partial class MainWindow : Window
             ShowDebugOverlay();
         else
             CloseDebugOverlay(saveEnabled: false);
+    }
+
+    private void ApplyTelemetryDebugOverlay(bool enabled)
+    {
+        if (enabled)
+            ShowTelemetryDebugOverlay();
+        else
+            CloseTelemetryDebugOverlay(saveEnabled: false);
     }
 
     private void ShowDebugOverlay()
@@ -563,6 +692,36 @@ public partial class MainWindow : Window
         ApplyLive(_bridge.LatestState);
     }
 
+    private void ShowTelemetryDebugOverlay()
+    {
+        if (_telemetryDebugOverlay is { IsLoaded: true })
+        {
+            _telemetryDebugOverlay.Topmost = true;
+            _telemetryDebugOverlay.Show();
+            ApplyTelemetryLive();
+            return;
+        }
+
+        var settings = _profiles.LoadSettings();
+        _telemetryDebugOverlay = new TelemetryDebugOverlayWindow();
+        _telemetryDebugOverlay.ClosedByUser += TelemetryDebugOverlay_ClosedByUser;
+        if (settings.TelemetryDebugOverlayLeft is double left && settings.TelemetryDebugOverlayTop is double top)
+        {
+            _telemetryDebugOverlay.WindowStartupLocation = WindowStartupLocation.Manual;
+            _telemetryDebugOverlay.Left = left;
+            _telemetryDebugOverlay.Top = top;
+        }
+        else
+        {
+            _telemetryDebugOverlay.WindowStartupLocation = WindowStartupLocation.Manual;
+            _telemetryDebugOverlay.Left = SystemParameters.WorkArea.Left + 16;
+            _telemetryDebugOverlay.Top = SystemParameters.WorkArea.Top + 16;
+        }
+
+        _telemetryDebugOverlay.Show();
+        ApplyTelemetryLive();
+    }
+
     private void CloseDebugOverlay(bool saveEnabled)
     {
         if (_debugOverlay is null) return;
@@ -581,6 +740,24 @@ public partial class MainWindow : Window
             UpdateAppSettings(s => s.DebugOverlay = false);
     }
 
+    private void CloseTelemetryDebugOverlay(bool saveEnabled)
+    {
+        if (_telemetryDebugOverlay is null) return;
+        var window = _telemetryDebugOverlay;
+        _telemetryDebugOverlay = null;
+        window.ClosedByUser -= TelemetryDebugOverlay_ClosedByUser;
+        PersistTelemetryOverlayBounds(window);
+        try
+        {
+            if (window.IsVisible)
+                window.Close();
+        }
+        catch { /* ignore */ }
+
+        if (saveEnabled)
+            UpdateAppSettings(s => s.TelemetryDebugOverlay = false);
+    }
+
     private void DebugOverlay_ClosedByUser()
     {
         if (_debugOverlay is not null)
@@ -588,7 +765,17 @@ public partial class MainWindow : Window
         _debugOverlay = null;
         UpdateAppSettings(s => s.DebugOverlay = false);
         if (StatusText is not null)
-            StatusText.Text = "Debug Overlay off.";
+            StatusText.Text = "FFB Debug Overlay off.";
+    }
+
+    private void TelemetryDebugOverlay_ClosedByUser()
+    {
+        if (_telemetryDebugOverlay is not null)
+            PersistTelemetryOverlayBounds(_telemetryDebugOverlay);
+        _telemetryDebugOverlay = null;
+        UpdateAppSettings(s => s.TelemetryDebugOverlay = false);
+        if (StatusText is not null)
+            StatusText.Text = "Telemetry Debug Overlay off.";
     }
 
     private void PersistOverlayBounds(DebugOverlayWindow window)
@@ -603,6 +790,18 @@ public partial class MainWindow : Window
         catch { /* ignore */ }
     }
 
+    private void PersistTelemetryOverlayBounds(TelemetryDebugOverlayWindow window)
+    {
+        try
+        {
+            var settings = _profiles.LoadSettings();
+            settings.TelemetryDebugOverlayLeft = window.Left;
+            settings.TelemetryDebugOverlayTop = window.Top;
+            _profiles.SaveSettings(settings);
+        }
+        catch { /* ignore */ }
+    }
+
     private AppSettings UpdateAppSettings(Action<AppSettings> mutate)
     {
         var settings = _profiles.LoadSettings();
@@ -610,6 +809,502 @@ public partial class MainWindow : Window
         _profiles.SaveSettings(settings);
         ApplyAppSettings(settings);
         return settings;
+    }
+
+    private void ApplyTelemetrySettingsToUi(AppSettings settings)
+    {
+        _telemetryUiBusy = true;
+        try
+        {
+            settings.NormalizeTelemetryTuning();
+            if (TelemetryEnabledCheck is not null)
+                TelemetryEnabledCheck.IsChecked = settings.TelemetryEnabled;
+            if (TelemetryHostBox is not null)
+                TelemetryHostBox.Text = string.IsNullOrWhiteSpace(settings.TelemetryHost)
+                    ? SimHubPacket.DefaultHost
+                    : settings.TelemetryHost;
+            if (TelemetryPortBox is not null)
+                TelemetryPortBox.Text = (settings.TelemetryPort is < 1 or > 65535
+                    ? SimHubPacket.DefaultPort
+                    : settings.TelemetryPort).ToString();
+            if (TelemetryHzSlider is not null)
+                TelemetryHzSlider.Value = SimHubPacket.ClampSendHz(settings.TelemetrySendHz);
+            if (TelemetryHzValueText is not null)
+                TelemetryHzValueText.Text = $"{(int)(TelemetryHzSlider?.Value ?? SimHubPacket.DefaultSendHz)} Hz";
+
+            // Tuning controls use the selected display unit; settings + SimHub stay km/h.
+            ConfigureTelemetrySpeedControlRanges();
+            if (TelemetrySpeedMaxSlider is not null)
+                TelemetrySpeedMaxSlider.Value = FromKmh(settings.TelemetrySpeedMaxKmh);
+            if (TelemetryRpmRange is not null)
+            {
+                TelemetryRpmRange.LowerValue = settings.TelemetryRpmMin;
+                TelemetryRpmRange.UpperValue = settings.TelemetryRpmMax;
+            }
+            SyncRpmRedlineSliderRange(
+                settings.TelemetryRpmMin,
+                settings.TelemetryRpmMax,
+                settings.TelemetryRpmRedline);
+            if (TelemetryAccelSlider is not null)
+                TelemetryAccelSlider.Value = FromKmh(settings.TelemetryAccelKmhPerSec);
+            if (TelemetryBrakeDynSlider is not null)
+                TelemetryBrakeDynSlider.Value = FromKmh(settings.TelemetryBrakeKmhPerSec);
+            if (TelemetryCoastSlider is not null)
+                TelemetryCoastSlider.Value = FromKmh(settings.TelemetryCoastKmhPerSec);
+            if (TelemetryAeroDragSlider is not null)
+                TelemetryAeroDragSlider.Value = settings.TelemetryAeroDragScale;
+            if (TelemetryGearPullSlider is not null)
+                TelemetryGearPullSlider.Value = settings.TelemetryGearPullScale;
+            if (TelemetryGearSettleSlider is not null)
+                TelemetryGearSettleSlider.Value = FromKmh(settings.TelemetryGearSettleKmhPerSec);
+            SyncGearMaxSliderRanges(FromKmh(settings.TelemetrySpeedMaxKmh));
+            if (TelemetryGear1MaxSlider is not null)
+                TelemetryGear1MaxSlider.Value = FromKmh(settings.TelemetryGear1MaxKmh);
+            if (TelemetryGear2MaxSlider is not null)
+                TelemetryGear2MaxSlider.Value = FromKmh(settings.TelemetryGear2MaxKmh);
+            if (TelemetryGear3MaxSlider is not null)
+                TelemetryGear3MaxSlider.Value = FromKmh(settings.TelemetryGear3MaxKmh);
+            if (TelemetryGear4MaxSlider is not null)
+                TelemetryGear4MaxSlider.Value = FromKmh(settings.TelemetryGear4MaxKmh);
+            if (TelemetryGear5MaxSlider is not null)
+                TelemetryGear5MaxSlider.Value = FromKmh(settings.TelemetryGear5MaxKmh);
+            if (TelemetryGear6MaxSlider is not null)
+                TelemetryGear6MaxSlider.Value = FromKmh(settings.TelemetryGear6MaxKmh);
+            if (TelemetryCrashDumpSlider is not null)
+                TelemetryCrashDumpSlider.Value = settings.TelemetryCrashDumpScale;
+            if (TelemetryRpmBounceAmountSlider is not null)
+                TelemetryRpmBounceAmountSlider.Value = settings.TelemetryRpmBounceAmount;
+            if (TelemetryRpmBounceHzSlider is not null)
+                TelemetryRpmBounceHzSlider.Value = settings.TelemetryRpmBounceHz;
+            if (TelemetryEngineVibrationScaleSlider is not null)
+                TelemetryEngineVibrationScaleSlider.Value = settings.TelemetryEngineVibrationScale;
+            if (TelemetryRumbleScaleSlider is not null)
+                TelemetryRumbleScaleSlider.Value = settings.TelemetrySurfaceRumbleScale;
+            if (TelemetryImpactScaleSlider is not null)
+                TelemetryImpactScaleSlider.Value = settings.TelemetryImpactScale;
+            if (TelemetryRoadLoadScaleSlider is not null)
+                TelemetryRoadLoadScaleSlider.Value = settings.TelemetryRoadLoadScale;
+            RefreshTelemetryTuningLabels();
+            ApplyTelemetryLiveMeterRanges(settings);
+        }
+        finally
+        {
+            _telemetryUiBusy = false;
+        }
+    }
+
+    private void PushTelemetryToBridge(AppSettings? settings = null)
+    {
+        settings ??= _profiles.LoadSettings();
+        _bridge.ConfigureTelemetry(new TelemetrySettings
+        {
+            Enabled = settings.TelemetryEnabled,
+            Host = settings.TelemetryHost,
+            Port = settings.TelemetryPort,
+            SendHz = settings.TelemetrySendHz,
+            Tuning = settings.ToTelemetryTuning(),
+        });
+    }
+
+    private void TelemetrySettings_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_telemetryUiBusy || !IsLoaded) return;
+        SaveTelemetrySettingsFromUi();
+    }
+
+    private void TelemetryHzSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_telemetryUiBusy || !IsLoaded) return;
+        if (TelemetryHzValueText is not null)
+            TelemetryHzValueText.Text = $"{(int)e.NewValue} Hz";
+        SaveTelemetrySettingsFromUi();
+    }
+
+    private void TelemetryTuningSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_telemetryUiBusy || !IsLoaded) return;
+        if (ReferenceEquals(sender, TelemetrySpeedMaxSlider) && TelemetrySpeedMaxSlider is not null)
+            SyncGearMaxSliderRanges(TelemetrySpeedMaxSlider.Value);
+        RefreshTelemetryTuningLabels();
+        SaveTelemetrySettingsFromUi();
+    }
+
+    private void TelemetryGearMaxSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_telemetryUiBusy || !IsLoaded) return;
+        RefreshTelemetryTuningLabels();
+        SaveTelemetrySettingsFromUi();
+    }
+
+    private void TelemetryRangeThumb_Changed(object? sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_telemetryUiBusy || !IsLoaded) return;
+        if (TelemetryRpmRange is not null)
+        {
+            SyncRpmRedlineSliderRange(
+                TelemetryRpmRange.LowerValue,
+                TelemetryRpmRange.UpperValue,
+                TelemetryRpmRedlineSlider?.Value ?? TelemetryRpmRange.UpperValue);
+        }
+        RefreshTelemetryTuningLabels();
+    }
+
+    private void TelemetryRange_Changed(object? sender, EventArgs e)
+    {
+        if (_telemetryUiBusy || !IsLoaded) return;
+        if (TelemetryRpmRange is not null)
+        {
+            SyncRpmRedlineSliderRange(
+                TelemetryRpmRange.LowerValue,
+                TelemetryRpmRange.UpperValue,
+                TelemetryRpmRedlineSlider?.Value ?? TelemetryRpmRange.UpperValue);
+        }
+        RefreshTelemetryTuningLabels();
+        SaveTelemetrySettingsFromUi();
+    }
+
+    private void SyncRpmRedlineSliderRange(double idleRpm, double maxRpm, double redlineRpm)
+    {
+        if (TelemetryRpmRedlineSlider is null)
+            return;
+
+        var min = Math.Max(100, idleRpm);
+        var max = Math.Max(min + 50, maxRpm);
+        TelemetryRpmRedlineSlider.Minimum = min;
+        TelemetryRpmRedlineSlider.Maximum = max;
+        var value = redlineRpm <= 0 ? max : redlineRpm;
+        TelemetryRpmRedlineSlider.Value = Math.Clamp(value, min, max);
+    }
+
+    private void ConfigureTelemetrySpeedControlRanges()
+    {
+        if (TelemetrySpeedMaxSlider is not null)
+        {
+            TelemetrySpeedMaxSlider.Minimum = FromKmh(20);
+            TelemetrySpeedMaxSlider.Maximum = AbsoluteSpeedMaxUi;
+            TelemetrySpeedMaxSlider.TickFrequency = _telemetryUseMph ? 1 : 5;
+        }
+
+        if (TelemetryAccelSlider is not null)
+        {
+            TelemetryAccelSlider.Minimum = FromKmh(5);
+            TelemetryAccelSlider.Maximum = FromKmh(200);
+        }
+
+        if (TelemetryBrakeDynSlider is not null)
+        {
+            TelemetryBrakeDynSlider.Minimum = FromKmh(10);
+            TelemetryBrakeDynSlider.Maximum = FromKmh(300);
+        }
+
+        if (TelemetryCoastSlider is not null)
+        {
+            TelemetryCoastSlider.Minimum = 0;
+            TelemetryCoastSlider.Maximum = FromKmh(120);
+        }
+
+        if (TelemetryGearSettleSlider is not null)
+        {
+            TelemetryGearSettleSlider.Minimum = 0;
+            TelemetryGearSettleSlider.Maximum = FromKmh(200);
+        }
+
+        if (TelemetrySpeedMaxTitle is not null)
+            TelemetrySpeedMaxTitle.Text = _telemetryUseMph ? "Max speed (MPH)" : "Max speed (km/h)";
+        if (TelemetryDynamicsTitle is not null)
+            TelemetryDynamicsTitle.Text = _telemetryUseMph ? "Speed dynamics (MPH/s)" : "Speed dynamics (km/h/s)";
+        if (TelemetryGearMaxTitle is not null)
+            TelemetryGearMaxTitle.Text = _telemetryUseMph ? "Gear caps (MPH)" : "Gear caps (km/h)";
+    }
+
+    private void SyncGearMaxSliderRanges(double speedMaxUi)
+    {
+        var max = Math.Clamp(speedMaxUi, FromKmh(20), AbsoluteSpeedMaxUi);
+        foreach (var slider in new[]
+                 {
+                     TelemetryGear1MaxSlider, TelemetryGear2MaxSlider, TelemetryGear3MaxSlider,
+                     TelemetryGear4MaxSlider, TelemetryGear5MaxSlider, TelemetryGear6MaxSlider,
+                 })
+        {
+            if (slider is null) continue;
+            slider.Minimum = FromKmh(5);
+            slider.Maximum = max;
+            if (slider.Value > max)
+                slider.Value = max;
+        }
+    }
+
+    private const double MphPerKmh = 0.621371192237;
+
+    private double AbsoluteSpeedMaxUi =>
+        _telemetryUseMph ? TelemetryTuning.AbsoluteSpeedMaxKmh * MphPerKmh : TelemetryTuning.AbsoluteSpeedMaxKmh;
+
+    private static double ToMph(double kmh) => kmh * MphPerKmh;
+    private static double ToKmh(double mph) => mph / MphPerKmh;
+
+    private double FromKmh(double kmh) => _telemetryUseMph ? ToMph(kmh) : kmh;
+    private double ToStoredKmh(double ui) => _telemetryUseMph ? ToKmh(ui) : ui;
+
+    private string FormatSpeedUi(double uiValue) =>
+        _telemetryUseMph ? $"{uiValue:0} MPH" : $"{uiValue:0} km/h";
+
+    private string FormatSpeedFromKmh(double kmh) => FormatSpeedUi(FromKmh(kmh));
+
+    private string FormatRateUi(double uiValue) =>
+        _telemetryUseMph ? $"{uiValue:0} MPH/s" : $"{uiValue:0} km/h/s";
+
+    private void RefreshTelemetryTuningLabels()
+    {
+        if (TelemetrySpeedMaxValueText is not null && TelemetrySpeedMaxSlider is not null)
+            TelemetrySpeedMaxValueText.Text = FormatSpeedUi(TelemetrySpeedMaxSlider.Value);
+        if (TelemetryRpmMinValueText is not null && TelemetryRpmRange is not null)
+            TelemetryRpmMinValueText.Text = $"{TelemetryRpmRange.LowerValue:0}";
+        if (TelemetryRpmMaxValueText is not null && TelemetryRpmRange is not null)
+            TelemetryRpmMaxValueText.Text = $"{TelemetryRpmRange.UpperValue:0}";
+        if (TelemetryRpmRedlineValueText is not null && TelemetryRpmRedlineSlider is not null)
+            TelemetryRpmRedlineValueText.Text = $"{TelemetryRpmRedlineSlider.Value:0}";
+        if (TelemetryAccelValueText is not null && TelemetryAccelSlider is not null)
+            TelemetryAccelValueText.Text = FormatRateUi(TelemetryAccelSlider.Value);
+        if (TelemetryBrakeDynValueText is not null && TelemetryBrakeDynSlider is not null)
+            TelemetryBrakeDynValueText.Text = FormatRateUi(TelemetryBrakeDynSlider.Value);
+        if (TelemetryCoastValueText is not null && TelemetryCoastSlider is not null)
+            TelemetryCoastValueText.Text = FormatRateUi(TelemetryCoastSlider.Value);
+        if (TelemetryAeroDragValueText is not null && TelemetryAeroDragSlider is not null)
+            TelemetryAeroDragValueText.Text = $"{TelemetryAeroDragSlider.Value:P0}";
+        if (TelemetryGearPullValueText is not null && TelemetryGearPullSlider is not null)
+            TelemetryGearPullValueText.Text = $"{TelemetryGearPullSlider.Value:P0}";
+        if (TelemetryGearSettleValueText is not null && TelemetryGearSettleSlider is not null)
+            TelemetryGearSettleValueText.Text = FormatRateUi(TelemetryGearSettleSlider.Value);
+        if (TelemetryGear1MaxValueText is not null && TelemetryGear1MaxSlider is not null)
+            TelemetryGear1MaxValueText.Text = FormatSpeedUi(TelemetryGear1MaxSlider.Value);
+        if (TelemetryGear2MaxValueText is not null && TelemetryGear2MaxSlider is not null)
+            TelemetryGear2MaxValueText.Text = FormatSpeedUi(TelemetryGear2MaxSlider.Value);
+        if (TelemetryGear3MaxValueText is not null && TelemetryGear3MaxSlider is not null)
+            TelemetryGear3MaxValueText.Text = FormatSpeedUi(TelemetryGear3MaxSlider.Value);
+        if (TelemetryGear4MaxValueText is not null && TelemetryGear4MaxSlider is not null)
+            TelemetryGear4MaxValueText.Text = FormatSpeedUi(TelemetryGear4MaxSlider.Value);
+        if (TelemetryGear5MaxValueText is not null && TelemetryGear5MaxSlider is not null)
+            TelemetryGear5MaxValueText.Text = FormatSpeedUi(TelemetryGear5MaxSlider.Value);
+        if (TelemetryGear6MaxValueText is not null && TelemetryGear6MaxSlider is not null)
+            TelemetryGear6MaxValueText.Text = FormatSpeedUi(TelemetryGear6MaxSlider.Value);
+        if (TelemetryCrashDumpValueText is not null && TelemetryCrashDumpSlider is not null)
+            TelemetryCrashDumpValueText.Text = $"{TelemetryCrashDumpSlider.Value:P0}";
+        if (TelemetryRpmBounceAmountValueText is not null && TelemetryRpmBounceAmountSlider is not null)
+            TelemetryRpmBounceAmountValueText.Text = $"{TelemetryRpmBounceAmountSlider.Value:P0}";
+        if (TelemetryRpmBounceHzValueText is not null && TelemetryRpmBounceHzSlider is not null)
+            TelemetryRpmBounceHzValueText.Text = $"{(int)TelemetryRpmBounceHzSlider.Value} Hz";
+        if (TelemetryEngineVibrationScaleValueText is not null && TelemetryEngineVibrationScaleSlider is not null)
+            TelemetryEngineVibrationScaleValueText.Text = $"{TelemetryEngineVibrationScaleSlider.Value:P0}";
+        if (TelemetryRumbleScaleValueText is not null && TelemetryRumbleScaleSlider is not null)
+            TelemetryRumbleScaleValueText.Text = $"{TelemetryRumbleScaleSlider.Value:P0}";
+        if (TelemetryImpactScaleValueText is not null && TelemetryImpactScaleSlider is not null)
+            TelemetryImpactScaleValueText.Text = $"{TelemetryImpactScaleSlider.Value:P0}";
+        if (TelemetryRoadLoadScaleValueText is not null && TelemetryRoadLoadScaleSlider is not null)
+            TelemetryRoadLoadScaleValueText.Text = $"{TelemetryRoadLoadScaleSlider.Value:P0}";
+    }
+
+    private void ApplyTelemetryLiveMeterRanges(AppSettings settings)
+    {
+        if (TelemetrySpeedBar is not null)
+            TelemetrySpeedBar.Maximum = Math.Max(20, settings.TelemetrySpeedMaxKmh);
+        if (TelemetryRpmBar is not null)
+            TelemetryRpmBar.Maximum = Math.Max(1000, settings.TelemetryRpmMax);
+    }
+
+    private void SaveTelemetrySettingsFromUi()
+    {
+        if (TelemetryEnabledCheck is null || TelemetryHostBox is null || TelemetryPortBox is null)
+            return;
+        if (!int.TryParse(TelemetryPortBox.Text.Trim(), out var port) || port is < 1 or > 65535)
+            port = SimHubPacket.DefaultPort;
+        var hz = TelemetryHzSlider is null
+            ? SimHubPacket.DefaultSendHz
+            : SimHubPacket.ClampSendHz((int)TelemetryHzSlider.Value);
+        UpdateAppSettings(s =>
+        {
+            s.TelemetryEnabled = TelemetryEnabledCheck.IsChecked == true;
+            s.TelemetryHost = string.IsNullOrWhiteSpace(TelemetryHostBox.Text)
+                ? SimHubPacket.DefaultHost
+                : TelemetryHostBox.Text.Trim();
+            s.TelemetryPort = port;
+            s.TelemetrySendHz = hz;
+            if (TelemetrySpeedMaxSlider is not null)
+            {
+                s.TelemetrySpeedMinKmh = 0f;
+                s.TelemetrySpeedMaxKmh = (float)ToStoredKmh(TelemetrySpeedMaxSlider.Value);
+            }
+            if (TelemetryRpmRange is not null)
+            {
+                s.TelemetryRpmMin = (float)TelemetryRpmRange.LowerValue;
+                s.TelemetryRpmMax = (float)TelemetryRpmRange.UpperValue;
+            }
+            if (TelemetryRpmRedlineSlider is not null)
+                s.TelemetryRpmRedline = (float)TelemetryRpmRedlineSlider.Value;
+            if (TelemetryAccelSlider is not null)
+                s.TelemetryAccelKmhPerSec = (float)ToStoredKmh(TelemetryAccelSlider.Value);
+            if (TelemetryBrakeDynSlider is not null)
+                s.TelemetryBrakeKmhPerSec = (float)ToStoredKmh(TelemetryBrakeDynSlider.Value);
+            if (TelemetryCoastSlider is not null)
+                s.TelemetryCoastKmhPerSec = (float)ToStoredKmh(TelemetryCoastSlider.Value);
+            if (TelemetryAeroDragSlider is not null)
+                s.TelemetryAeroDragScale = (float)TelemetryAeroDragSlider.Value;
+            if (TelemetryGearPullSlider is not null)
+                s.TelemetryGearPullScale = (float)TelemetryGearPullSlider.Value;
+            if (TelemetryGearSettleSlider is not null)
+                s.TelemetryGearSettleKmhPerSec = (float)ToStoredKmh(TelemetryGearSettleSlider.Value);
+            if (TelemetryGear1MaxSlider is not null)
+                s.TelemetryGear1MaxKmh = (float)ToStoredKmh(TelemetryGear1MaxSlider.Value);
+            if (TelemetryGear2MaxSlider is not null)
+                s.TelemetryGear2MaxKmh = (float)ToStoredKmh(TelemetryGear2MaxSlider.Value);
+            if (TelemetryGear3MaxSlider is not null)
+                s.TelemetryGear3MaxKmh = (float)ToStoredKmh(TelemetryGear3MaxSlider.Value);
+            if (TelemetryGear4MaxSlider is not null)
+                s.TelemetryGear4MaxKmh = (float)ToStoredKmh(TelemetryGear4MaxSlider.Value);
+            if (TelemetryGear5MaxSlider is not null)
+                s.TelemetryGear5MaxKmh = (float)ToStoredKmh(TelemetryGear5MaxSlider.Value);
+            if (TelemetryGear6MaxSlider is not null)
+                s.TelemetryGear6MaxKmh = (float)ToStoredKmh(TelemetryGear6MaxSlider.Value);
+            if (TelemetryCrashDumpSlider is not null)
+                s.TelemetryCrashDumpScale = (float)TelemetryCrashDumpSlider.Value;
+            if (TelemetryRpmBounceAmountSlider is not null)
+                s.TelemetryRpmBounceAmount = (float)TelemetryRpmBounceAmountSlider.Value;
+            if (TelemetryRpmBounceHzSlider is not null)
+                s.TelemetryRpmBounceHz = (float)TelemetryRpmBounceHzSlider.Value;
+            if (TelemetryEngineVibrationScaleSlider is not null)
+                s.TelemetryEngineVibrationScale = (float)TelemetryEngineVibrationScaleSlider.Value;
+            if (TelemetryRumbleScaleSlider is not null)
+                s.TelemetrySurfaceRumbleScale = (float)TelemetryRumbleScaleSlider.Value;
+            if (TelemetryImpactScaleSlider is not null)
+                s.TelemetryImpactScale = (float)TelemetryImpactScaleSlider.Value;
+            if (TelemetryRoadLoadScaleSlider is not null)
+                s.TelemetryRoadLoadScale = (float)TelemetryRoadLoadScaleSlider.Value;
+        });
+    }
+
+    private void TelemetryRegister_Click(object sender, RoutedEventArgs e)
+    {
+        SaveTelemetrySettingsFromUi();
+        var (ok, message) = SimHubRegistration.Register();
+        StatusText.Text = ok
+            ? "SimHub definition + RPM plugin registered. Activate G920 Emulator (estimated) in SimHub (9.11.5+), then restart SimHub."
+            : "SimHub register failed: " + message;
+        if (TelemetryStatusText is not null)
+            TelemetryStatusText.Text = ok ? message : "Register failed: " + message;
+    }
+
+    private void TelemetryUnregister_Click(object sender, RoutedEventArgs e)
+    {
+        var (ok, message) = SimHubRegistration.Unregister();
+        StatusText.Text = ok
+            ? "SimHub registration removed. Restart SimHub, then Register with SimHub to refresh the icon."
+            : "SimHub unregister failed: " + message;
+        if (TelemetryStatusText is not null)
+            TelemetryStatusText.Text = ok ? message : "Unregister failed: " + message;
+    }
+
+    private void ApplyTelemetryLive()
+    {
+        if (TelemetryStatusText is null)
+            return;
+        TelemetryStatusText.Text = _bridge.TelemetryStatus;
+        var t = _bridge.LatestTelemetry;
+        if (TelemetryGearText is not null)
+            TelemetryGearText.Text = "Gear " + (string.IsNullOrEmpty(t.Gear) ? "N" : t.Gear);
+        if (TelemetrySteerText is not null)
+            TelemetrySteerText.Text = $"Steering: {t.Steering:+0.00;-0.00;0.00}";
+        if (TelemetrySteerBar is not null)
+            TelemetrySteerBar.Value = t.Steering;
+        if (TelemetryThrottleText is not null)
+            TelemetryThrottleText.Text = $"Throttle: {t.Throttle * 100:0}%";
+        if (TelemetryThrottleBar is not null)
+            TelemetryThrottleBar.Value = t.Throttle;
+        if (TelemetryBrakeText is not null)
+            TelemetryBrakeText.Text = $"Brake: {t.Brake * 100:0}%";
+        if (TelemetryBrakeBar is not null)
+            TelemetryBrakeBar.Value = t.Brake;
+        if (TelemetryClutchText is not null)
+            TelemetryClutchText.Text = $"Clutch: {t.Clutch * 100:0}%";
+        if (TelemetryClutchBar is not null)
+            TelemetryClutchBar.Value = t.Clutch;
+        if (TelemetrySpeedText is not null)
+            TelemetrySpeedText.Text = $"Speed: {FormatSpeedFromKmh(t.SpeedKmh)} (estimated)";
+        if (TelemetrySpeedBar is not null)
+            TelemetrySpeedBar.Value = t.SpeedKmh;
+        if (TelemetryRpmText is not null)
+            TelemetryRpmText.Text = $"RPM: {t.EngineRpm:0} (estimated)";
+        if (TelemetryRpmBar is not null)
+            TelemetryRpmBar.Value = t.EngineRpm;
+        if (TelemetryEngineVibText is not null)
+            TelemetryEngineVibText.Text = $"Engine vibration: {t.EngineVibration * 100:0}%";
+        if (TelemetryEngineVibBar is not null)
+            TelemetryEngineVibBar.Value = t.EngineVibration;
+        const float g = 9.80665f;
+        var surgeG = t.LocalSurgeMs2 / g;
+        var swayG = t.LocalSwayMs2 / g;
+        var heaveG = t.LocalHeaveMs2 / g;
+        UpdateTelemetryGForceCircle(surgeG, swayG);
+        if (TelemetryGForceText is not null)
+        {
+            var totalXy = MathF.Sqrt(surgeG * surgeG + swayG * swayG);
+            TelemetryGForceText.Text =
+                $"{totalXy:0.00} g  ·  surge {surgeG:+0.00;-0.00;0.00}  sway {swayG:+0.00;-0.00;0.00}  heave {heaveG:0.00}";
+        }
+        if (TelemetryRumbleText is not null)
+            TelemetryRumbleText.Text = $"Surface rumble: {t.SurfaceRumble * 100:0}%";
+        if (TelemetryRumbleBar is not null)
+            TelemetryRumbleBar.Value = t.SurfaceRumble;
+        if (TelemetryImpactText is not null)
+            TelemetryImpactText.Text = $"Impact: {t.Impact * 100:0}%";
+        if (TelemetryImpactBar is not null)
+            TelemetryImpactBar.Value = t.Impact;
+        if (TelemetryLoadText is not null)
+            TelemetryLoadText.Text = $"Road load: {t.RoadLoad * 100:0}%";
+        if (TelemetryLoadBar is not null)
+            TelemetryLoadBar.Value = t.RoadLoad;
+
+        if (_telemetryDebugOverlay is { IsVisible: true })
+        {
+            var speedMax = TelemetrySpeedBar is not null ? (float)TelemetrySpeedBar.Maximum : 350f;
+            var rpmMax = TelemetryRpmBar is not null ? (float)TelemetryRpmBar.Maximum : 8000f;
+            _telemetryDebugOverlay.Update(
+                t,
+                _bridge.TelemetryStatus,
+                FormatSpeedFromKmh(t.SpeedKmh) + " (estimated)",
+                speedMax,
+                rpmMax);
+        }
+    }
+
+    /// <summary>
+    /// Vehicle-frame G-G plot (matches SimHub LocalSurge/LocalSway signs).
+    /// Accel (+surge) → up; brake (−surge) → down; left turn (+sway) → left.
+    /// </summary>
+    private void UpdateTelemetryGForceCircle(float surgeG, float swayG)
+    {
+        if (TelemetryGForceBall is null)
+            return;
+
+        const double maxG = 2.0;
+        const double center = 84.0;
+        const double radiusPx = 76.0; // outer ring inset
+        const double ballR = 7.0;
+
+        // Vehicle lateral: synthesizer +sway = left turn → ball to the left on the plot.
+        var rightG = Math.Clamp((double)(-swayG), -maxG, maxG);
+        // Vehicle longitudinal: +surge (accel) up, −surge (brake) down.
+        var forwardG = Math.Clamp((double)surgeG, -maxG, maxG);
+
+        var mag = Math.Sqrt(rightG * rightG + forwardG * forwardG);
+        if (mag > maxG && mag > 1e-6)
+        {
+            rightG *= maxG / mag;
+            forwardG *= maxG / mag;
+        }
+
+        var pxPerG = radiusPx / maxG;
+        Canvas.SetLeft(TelemetryGForceBall, center + rightG * pxPerG - ballR);
+        // Canvas Y grows downward; +forward (accel) is up on the plot.
+        Canvas.SetTop(TelemetryGForceBall, center - forwardG * pxPerG - ballR);
     }
 
     private void MinimizeToTrayMenuItem_Click(object sender, RoutedEventArgs e)
@@ -859,6 +1554,8 @@ public partial class MainWindow : Window
             EffectGains = _profile.FfbEffectGains,
             OutputFeel = _profile.FfbOutputFeel,
             Ffb = ffb,
+            TelemetryStatus = _bridge.TelemetryStatus,
+            Telemetry = _bridge.LatestTelemetry,
         };
     }
 
@@ -1024,6 +1721,192 @@ public partial class MainWindow : Window
         finally
         {
             _suppressFfbProfileCombo = false;
+        }
+    }
+
+    private void RefreshTelemetryProfilesCombo(string? selectName)
+    {
+        if (TelemetryProfilesCombo is null)
+            return;
+
+        _suppressTelemetryProfileCombo = true;
+        try
+        {
+            var names = _profiles.ListTelemetryProfiles();
+            TelemetryProfilesCombo.ItemsSource = names;
+            if (!string.IsNullOrWhiteSpace(selectName) &&
+                names.Contains(selectName, StringComparer.OrdinalIgnoreCase))
+            {
+                TelemetryProfilesCombo.SelectedItem =
+                    names.First(n => n.Equals(selectName, StringComparison.OrdinalIgnoreCase));
+            }
+            else if (names.Count > 0)
+            {
+                TelemetryProfilesCombo.SelectedItem =
+                    names.FirstOrDefault(n =>
+                        n.Equals(TelemetryProfile.DefaultProfileName, StringComparison.OrdinalIgnoreCase))
+                    ?? names[0];
+            }
+            else
+            {
+                TelemetryProfilesCombo.SelectedItem = null;
+            }
+        }
+        finally
+        {
+            _suppressTelemetryProfileCombo = false;
+        }
+    }
+
+    private void SaveCurrentTelemetryProfile(bool quiet)
+    {
+        SaveTelemetrySettingsFromUi();
+        var settings = _profiles.LoadSettings();
+        var profile = _profiles.CaptureTelemetryFromSettings(settings);
+        var name = string.IsNullOrWhiteSpace(profile.Name)
+            ? TelemetryProfile.DefaultProfileName
+            : profile.Name;
+        _profiles.SaveTelemetry(profile, name);
+        RefreshTelemetryProfilesCombo(profile.Name);
+        if (!quiet)
+            StatusText.Text = $"Saved telemetry profile '{profile.Name}'";
+    }
+
+    private void SaveTelemetryProfileButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            SaveCurrentTelemetryProfile(quiet: false);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Save telemetry profile", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void SaveTelemetryProfileAsButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            SaveTelemetrySettingsFromUi();
+            var settings = _profiles.LoadSettings();
+            var suggested = string.IsNullOrWhiteSpace(settings.LastTelemetryProfileName)
+                ? "My Telemetry"
+                : settings.LastTelemetryProfileName.Trim();
+            if (suggested.Equals(TelemetryProfile.DefaultProfileName, StringComparison.OrdinalIgnoreCase))
+                suggested = "My Telemetry";
+
+            var name = PromptForName("Save telemetry profile as", suggested);
+            if (name is null) return;
+
+            if (name.Equals(TelemetryProfile.DefaultProfileName, StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(
+                    "Choose a different name — Default is the built-in estimation preset.",
+                    "Save telemetry As");
+                return;
+            }
+
+            if (_profiles.TelemetryExists(name))
+            {
+                var overwrite = MessageBox.Show(
+                    $"Telemetry profile '{name}' already exists. Overwrite?",
+                    "Save telemetry As",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+                if (overwrite != MessageBoxResult.Yes)
+                    return;
+            }
+
+            var profile = TelemetryProfile.FromTuning(name, settings.ToTelemetryTuning());
+            _profiles.SaveTelemetry(profile, name);
+            UpdateAppSettings(s => s.LastTelemetryProfileName = name);
+            RefreshTelemetryProfilesCombo(name);
+            StatusText.Text = $"Saved telemetry profile '{name}'";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Save telemetry As", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void DefaultTelemetryProfileButton_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var defaults = TelemetryProfile.CreateDefault();
+            var settings = UpdateAppSettings(s => s.ApplyTelemetryTuning(defaults.Tuning));
+            var selected = TelemetryProfilesCombo?.SelectedItem as string
+                           ?? settings.LastTelemetryProfileName
+                           ?? TelemetryProfile.DefaultProfileName;
+            StatusText.Text = $"Telemetry sliders reset to defaults — Save to write '{selected}'";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Default telemetry", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void DeleteTelemetryProfileButton_Click(object sender, RoutedEventArgs e)
+    {
+        var name = TelemetryProfilesCombo?.SelectedItem as string
+                   ?? _profiles.LoadSettings().LastTelemetryProfileName;
+        if (string.IsNullOrWhiteSpace(name) || !_profiles.TelemetryExists(name))
+        {
+            MessageBox.Show("Select a saved telemetry profile to delete.", "Delete telemetry profile");
+            return;
+        }
+
+        if (name.Equals(TelemetryProfile.DefaultProfileName, StringComparison.OrdinalIgnoreCase))
+        {
+            MessageBox.Show(
+                "Default cannot be deleted — it is the built-in estimation preset.",
+                "Delete telemetry profile");
+            return;
+        }
+
+        var confirm = MessageBox.Show(
+            $"Delete telemetry profile '{name}'?",
+            "Delete telemetry profile",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (confirm != MessageBoxResult.Yes)
+            return;
+
+        _profiles.DeleteTelemetry(name);
+        var fallback = TelemetryProfile.DefaultProfileName;
+        if (_profiles.TelemetryExists(fallback))
+        {
+            var profile = _profiles.LoadTelemetry(fallback);
+            UpdateAppSettings(s => _profiles.ApplyTelemetryProfileToSettings(s, profile));
+        }
+        else
+        {
+            UpdateAppSettings(s =>
+            {
+                s.ApplyTelemetryTuning(TelemetryTuning.CreateDefault());
+                s.LastTelemetryProfileName = fallback;
+            });
+        }
+
+        StatusText.Text = $"Deleted telemetry '{name}' — switched to {fallback}";
+    }
+
+    private void TelemetryProfilesCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressTelemetryProfileCombo) return;
+        if (TelemetryProfilesCombo?.SelectedItem is not string name) return;
+        if (!_profiles.TelemetryExists(name)) return;
+
+        try
+        {
+            var profile = _profiles.LoadTelemetry(name);
+            UpdateAppSettings(s => _profiles.ApplyTelemetryProfileToSettings(s, profile));
+            StatusText.Text = $"Loaded telemetry profile '{name}'";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Load telemetry profile", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -1262,6 +2145,7 @@ public partial class MainWindow : Window
         }
 
         RefreshFfbDiagnostics();
+        ApplyTelemetryLive();
     }
 
     private void ScheduleLivePreviewPoll()
@@ -1550,20 +2434,155 @@ public partial class MainWindow : Window
             StatusText.Text = "Starting bridge…";
             _bridgeBusy = true;
 
-            // Do not auto-configure HidHide — leave whitelist / hide lists to the user
-            // (Dependencies → Configure HidHide, or HidHide Client).
+            // Optional HidHide: auto-apply hide-all-except-emulator; optional restore point.
             // Do NOT run full GHubConflictRepair here — it previously removed WinUHid enumerators.
             var sessionStarted = false;
+            var appSettings = _profiles.LoadSettings();
+            var autoApplyHidHide = appSettings.AutoApplyHidHideConfigOnStart;
+            var unloadHidHide = appSettings.UnloadHidHideConfigWhenStopped;
+            DependencyChecker.HidHideSnapshot? hidHideRevert = null;
+            var hidHideSaveRevert = false;
+
+            if (autoApplyHidHide)
+            {
+                // Client holds an exclusive lock on the filter — CLI gets 0x0005 while it is open.
+                if (DependencyChecker.IsHidHideClientRunning())
+                {
+                    var closeClient = MessageBox.Show(
+                        this,
+                        "HidHide Client is open.\n\n" +
+                        "While that window is open, Windows blocks other apps from reading or changing HidHide " +
+                        "(Access is denied / 0x0005).\n\n" +
+                        "Close HidHide Client now so Start can continue?",
+                        "HidHide Client is open",
+                        MessageBoxButton.YesNoCancel,
+                        MessageBoxImage.Warning);
+                    if (closeClient == MessageBoxResult.Cancel)
+                    {
+                        _bridgeBusy = false;
+                        SetBridgeControls(running: false, busy: false);
+                        StatusText.Text = "Start cancelled — close HidHide Client first.";
+                        return;
+                    }
+
+                    if (closeClient == MessageBoxResult.Yes)
+                    {
+                        StatusText.Text = "Closing HidHide Client…";
+                        await Task.Run(() => DependencyChecker.TryCloseHidHideClient()).ConfigureAwait(true);
+                    }
+                }
+            }
+
+            if (autoApplyHidHide && unloadHidHide)
+            {
+                // Ask first — reading HidHide is slow; don't pay for capture if the user picks No.
+                var saveChoice = MessageBox.Show(
+                    this,
+                    "Save today's HidHide setup as your restore point?\n\n" +
+                    "Yes — read HidHide now and put it back when you Stop\n" +
+                    "No — apply session hide only (Stop won't restore)\n" +
+                    "Cancel — don't start",
+                    "HidHide restore point",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+                if (saveChoice == MessageBoxResult.Cancel)
+                {
+                    _bridgeBusy = false;
+                    SetBridgeControls(running: false, busy: false);
+                    StatusText.Text = "Start cancelled.";
+                    return;
+                }
+
+                if (saveChoice == MessageBoxResult.Yes)
+                {
+                    DependencyChecker.HidHideSnapshot? snap = null;
+                    var captureError = "";
+                    while (true)
+                    {
+                        if (DependencyChecker.IsHidHideClientRunning())
+                        {
+                            StatusText.Text = "Closing HidHide Client…";
+                            await Task.Run(() => DependencyChecker.TryCloseHidHideClient()).ConfigureAwait(true);
+                        }
+
+                        StatusText.Text = "Reading HidHide configuration…";
+                        (snap, captureError) = await Task.Run(DependencyChecker.TryCaptureHidHideSnapshotDetailed)
+                            .ConfigureAwait(true);
+                        if (snap is not null)
+                            break;
+
+                        var clientLocked =
+                            DependencyChecker.IsHidHideClientRunning() ||
+                            captureError.Contains("HidHide Client is open", StringComparison.OrdinalIgnoreCase) ||
+                            captureError.Contains("0x0005", StringComparison.OrdinalIgnoreCase) ||
+                            captureError.Contains("Access is denied", StringComparison.OrdinalIgnoreCase);
+
+                        var failChoice = MessageBox.Show(
+                            this,
+                            "Couldn't read your current HidHide setup.\n\n" +
+                            captureError + "\n\n" +
+                            (clientLocked
+                                ? "HidHide Client must be closed (it locks the driver).\n\n" +
+                                  "Yes — close HidHide Client and try again\n"
+                                : "Windows may ask for admin permission.\n\n" +
+                                  "Yes — try reading again\n") +
+                            "No — start without a restore point (Stop won't put HidHide back)\n" +
+                            "Cancel — don't start",
+                            "HidHide",
+                            MessageBoxButton.YesNoCancel,
+                            MessageBoxImage.Warning);
+                        if (failChoice == MessageBoxResult.Yes)
+                        {
+                            if (clientLocked)
+                                await Task.Run(() => DependencyChecker.TryCloseHidHideClient()).ConfigureAwait(true);
+                            continue;
+                        }
+
+                        if (failChoice == MessageBoxResult.Cancel)
+                        {
+                            _bridgeBusy = false;
+                            SetBridgeControls(running: false, busy: false);
+                            StatusText.Text = "Start cancelled — HidHide could not be read.";
+                            return;
+                        }
+
+                        snap = null;
+                        break;
+                    }
+
+                    hidHideSaveRevert = snap is not null;
+                    hidHideRevert = snap;
+                }
+            }
+
             try
             {
                 await Task.Run(() =>
                 {
+                    if (autoApplyHidHide)
+                    {
+                        // Apply also needs the driver unlocked.
+                        if (DependencyChecker.IsHidHideClientRunning())
+                            DependencyChecker.TryCloseHidHideClient();
+
+                        var (hhOk, hhMsg) = unloadHidHide
+                            ? DependencyChecker.BeginHidHideSessionWithSnapshot(
+                                hidHideSaveRevert ? hidHideRevert : null)
+                            : DependencyChecker.RefreshHidHideSessionDevices();
+                        if (!hhOk)
+                            throw new InvalidOperationException(hhMsg);
+                    }
+
                     try { LogiJoyHidBinder.TryRemoveLogitechCol01(); } catch { /* ignore */ }
                     OemRegistrationSession.BeginSession();
                     sessionStarted = true;
                     GHubGuard.StartAppWatch();
                     try { _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes(); } catch { /* ignore */ }
                     _bridge.Start();
+
+                    // Virtual G920 now exists — re-hide pads/wheels and keep the emulator visible.
+                    if (autoApplyHidHide)
+                        DependencyChecker.RefreshHidHideSessionDevices();
                 }).ConfigureAwait(true);
             }
             catch
@@ -1572,6 +2591,10 @@ public partial class MainWindow : Window
                 {
                     try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
                     try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
+                }
+                if (hidHideSaveRevert || DependencyChecker.HasPendingHidHideSnapshot)
+                {
+                    try { DependencyChecker.EndHidHideSession(); } catch { /* ignore */ }
                 }
                 throw;
             }
@@ -1607,6 +2630,10 @@ public partial class MainWindow : Window
                     : _bridge.Ffb.IsReady
                         ? "Bridge running — virtual G920 active, FFB attached."
                         : "Bridge running — virtual G920 active.";
+            if (autoApplyHidHide && hidHideSaveRevert)
+                StatusText.Text += " HidHide restore point saved (restores on Stop).";
+            else if (autoApplyHidHide)
+                StatusText.Text += " HidHide session applied.";
             // Keep the footer short; FFB details live under FFB debug.
             DriverText.Text = !string.IsNullOrWhiteSpace(_virtual.LastError)
                 ? _virtual.LastError
@@ -1667,11 +2694,41 @@ public partial class MainWindow : Window
         finally
         {
             try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
-            _bridgeBusy = false;
         }
 
+        var hidHideNote = "";
+        if (_profiles.LoadSettings().UnloadHidHideConfigWhenStopped ||
+            DependencyChecker.HasPendingHidHideSnapshot)
+        {
+            // Keep Start/Stop disabled until HidHide finishes — same as exit.
+            StatusText.Text = "Restoring HidHide…";
+            try
+            {
+                if (DependencyChecker.IsHidHideClientRunning())
+                {
+                    StatusText.Text = "Closing HidHide Client…";
+                    await Task.Run(() => DependencyChecker.TryCloseHidHideClient()).ConfigureAwait(true);
+                    StatusText.Text = "Restoring HidHide…";
+                }
+
+                var (ok, msg) = await Task.Run(() =>
+                        DependencyChecker.EndHidHideSession(timeoutMs: DependencyChecker.HidHideRestoreStopTimeoutMs))
+                    .ConfigureAwait(true);
+                hidHideNote = ok ? " HidHide restored." : " " + msg;
+            }
+            catch (Exception ex)
+            {
+                hidHideNote = " HidHide restore failed: " + ex.Message;
+            }
+            finally
+            {
+                try { DependencyChecker.KillOrphanHidHideHelpers(); } catch { /* ignore */ }
+            }
+        }
+
+        _bridgeBusy = false;
         SetBridgeControls(running: false, busy: false);
-        StatusText.Text = "Bridge stopped. OEM/SDK restored (Forza-safe).";
+        StatusText.Text = "Bridge stopped. OEM/SDK restored (Forza-safe)." + hidHideNote;
         try { UpdateDependencyUi(); } catch { /* ignore */ }
         try { RefreshDevices(restoreHidden: false); } catch { /* ignore */ }
     }
@@ -1974,24 +3031,47 @@ public partial class MainWindow : Window
             return;
         if (!G920ControlInfo.TryGetSliderBindById(effect, out var bind))
             return;
+        var slider = EffectGainSliderFor(bind.Minus);
+        if (slider is null)
+            return;
 
+        var storedDefault = _profile.GetFfbBindDefault(bind.Id, slider.Value);
         FfbEffectBindWindow? dlg = null;
         dlg = new FfbEffectBindWindow(
             bind.Display,
+            bind.Id,
             bind.Minus,
             bind.Plus,
+            bind.Default,
             _profile,
+            slider.Minimum,
+            slider.Maximum,
+            storedDefault,
+            slider.TickFrequency > 0 ? slider.TickFrequency : bind.FineStep,
+            v => FormatFfbBindDefaultValue(bind.Id, v),
             ResolveDeviceName,
             target => OpenBindDialog(target, dlg))
         {
             Owner = this,
         };
-        dlg.ShowDialog();
-        if (!dlg.Changed)
+        if (dlg.ShowDialog() != true)
             return;
+        _profile.SetFfbBindDefault(bind.Id, dlg.DefaultValue);
         _bridge.Profile = _profile;
+        AutoSaveCurrent();
         RefreshFfbBindButtons();
     }
+
+    private static string FormatFfbBindDefaultValue(string sliderId, double value) => sliderId switch
+    {
+        "Master" or "Constant" or "Spring" or "Damper" or "Friction" or "Inertia"
+            or "Periodic" or "Ramp" or "Custom" or "PeakSoft" or "Spike"
+            or "CenterStrength" or "CenterRange" or "DampVel" or "DampDead" => $"{value:P0}",
+        "SoftStart" => $"{value:0} ms",
+        "Smoothing" or "Slew" or "Epsilon" => $"{value:0}",
+        "Deadband" or "CenterDeadzone" => $"{value:0.###}",
+        _ => value.ToString("0.##"),
+    };
 
     private void RefreshFfbBindButtons()
     {
@@ -2005,15 +3085,17 @@ public partial class MainWindow : Window
 
             var minusSources = _profile.GetOrCreate(bind.Minus).EffectiveSources;
             var plusSources = _profile.GetOrCreate(bind.Plus).EffectiveSources;
+            var defaultSources = _profile.GetOrCreate(bind.Default).EffectiveSources;
             var minusBound = minusSources.Count > 0;
             var plusBound = plusSources.Count > 0;
-            var bound = minusBound || plusBound;
+            var defaultBound = defaultSources.Count > 0;
+            var bound = minusBound || plusBound || defaultBound;
             button.Style = bound ? boundStyle : unboundStyle;
             button.Content = "Bind";
 
             if (!bound)
             {
-                button.ToolTip = $"Assign hardware buttons to lower / raise {bind.Display} while you drive.";
+                button.ToolTip = $"Assign hardware buttons to lower / raise / set default for {bind.Display} while you drive.";
                 continue;
             }
 
@@ -2027,7 +3109,13 @@ public partial class MainWindow : Window
                     ? "+ " + FormatSource(plusSources[0], ResolveDeviceName, axisTarget: false)
                     : $"+ {plusSources.Count} sources"
                 : "+ not bound";
-            button.ToolTip = $"{minusLabel}\n{plusLabel}\nClick to change or clear.";
+            var defaultValue = _profile.GetFfbBindDefault(bind.Id, EffectGainSliderFor(bind.Minus)?.Value ?? 0);
+            var defaultLabel = defaultBound
+                ? defaultSources.Count == 1
+                    ? $"⌂ {FormatSource(defaultSources[0], ResolveDeviceName, axisTarget: false)} → {FormatFfbBindDefaultValue(bind.Id, defaultValue)}"
+                    : $"⌂ {defaultSources.Count} sources → {FormatFfbBindDefaultValue(bind.Id, defaultValue)}"
+                : "⌂ not bound";
+            button.ToolTip = $"{minusLabel}\n{plusLabel}\n{defaultLabel}\nClick to change or clear.";
         }
     }
 
@@ -2066,6 +3154,10 @@ public partial class MainWindow : Window
                 continue;
             }
 
+            // Set-as-default is edge-triggered only (no hold repeat).
+            if (G920ControlInfo.IsFfbDefault(target))
+                continue;
+
             if (now - _ffbNudgeHoldStart[i] < coarseAfterMs)
                 continue;
             if (now - _ffbNudgeLastFire[i] < coarseRepeatMs)
@@ -2081,66 +3173,78 @@ public partial class MainWindow : Window
         var slider = EffectGainSliderFor(target);
         if (slider is null || !slider.IsEnabled)
             return;
-        var delta = G920ControlInfo.FfbNudgeDelta(target, coarse);
-        var step = Math.Abs(delta);
-        var decimals = step >= 1 ? 0 : step >= 0.01 ? 2 : 3;
-        var next = Math.Clamp(slider.Value + delta, slider.Minimum, slider.Maximum);
-        slider.Value = Math.Round(next, decimals, MidpointRounding.AwayFromZero);
         if (!G920ControlInfo.TryGetSliderBind(target, out var bind))
             return;
+
+        if (G920ControlInfo.IsFfbDefault(target))
+        {
+            var snap = Math.Clamp(_profile.GetFfbBindDefault(bind.Id, slider.Value), slider.Minimum, slider.Maximum);
+            var step = bind.FineStep;
+            var decimals = step >= 1 ? 0 : step >= 0.01 ? 2 : 3;
+            slider.Value = Math.Round(snap, decimals, MidpointRounding.AwayFromZero);
+        }
+        else
+        {
+            var delta = G920ControlInfo.FfbNudgeDelta(target, coarse);
+            var step = Math.Abs(delta);
+            var decimals = step >= 1 ? 0 : step >= 0.01 ? 2 : 3;
+            var next = Math.Clamp(slider.Value + delta, slider.Minimum, slider.Maximum);
+            slider.Value = Math.Round(next, decimals, MidpointRounding.AwayFromZero);
+        }
+
         var valueText = NudgeValueTextFor(target)?.Text;
         ShowEffectChangeToast(bind.Category, bind.Display, string.IsNullOrWhiteSpace(valueText) ? slider.Value.ToString("0.##") : valueText);
     }
 
     private Slider? EffectGainSliderFor(G920Control target) => target switch
     {
-        G920Control.FfbConstantMinus or G920Control.FfbConstantPlus => GainConstantSlider,
-        G920Control.FfbSpringMinus or G920Control.FfbSpringPlus => GainSpringSlider,
-        G920Control.FfbDamperMinus or G920Control.FfbDamperPlus => GainDamperSlider,
-        G920Control.FfbFrictionMinus or G920Control.FfbFrictionPlus => GainFrictionSlider,
-        G920Control.FfbInertiaMinus or G920Control.FfbInertiaPlus => GainInertiaSlider,
-        G920Control.FfbPeriodicMinus or G920Control.FfbPeriodicPlus => GainPeriodicSlider,
-        G920Control.FfbRampMinus or G920Control.FfbRampPlus => GainRampSlider,
-        G920Control.FfbCustomMinus or G920Control.FfbCustomPlus => GainCustomSlider,
-        G920Control.FfbMasterMinus or G920Control.FfbMasterPlus => GainSlider,
-        G920Control.FfbSmoothingMinus or G920Control.FfbSmoothingPlus => FeelSmoothingSlider,
-        G920Control.FfbPeakSoftMinus or G920Control.FfbPeakSoftPlus => FeelPeakSoftSlider,
-        G920Control.FfbSoftStartMinus or G920Control.FfbSoftStartPlus => FeelSoftStartSlider,
-        G920Control.FfbDeadbandMinus or G920Control.FfbDeadbandPlus => FeelDeadbandSlider,
-        G920Control.FfbSlewMinus or G920Control.FfbSlewPlus => FeelSlewSlider,
-        G920Control.FfbSpikeMinus or G920Control.FfbSpikePlus => FeelSpikeSlider,
-        G920Control.FfbEpsilonMinus or G920Control.FfbEpsilonPlus => FeelEpsilonSlider,
-        G920Control.FfbCenterStrengthMinus or G920Control.FfbCenterStrengthPlus => CenterStrengthSlider,
-        G920Control.FfbCenterRangeMinus or G920Control.FfbCenterRangePlus => CenterRangeSlider,
-        G920Control.FfbCenterDeadzoneMinus or G920Control.FfbCenterDeadzonePlus => CenterDeadzoneSlider,
-        G920Control.FfbDampVelMinus or G920Control.FfbDampVelPlus => DamperVelScaleSlider,
-        G920Control.FfbDampDeadMinus or G920Control.FfbDampDeadPlus => DamperDeadbandScaleSlider,
+        G920Control.FfbConstantMinus or G920Control.FfbConstantPlus or G920Control.FfbConstantDefault => GainConstantSlider,
+        G920Control.FfbSpringMinus or G920Control.FfbSpringPlus or G920Control.FfbSpringDefault => GainSpringSlider,
+        G920Control.FfbDamperMinus or G920Control.FfbDamperPlus or G920Control.FfbDamperDefault => GainDamperSlider,
+        G920Control.FfbFrictionMinus or G920Control.FfbFrictionPlus or G920Control.FfbFrictionDefault => GainFrictionSlider,
+        G920Control.FfbInertiaMinus or G920Control.FfbInertiaPlus or G920Control.FfbInertiaDefault => GainInertiaSlider,
+        G920Control.FfbPeriodicMinus or G920Control.FfbPeriodicPlus or G920Control.FfbPeriodicDefault => GainPeriodicSlider,
+        G920Control.FfbRampMinus or G920Control.FfbRampPlus or G920Control.FfbRampDefault => GainRampSlider,
+        G920Control.FfbCustomMinus or G920Control.FfbCustomPlus or G920Control.FfbCustomDefault => GainCustomSlider,
+        G920Control.FfbMasterMinus or G920Control.FfbMasterPlus or G920Control.FfbMasterDefault => GainSlider,
+        G920Control.FfbSmoothingMinus or G920Control.FfbSmoothingPlus or G920Control.FfbSmoothingDefault => FeelSmoothingSlider,
+        G920Control.FfbPeakSoftMinus or G920Control.FfbPeakSoftPlus or G920Control.FfbPeakSoftDefault => FeelPeakSoftSlider,
+        G920Control.FfbSoftStartMinus or G920Control.FfbSoftStartPlus or G920Control.FfbSoftStartDefault => FeelSoftStartSlider,
+        G920Control.FfbDeadbandMinus or G920Control.FfbDeadbandPlus or G920Control.FfbDeadbandDefault => FeelDeadbandSlider,
+        G920Control.FfbSlewMinus or G920Control.FfbSlewPlus or G920Control.FfbSlewDefault => FeelSlewSlider,
+        G920Control.FfbSpikeMinus or G920Control.FfbSpikePlus or G920Control.FfbSpikeDefault => FeelSpikeSlider,
+        G920Control.FfbEpsilonMinus or G920Control.FfbEpsilonPlus or G920Control.FfbEpsilonDefault => FeelEpsilonSlider,
+        G920Control.FfbCenterStrengthMinus or G920Control.FfbCenterStrengthPlus or G920Control.FfbCenterStrengthDefault => CenterStrengthSlider,
+        G920Control.FfbCenterRangeMinus or G920Control.FfbCenterRangePlus or G920Control.FfbCenterRangeDefault => CenterRangeSlider,
+        G920Control.FfbCenterDeadzoneMinus or G920Control.FfbCenterDeadzonePlus or G920Control.FfbCenterDeadzoneDefault => CenterDeadzoneSlider,
+        G920Control.FfbDampVelMinus or G920Control.FfbDampVelPlus or G920Control.FfbDampVelDefault => DamperVelScaleSlider,
+        G920Control.FfbDampDeadMinus or G920Control.FfbDampDeadPlus or G920Control.FfbDampDeadDefault => DamperDeadbandScaleSlider,
         _ => null,
     };
 
     private TextBlock? NudgeValueTextFor(G920Control target) => target switch
     {
-        G920Control.FfbConstantMinus or G920Control.FfbConstantPlus => GainConstantValueText,
-        G920Control.FfbSpringMinus or G920Control.FfbSpringPlus => GainSpringValueText,
-        G920Control.FfbDamperMinus or G920Control.FfbDamperPlus => GainDamperValueText,
-        G920Control.FfbFrictionMinus or G920Control.FfbFrictionPlus => GainFrictionValueText,
-        G920Control.FfbInertiaMinus or G920Control.FfbInertiaPlus => GainInertiaValueText,
-        G920Control.FfbPeriodicMinus or G920Control.FfbPeriodicPlus => GainPeriodicValueText,
-        G920Control.FfbRampMinus or G920Control.FfbRampPlus => GainRampValueText,
-        G920Control.FfbCustomMinus or G920Control.FfbCustomPlus => GainCustomValueText,
-        G920Control.FfbMasterMinus or G920Control.FfbMasterPlus => GainValueText,
-        G920Control.FfbSmoothingMinus or G920Control.FfbSmoothingPlus => FeelSmoothingValueText,
-        G920Control.FfbPeakSoftMinus or G920Control.FfbPeakSoftPlus => FeelPeakSoftValueText,
-        G920Control.FfbSoftStartMinus or G920Control.FfbSoftStartPlus => FeelSoftStartValueText,
-        G920Control.FfbDeadbandMinus or G920Control.FfbDeadbandPlus => FeelDeadbandValueText,
-        G920Control.FfbSlewMinus or G920Control.FfbSlewPlus => FeelSlewValueText,
-        G920Control.FfbSpikeMinus or G920Control.FfbSpikePlus => FeelSpikeValueText,
-        G920Control.FfbEpsilonMinus or G920Control.FfbEpsilonPlus => FeelEpsilonValueText,
-        G920Control.FfbCenterStrengthMinus or G920Control.FfbCenterStrengthPlus => CenterStrengthValueText,
-        G920Control.FfbCenterRangeMinus or G920Control.FfbCenterRangePlus => CenterRangeValueText,
-        G920Control.FfbCenterDeadzoneMinus or G920Control.FfbCenterDeadzonePlus => CenterDeadzoneValueText,
-        G920Control.FfbDampVelMinus or G920Control.FfbDampVelPlus => DamperVelScaleValueText,
-        G920Control.FfbDampDeadMinus or G920Control.FfbDampDeadPlus => DamperDeadbandScaleValueText,
+        G920Control.FfbConstantMinus or G920Control.FfbConstantPlus or G920Control.FfbConstantDefault => GainConstantValueText,
+        G920Control.FfbSpringMinus or G920Control.FfbSpringPlus or G920Control.FfbSpringDefault => GainSpringValueText,
+        G920Control.FfbDamperMinus or G920Control.FfbDamperPlus or G920Control.FfbDamperDefault => GainDamperValueText,
+        G920Control.FfbFrictionMinus or G920Control.FfbFrictionPlus or G920Control.FfbFrictionDefault => GainFrictionValueText,
+        G920Control.FfbInertiaMinus or G920Control.FfbInertiaPlus or G920Control.FfbInertiaDefault => GainInertiaValueText,
+        G920Control.FfbPeriodicMinus or G920Control.FfbPeriodicPlus or G920Control.FfbPeriodicDefault => GainPeriodicValueText,
+        G920Control.FfbRampMinus or G920Control.FfbRampPlus or G920Control.FfbRampDefault => GainRampValueText,
+        G920Control.FfbCustomMinus or G920Control.FfbCustomPlus or G920Control.FfbCustomDefault => GainCustomValueText,
+        G920Control.FfbMasterMinus or G920Control.FfbMasterPlus or G920Control.FfbMasterDefault => GainValueText,
+        G920Control.FfbSmoothingMinus or G920Control.FfbSmoothingPlus or G920Control.FfbSmoothingDefault => FeelSmoothingValueText,
+        G920Control.FfbPeakSoftMinus or G920Control.FfbPeakSoftPlus or G920Control.FfbPeakSoftDefault => FeelPeakSoftValueText,
+        G920Control.FfbSoftStartMinus or G920Control.FfbSoftStartPlus or G920Control.FfbSoftStartDefault => FeelSoftStartValueText,
+        G920Control.FfbDeadbandMinus or G920Control.FfbDeadbandPlus or G920Control.FfbDeadbandDefault => FeelDeadbandValueText,
+        G920Control.FfbSlewMinus or G920Control.FfbSlewPlus or G920Control.FfbSlewDefault => FeelSlewValueText,
+        G920Control.FfbSpikeMinus or G920Control.FfbSpikePlus or G920Control.FfbSpikeDefault => FeelSpikeValueText,
+        G920Control.FfbEpsilonMinus or G920Control.FfbEpsilonPlus or G920Control.FfbEpsilonDefault => FeelEpsilonValueText,
+        G920Control.FfbCenterStrengthMinus or G920Control.FfbCenterStrengthPlus or G920Control.FfbCenterStrengthDefault => CenterStrengthValueText,
+        G920Control.FfbCenterRangeMinus or G920Control.FfbCenterRangePlus or G920Control.FfbCenterRangeDefault => CenterRangeValueText,
+        G920Control.FfbCenterDeadzoneMinus or G920Control.FfbCenterDeadzonePlus or G920Control.FfbCenterDeadzoneDefault => CenterDeadzoneValueText,
+        G920Control.FfbDampVelMinus or G920Control.FfbDampVelPlus or G920Control.FfbDampVelDefault => DamperVelScaleValueText,
+        G920Control.FfbDampDeadMinus or G920Control.FfbDampDeadPlus or G920Control.FfbDampDeadDefault => DamperDeadbandScaleValueText,
         _ => null,
     };
 
@@ -2404,6 +3508,7 @@ public partial class MainWindow : Window
     private void BeginFfbValueEdit(TextBlock label, Slider slider, FfbValueEditKind kind)
     {
         CancelFfbValueEdit();
+        CancelTelemetryValueEdit();
         if (label.Parent is not Panel panel) return;
 
         var edit = new TextBox
@@ -2534,6 +3639,320 @@ public partial class MainWindow : Window
         {
             FfbValueEditKind.Percent01to2 or FfbValueEditKind.Percent0to1 =>
                 percent || n > max + 0.0001 ? n / 100.0 : n,
+            _ => n,
+        };
+        value = Math.Clamp(value, min, max);
+        return true;
+    }
+
+    private enum TelemetryValueEditKind
+    {
+        Speed,      // MPH or km/h per Settings → Telemetry speed unit
+        RatePerSec, // MPH/s or km/h/s per the same unit setting
+        Percent0to2,
+        Integer,
+        Hertz,
+    }
+
+    private sealed record TelemetryEditBinding(
+        Func<double> Get,
+        Action<double> Set,
+        double Min,
+        double Max,
+        TelemetryValueEditKind Kind);
+
+    private void TelemetryValueLabel_Click(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not TextBlock label) return;
+        if (!TryGetTelemetryEditBinding(label, out var binding)) return;
+        e.Handled = true;
+        BeginTelemetryValueEdit(label, binding);
+    }
+
+    private bool TryGetTelemetryEditBinding(TextBlock label, out TelemetryEditBinding binding)
+    {
+        if (ReferenceEquals(label, TelemetryHzValueText) && TelemetryHzSlider is not null)
+        {
+            binding = new(() => TelemetryHzSlider.Value, v => TelemetryHzSlider.Value = v,
+                TelemetryHzSlider.Minimum, TelemetryHzSlider.Maximum, TelemetryValueEditKind.Hertz);
+            return true;
+        }
+
+        if (ReferenceEquals(label, TelemetrySpeedMaxValueText) && TelemetrySpeedMaxSlider is not null)
+        {
+            binding = new(
+                () => TelemetrySpeedMaxSlider.Value,
+                v =>
+                {
+                    TelemetrySpeedMaxSlider.Value = v;
+                    SyncGearMaxSliderRanges(TelemetrySpeedMaxSlider.Value);
+                },
+                TelemetrySpeedMaxSlider.Minimum, TelemetrySpeedMaxSlider.Maximum, TelemetryValueEditKind.Speed);
+            return true;
+        }
+
+        if (ReferenceEquals(label, TelemetryRpmMinValueText) && TelemetryRpmRange is not null)
+        {
+            binding = new(
+                () => TelemetryRpmRange.LowerValue,
+                v => TelemetryRpmRange.LowerValue = Math.Min(v, TelemetryRpmRange.UpperValue),
+                TelemetryRpmRange.Minimum, TelemetryRpmRange.Maximum, TelemetryValueEditKind.Integer);
+            return true;
+        }
+
+        if (ReferenceEquals(label, TelemetryRpmMaxValueText) && TelemetryRpmRange is not null)
+        {
+            binding = new(
+                () => TelemetryRpmRange.UpperValue,
+                v =>
+                {
+                    TelemetryRpmRange.UpperValue = Math.Max(v, TelemetryRpmRange.LowerValue);
+                    SyncRpmRedlineSliderRange(
+                        TelemetryRpmRange.LowerValue,
+                        TelemetryRpmRange.UpperValue,
+                        TelemetryRpmRedlineSlider?.Value ?? TelemetryRpmRange.UpperValue);
+                },
+                TelemetryRpmRange.Minimum, TelemetryRpmRange.Maximum, TelemetryValueEditKind.Integer);
+            return true;
+        }
+
+        if (TrySliderBinding(label, TelemetryRpmRedlineValueText, TelemetryRpmRedlineSlider, TelemetryValueEditKind.Integer, out binding))
+            return true;
+
+        if (TrySliderBinding(label, TelemetryAccelValueText, TelemetryAccelSlider, TelemetryValueEditKind.RatePerSec, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryBrakeDynValueText, TelemetryBrakeDynSlider, TelemetryValueEditKind.RatePerSec, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryCoastValueText, TelemetryCoastSlider, TelemetryValueEditKind.RatePerSec, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryAeroDragValueText, TelemetryAeroDragSlider, TelemetryValueEditKind.Percent0to2, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryGearPullValueText, TelemetryGearPullSlider, TelemetryValueEditKind.Percent0to2, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryGearSettleValueText, TelemetryGearSettleSlider, TelemetryValueEditKind.RatePerSec, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryGear1MaxValueText, TelemetryGear1MaxSlider, TelemetryValueEditKind.Speed, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryGear2MaxValueText, TelemetryGear2MaxSlider, TelemetryValueEditKind.Speed, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryGear3MaxValueText, TelemetryGear3MaxSlider, TelemetryValueEditKind.Speed, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryGear4MaxValueText, TelemetryGear4MaxSlider, TelemetryValueEditKind.Speed, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryGear5MaxValueText, TelemetryGear5MaxSlider, TelemetryValueEditKind.Speed, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryGear6MaxValueText, TelemetryGear6MaxSlider, TelemetryValueEditKind.Speed, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryCrashDumpValueText, TelemetryCrashDumpSlider, TelemetryValueEditKind.Percent0to2, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryRpmBounceAmountValueText, TelemetryRpmBounceAmountSlider, TelemetryValueEditKind.Percent0to2, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryRpmBounceHzValueText, TelemetryRpmBounceHzSlider, TelemetryValueEditKind.Hertz, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryEngineVibrationScaleValueText, TelemetryEngineVibrationScaleSlider, TelemetryValueEditKind.Percent0to2, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryRumbleScaleValueText, TelemetryRumbleScaleSlider, TelemetryValueEditKind.Percent0to2, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryImpactScaleValueText, TelemetryImpactScaleSlider, TelemetryValueEditKind.Percent0to2, out binding))
+            return true;
+        if (TrySliderBinding(label, TelemetryRoadLoadScaleValueText, TelemetryRoadLoadScaleSlider, TelemetryValueEditKind.Percent0to2, out binding))
+            return true;
+
+        binding = null!;
+        return false;
+    }
+
+    private static bool TrySliderBinding(
+        TextBlock label, TextBlock? expected, Slider? slider, TelemetryValueEditKind kind, out TelemetryEditBinding binding)
+    {
+        if (!ReferenceEquals(label, expected) || slider is null)
+        {
+            binding = null!;
+            return false;
+        }
+
+        binding = new(() => slider.Value, v => slider.Value = v, slider.Minimum, slider.Maximum, kind);
+        return true;
+    }
+
+    private void BeginTelemetryValueEdit(TextBlock label, TelemetryEditBinding binding)
+    {
+        CancelTelemetryValueEdit();
+        CancelFfbValueEdit();
+        if (label.Parent is not Panel panel) return;
+
+        // Prefer the laid-out width; for narrow labels (e.g. RPM) ensure room to type 5 digits.
+        var width = label.ActualWidth > 1 ? label.ActualWidth : Math.Max(56, label.MinWidth);
+        if (width < 52) width = 52;
+        var edit = new TextBox
+        {
+            Width = width,
+            MinWidth = width,
+            Height = 22,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = label.HorizontalAlignment,
+            FontSize = label.FontSize,
+            Text = FormatTelemetryEditSeed(binding.Get(), binding.Kind),
+            Tag = binding,
+            Margin = label.Margin,
+        };
+        if (DockPanel.GetDock(label) == Dock.Right)
+            DockPanel.SetDock(edit, Dock.Right);
+
+        var index = panel.Children.IndexOf(label);
+        panel.Children.Remove(label);
+        if (index < 0) panel.Children.Add(edit);
+        else panel.Children.Insert(index, edit);
+
+        _telemetryValueEditBox = edit;
+        _telemetryValueEditLabel = label;
+        edit.KeyDown += TelemetryValueEdit_KeyDown;
+        edit.LostKeyboardFocus += TelemetryValueEdit_LostFocus;
+        edit.Focus();
+        edit.SelectAll();
+    }
+
+    private static string FormatTelemetryEditSeed(double value, TelemetryValueEditKind kind) => kind switch
+    {
+        TelemetryValueEditKind.Percent0to2 => $"{value * 100:0.##}",
+        TelemetryValueEditKind.Hertz => $"{value:0}",
+        TelemetryValueEditKind.Integer => $"{value:0}",
+        TelemetryValueEditKind.Speed or TelemetryValueEditKind.RatePerSec => $"{value:0.##}",
+        _ => value.ToString("0.###"),
+    };
+
+    private void TelemetryValueEdit_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            CommitTelemetryValueEdit(save: true);
+        }
+        else if (e.Key == Key.Escape)
+        {
+            e.Handled = true;
+            CancelTelemetryValueEdit();
+        }
+    }
+
+    private void TelemetryValueEdit_LostFocus(object sender, KeyboardFocusChangedEventArgs e) =>
+        CommitTelemetryValueEdit(save: true);
+
+    private void CommitTelemetryValueEdit(bool save)
+    {
+        var edit = _telemetryValueEditBox;
+        var label = _telemetryValueEditLabel;
+        if (edit is null || label is null) return;
+
+        _telemetryValueEditBox = null;
+        _telemetryValueEditLabel = null;
+
+        if (save && edit.Tag is TelemetryEditBinding binding &&
+            TryParseTelemetryEdit(edit.Text, binding.Kind, binding.Min, binding.Max, out var value))
+        {
+            binding.Set(value);
+            RefreshTelemetryTuningLabels();
+            if (binding.Kind == TelemetryValueEditKind.Hertz)
+            {
+                if (TelemetryHzValueText is not null && TelemetryHzSlider is not null)
+                    TelemetryHzValueText.Text = $"{(int)TelemetryHzSlider.Value} Hz";
+            }
+
+            SaveTelemetrySettingsFromUi();
+        }
+
+        EndTelemetryValueEdit(edit, label);
+        RefreshTelemetryTuningLabels();
+        if (TelemetryHzValueText is not null && TelemetryHzSlider is not null &&
+            ReferenceEquals(label, TelemetryHzValueText))
+            TelemetryHzValueText.Text = $"{(int)TelemetryHzSlider.Value} Hz";
+    }
+
+    private void CancelTelemetryValueEdit()
+    {
+        var edit = _telemetryValueEditBox;
+        var label = _telemetryValueEditLabel;
+        if (edit is null || label is null) return;
+        _telemetryValueEditBox = null;
+        _telemetryValueEditLabel = null;
+        EndTelemetryValueEdit(edit, label);
+        RefreshTelemetryTuningLabels();
+        if (TelemetryHzValueText is not null && TelemetryHzSlider is not null &&
+            ReferenceEquals(label, TelemetryHzValueText))
+            TelemetryHzValueText.Text = $"{(int)TelemetryHzSlider.Value} Hz";
+    }
+
+    private void EndTelemetryValueEdit(TextBox edit, TextBlock label)
+    {
+        edit.KeyDown -= TelemetryValueEdit_KeyDown;
+        edit.LostKeyboardFocus -= TelemetryValueEdit_LostFocus;
+        if (edit.Parent is Panel panel)
+        {
+            var index = panel.Children.IndexOf(edit);
+            panel.Children.Remove(edit);
+            if (index < 0) panel.Children.Add(label);
+            else panel.Children.Insert(index, label);
+        }
+    }
+
+    private bool TryParseTelemetryEdit(
+        string? text, TelemetryValueEditKind kind, double min, double max, out double value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        var s = text.Trim();
+        var percent = s.EndsWith('%');
+        if (percent) s = s[..^1].Trim();
+
+        var forcedKmh = false;
+        var forcedMph = false;
+        if (s.EndsWith("km/h/s", StringComparison.OrdinalIgnoreCase))
+        {
+            forcedKmh = true;
+            s = s[..^6].Trim();
+        }
+        else if (s.EndsWith("mph/s", StringComparison.OrdinalIgnoreCase))
+        {
+            forcedMph = true;
+            s = s[..^5].Trim();
+        }
+        else if (s.EndsWith("km/h", StringComparison.OrdinalIgnoreCase))
+        {
+            forcedKmh = true;
+            s = s[..^4].Trim();
+        }
+        else if (s.EndsWith("mph", StringComparison.OrdinalIgnoreCase))
+        {
+            forcedMph = true;
+            s = s[..^3].Trim();
+        }
+        else if (s.EndsWith("hz", StringComparison.OrdinalIgnoreCase))
+        {
+            s = s[..^2].Trim();
+        }
+        else if (s.EndsWith("/s", StringComparison.OrdinalIgnoreCase))
+        {
+            s = s[..^2].Trim();
+        }
+
+        // "34 · 55" → take the first number.
+        var sep = s.IndexOf('·');
+        if (sep < 0) sep = s.IndexOf('|');
+        if (sep >= 0) s = s[..sep].Trim();
+
+        if (!double.TryParse(s, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var n) &&
+            !double.TryParse(s, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.CurrentCulture, out n))
+            return false;
+
+        value = kind switch
+        {
+            TelemetryValueEditKind.Percent0to2 => percent || n > max + 0.0001 ? n / 100.0 : n,
+            TelemetryValueEditKind.Speed or TelemetryValueEditKind.RatePerSec =>
+                forcedKmh ? FromKmh(n) :
+                forcedMph ? (_telemetryUseMph ? n : ToKmh(n)) :
+                n,
             _ => n,
         };
         value = Math.Clamp(value, min, max);

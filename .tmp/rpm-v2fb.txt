@@ -1,0 +1,123 @@
+==== ExternalSimManagerV2.GD_FeedbackData ====
+  // ExternalSimManagerV2.GD_FeedbackData len=309
+  ldarg.0 
+  call GameReaderCommon.Feedback.FeedbackData GD_FeedbackData()
+  stloc.0 
+  ldloc.0 
+  callvirt Double[] get_WheelSlip()
+  ldc.i4.0 
+  ldarg.0 
+  call GameReaderCommon.StatusData`1[SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry] get_NewData()
+  ldfld SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry Raw
+  ldc.i4.s 71
+  ldc.r4 0
+  callvirt Single GetValueOrDefault[Single](SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType, Single)
+  conv.r8 
+  stelem.r8 
+  ldloc.0 
+  callvirt Double[] get_WheelSlip()
+  ldc.i4.1 
+  ldarg.0 
+  call GameReaderCommon.StatusData`1[SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry] get_NewData()
+  ldfld SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry Raw
+  ldc.i4.s 72
+  ldc.r4 0
+  callvirt Single GetValueOrDefault[Single](SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType, Single)
+  conv.r8 
+  stelem.r8 
+  ldloc.0 
+  callvirt Double[] get_WheelSlip()
+  ldc.i4.2 
+  ldarg.0 
+  call GameReaderCommon.StatusData`1[SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry] get_NewData()
+  ldfld SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry Raw
+  ldc.i4.s 73
+  ldc.r4 0
+  callvirt Single GetValueOrDefault[Single](SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType, Single)
+  conv.r8 
+  stelem.r8 
+  ldloc.0 
+  callvirt Double[] get_WheelSlip()
+  ldc.i4.3 
+  ldarg.0 
+  call GameReaderCommon.StatusData`1[SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry] get_NewData()
+  ldfld SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry Raw
+  ldc.i4.s 74
+  ldc.r4 0
+  callvirt Single GetValueOrDefault[Single](SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType, Single)
+  conv.r8 
+  stelem.r8 
+  ldloc.0 
+  callvirt Boolean[] get_WheelsOnKerbs()
+  ldc.i4.0 
+  ldarg.0 
+  ldarg.0 
+  call GameReaderCommon.StatusData`1[SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry] get_NewData()
+  ldfld SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry Raw
+  ldc.i4.s 83
+  ldc.i4.0 
+  callvirt UInt16 GetValueOrDefault[UInt16](SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType, UInt16)
+  ldc.i4.1 
+  newarr SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface
+  dup 
+  ldc.i4.0 
+  ldc.i4.2 
+  stelem.i2 
+  call Boolean In(SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface, SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface[])
+  stelem.i1 
+  ldloc.0 
+  callvirt Boolean[] get_WheelsOnKerbs()
+  ldc.i4.1 
+  ldarg.0 
+  ldarg.0 
+  call GameReaderCommon.StatusData`1[SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry] get_NewData()
+  ldfld SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry Raw
+  ldc.i4.s 84
+  ldc.i4.0 
+  callvirt UInt16 GetValueOrDefault[UInt16](SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType, UInt16)
+  ldc.i4.1 
+  newarr SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface
+  dup 
+  ldc.i4.0 
+  ldc.i4.2 
+  stelem.i2 
+  call Boolean In(SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface, SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface[])
+  stelem.i1 
+  ldloc.0 
+  callvirt Boolean[] get_WheelsOnKerbs()
+  ldc.i4.2 
+  ldarg.0 
+  ldarg.0 
+  call GameReaderCommon.StatusData`1[SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry] get_NewData()
+  ldfld SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry Raw
+  ldc.i4.s 85
+  ldc.i4.0 
+  callvirt UInt16 GetValueOrDefault[UInt16](SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType, UInt16)
+  ldc.i4.1 
+  newarr SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface
+  dup 
+  ldc.i4.0 
+  ldc.i4.2 
+  stelem.i2 
+  call Boolean In(SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface, SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface[])
+  stelem.i1 
+  ldloc.0 
+  callvirt Boolean[] get_WheelsOnKerbs()
+  ldc.i4.3 
+  ldarg.0 
+  ldarg.0 
+  call GameReaderCommon.StatusData`1[SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry] get_NewData()
+  ldfld SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry Raw
+  ldc.i4.s 86
+  ldc.i4.0 
+  callvirt UInt16 GetValueOrDefault[UInt16](SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType, UInt16)
+  ldc.i4.1 
+  newarr SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface
+  dup 
+  ldc.i4.0 
+  ldc.i4.2 
+  stelem.i2 
+  call Boolean In(SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface, SimHub.Plugins.ExternalSims.Fields.StandardFields.TyreContactSurface[])
+  stelem.i1 
+  ldloc.0 
+  ret 

@@ -11,6 +11,12 @@ namespace G920Emulator.VirtualHid;
 public sealed class VirtualG920Device : IVirtualG920Device
 {
     /// <summary>
+    /// When true, Stop/Dispose will not fire-and-forget pnputil orphan cleanup (exit path).
+    /// Those child processes inherit CWD and keep the install folder locked after Exit.
+    /// </summary>
+    public static bool SuppressDeferredDeviceCleanup { get; set; }
+
+    /// <summary>
     /// When true, each host HID++ write is appended to %TEMP%\g920-hidpp-ingress.log.
     /// Off by default — enabled while the app status-bar Debug session is active.
     /// </summary>
@@ -442,7 +448,13 @@ public sealed class VirtualG920Device : IVirtualG920Device
                 try { if (hardwareIds.IsAllocated) hardwareIds.Free(); } catch { /* ignore */ }
                 try { if (instanceId.IsAllocated) instanceId.Free(); } catch { /* ignore */ }
                 // Orphan cleanup can run pnputil for seconds — always after Destroy.
-                try { _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes(); } catch { /* ignore */ }
+                // Skip on app exit: fire-and-forget pnputil survives Environment.Exit and
+                // pins the install folder (CWD) so Desktop\G920Emulator cannot be deleted.
+                if (!SuppressDeferredDeviceCleanup)
+                {
+                    try { _ = GHubConflictRepair.RemoveDisconnectedVirtualNodes(); }
+                    catch { /* ignore */ }
+                }
             });
             _nativeTeardown = teardown;
 

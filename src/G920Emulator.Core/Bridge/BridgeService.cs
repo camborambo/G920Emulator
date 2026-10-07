@@ -3,6 +3,8 @@ using G920Emulator.Core.Ffb;
 using G920Emulator.Core.Input;
 using G920Emulator.Core.Mapping;
 using G920Emulator.Core.Models;
+using G920Emulator.Core.Profiles;
+using G920Emulator.Core.Telemetry;
 
 namespace G920Emulator.Core.Bridge;
 
@@ -104,6 +106,17 @@ public sealed class BridgeService : IDisposable
     private const int InputTargetPeriodMs = 2;
     /// <summary>Background DI rescan interval. Hot-path RefreshDevices was hitching steering.</summary>
     private const int InputRefreshIntervalMs = 8000;
+    private readonly TelemetrySynthesizer _telemetrySynth = new();
+    private readonly SimHubUdpSender _telemetryUdp = new();
+    private readonly byte[] _telemetryPacket = SimHubPacket.CreateBuffer();
+    private readonly ulong _telemetryEmitterId = SimHubRegistrationId();
+    private TelemetrySettings _telemetrySettings = new();
+    private TelemetryFrame _latestTelemetry;
+    private ulong _telemetrySessionId;
+    private ulong _telemetryPackets;
+    private double _telemetrySessionTime;
+    private long _lastTelemetrySendTick;
+    private string _telemetryStatus = "Telemetry: off";
 
     public InputHub InputHub => _inputHub;
     public FfbBridge Ffb => _ffb;
@@ -141,6 +154,36 @@ public sealed class BridgeService : IDisposable
 
     /// <summary>Input / virtual-device health while the bridge runs (empty when OK).</summary>
     public string LinkStatus { get { lock (_gate) return _linkStatus; } }
+
+    public TelemetryFrame LatestTelemetry { get { lock (_gate) return _latestTelemetry; } }
+    public string TelemetryStatus { get { lock (_gate) return _telemetryStatus; } }
+    public double TelemetryPacketsPerSecond => _telemetryUdp.PacketsPerSecond;
+
+    public void ConfigureTelemetry(TelemetrySettings settings)
+    {
+        settings ??= new TelemetrySettings();
+        var hz = SimHubPacket.ClampSendHz(settings.SendHz);
+        var tuning = (settings.Tuning ?? TelemetryTuning.CreateDefault()).Clone();
+        lock (_gate)
+        {
+            _telemetrySettings = new TelemetrySettings
+            {
+                Enabled = settings.Enabled,
+                Host = string.IsNullOrWhiteSpace(settings.Host) ? SimHubPacket.DefaultHost : settings.Host.Trim(),
+                Port = settings.Port is < 1 or > 65535 ? SimHubPacket.DefaultPort : settings.Port,
+                SendHz = hz,
+                Tuning = tuning,
+            };
+            _telemetrySynth.Configure(tuning);
+            if (!_telemetrySettings.Enabled)
+                _telemetryStatus = "Telemetry: off";
+        }
+
+        _telemetryUdp.Configure(
+            string.IsNullOrWhiteSpace(settings.Host) ? SimHubPacket.DefaultHost : settings.Host.Trim(),
+            settings.Port is < 1 or > 65535 ? SimHubPacket.DefaultPort : settings.Port);
+        EngineVibrationScaleBridge.Publish(tuning.EngineVibrationScale);
+    }
 
     public void AttachVirtualDevice(IVirtualG920Device device)
     {
@@ -242,6 +285,13 @@ public sealed class BridgeService : IDisposable
         _submitFailStreak = 0;
         _lastInputRefreshTick = 0;
         lock (_gate) _linkStatus = "";
+
+        _telemetrySynth.Reset();
+        _telemetryUdp.ResetStats();
+        _telemetrySessionId = SimHubRegistrationId();
+        _telemetryPackets = 0;
+        _telemetrySessionTime = 0;
+        _lastTelemetrySendTick = 0;
 
         _cts = new CancellationTokenSource();
         _loop = Task.Factory.StartNew(() => RunLoop(_cts.Token), _cts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
@@ -628,6 +678,8 @@ public sealed class BridgeService : IDisposable
 
                 try { mappedCallback?.Invoke(mapped); }
                 catch { /* add-on errors must not stop the bridge */ }
+
+                PublishTelemetry(mapped, ffbSteer, sw.Elapsed.TotalSeconds > 0 ? sw.Elapsed.TotalSeconds : InputTargetPeriodMs / 1000.0);
             }
             catch
             {
@@ -878,5 +930,53 @@ public sealed class BridgeService : IDisposable
         _virtualDevice?.Dispose();
         _ffb.Dispose();
         _inputHub.Dispose();
+        _telemetryUdp.Dispose();
+    }
+
+    private void PublishTelemetry(MappedG920State mapped, float steering, double dtSec)
+    {
+        TelemetrySettings settings;
+        lock (_gate) settings = _telemetrySettings;
+
+        var intervalTicks = Stopwatch.Frequency / Math.Max(1, settings.SendHz);
+        var now = Stopwatch.GetTimestamp();
+        if (_lastTelemetrySendTick != 0 && now - _lastTelemetrySendTick < intervalTicks)
+            return;
+        if (_lastTelemetrySendTick != 0)
+            dtSec = (now - _lastTelemetrySendTick) / (double)Stopwatch.Frequency;
+        _lastTelemetrySendTick = now;
+
+        OemFfbSharedMemory.Snapshot? oem = null;
+        if (OemFfbSharedMemory.TryRead(out var snap, out _) && !snap.IsStale())
+            oem = snap;
+
+        var knownGame = GameProcessProbe.IsKnownGameRunning();
+        var frame = _telemetrySynth.Update(mapped, steering, oem, knownGame, dtSec);
+        lock (_gate) _latestTelemetry = frame;
+
+        if (!settings.Enabled)
+        {
+            lock (_gate) _telemetryStatus = "Telemetry: off";
+            return;
+        }
+        _telemetrySessionTime += dtSec;
+        _telemetryPackets++;
+        EngineVibrationScaleBridge.Publish(settings.Tuning.EngineVibrationScale);
+        SimHubPacket.Write(_telemetryPacket, frame, _telemetryEmitterId, _telemetrySessionId, _telemetryPackets, _telemetrySessionTime);
+        var sent = _telemetryUdp.TrySend(_telemetryPacket);
+        lock (_gate)
+        {
+            _latestTelemetry = frame;
+            var err = _telemetryUdp.LastError;
+            _telemetryStatus = !sent && !string.IsNullOrWhiteSpace(err)
+                ? $"Telemetry: {err}"
+                : $"Telemetry: {_telemetryUdp.PacketsPerSecond:0} pkt/s → {settings.Host}:{settings.Port}";
+        }
+    }
+
+    private static ulong SimHubRegistrationId()
+    {
+        var g = Guid.NewGuid().ToByteArray();
+        return BitConverter.ToUInt64(g, 0);
     }
 }

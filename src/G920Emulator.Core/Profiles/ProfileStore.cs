@@ -1,6 +1,7 @@
 using System.Text.Json;
 using G920Emulator.Core.Ffb;
 using G920Emulator.Core.Models;
+using G920Emulator.Core.Telemetry;
 
 namespace G920Emulator.Core.Profiles;
 
@@ -14,6 +15,7 @@ public sealed class ProfileStore
 
     public string ProfilesDirectory { get; }
     public string FfbProfilesDirectory { get; }
+    public string TelemetryProfilesDirectory { get; }
     public string SettingsPath { get; }
 
     /// <summary>
@@ -38,9 +40,11 @@ public sealed class ProfileStore
         var root = UsesPortableStorage ? exeRoot : appDataRoot;
         ProfilesDirectory = Path.Combine(root, "profiles");
         FfbProfilesDirectory = Path.Combine(root, "ffb-profiles");
+        TelemetryProfilesDirectory = Path.Combine(root, "telemetry-profiles");
         SettingsPath = Path.Combine(root, "settings.json");
         Directory.CreateDirectory(ProfilesDirectory);
         Directory.CreateDirectory(FfbProfilesDirectory);
+        Directory.CreateDirectory(TelemetryProfilesDirectory);
 
         if (!UsesPortableStorage)
         {
@@ -56,6 +60,7 @@ public sealed class ProfileStore
         EnsureNfsUnboundHeatFfbProfile();
         RemoveLegacySeededFfbProfiles();
         MigrateNfsUnboundHeatCfPolarity();
+        EnsureDefaultTelemetryProfile();
     }
 
     private static bool TryEnsureWritableProfilesDir(string root)
@@ -211,19 +216,9 @@ public sealed class ProfileStore
             if (!Directory.Exists(legacyRoot))
                 return;
 
-            var legacyProfiles = Path.Combine(legacyRoot, "profiles");
-            var newProfiles = Path.Combine(newRoot, "profiles");
-            Directory.CreateDirectory(newProfiles);
-            if (Directory.Exists(legacyProfiles))
-            {
-                foreach (var file in Directory.EnumerateFiles(legacyProfiles, "*.json"))
-                {
-                    // Never overwrite an existing AppData profile with a leftover install copy.
-                    var dest = Path.Combine(newProfiles, Path.GetFileName(file));
-                    if (!File.Exists(dest))
-                        File.Copy(file, dest);
-                }
-            }
+            CopyJsonFolder(Path.Combine(legacyRoot, "profiles"), Path.Combine(newRoot, "profiles"));
+            CopyJsonFolder(Path.Combine(legacyRoot, "ffb-profiles"), Path.Combine(newRoot, "ffb-profiles"));
+            CopyJsonFolder(Path.Combine(legacyRoot, "telemetry-profiles"), Path.Combine(newRoot, "telemetry-profiles"));
 
             var legacySettings = Path.Combine(legacyRoot, "settings.json");
             var newSettings = Path.Combine(newRoot, "settings.json");
@@ -233,6 +228,20 @@ public sealed class ProfileStore
         catch
         {
             // Best-effort migration only.
+        }
+    }
+
+    private static void CopyJsonFolder(string legacyDir, string newDir)
+    {
+        if (!Directory.Exists(legacyDir))
+            return;
+        Directory.CreateDirectory(newDir);
+        foreach (var file in Directory.EnumerateFiles(legacyDir, "*.json"))
+        {
+            // Never overwrite an existing AppData profile with a leftover install copy.
+            var dest = Path.Combine(newDir, Path.GetFileName(file));
+            if (!File.Exists(dest))
+                File.Copy(file, dest);
         }
     }
 
@@ -327,6 +336,97 @@ public sealed class ProfileStore
             File.Delete(path);
     }
 
+    private void EnsureDefaultTelemetryProfile()
+    {
+        try
+        {
+            if (Directory.EnumerateFiles(TelemetryProfilesDirectory, "*.json").Any())
+                return;
+
+            // Seed from current settings so existing tuning isn't lost when profiles are introduced.
+            AppSettings settings;
+            try { settings = LoadSettings(); }
+            catch { settings = new AppSettings(); }
+
+            settings.NormalizeTelemetryTuning();
+            var profile = TelemetryProfile.FromTuning(TelemetryProfile.DefaultProfileName, settings.ToTelemetryTuning());
+            profile.Save(GetTelemetryPath(profile.Name));
+            settings.LastTelemetryProfileName = profile.Name;
+            SaveSettings(settings);
+        }
+        catch
+        {
+            // Best-effort seed only.
+        }
+    }
+
+    public IReadOnlyList<string> ListTelemetryProfiles()
+    {
+        EnsureDefaultTelemetryProfile();
+        return Directory.EnumerateFiles(TelemetryProfilesDirectory, "*.json")
+            .Select(path =>
+            {
+                try
+                {
+                    var named = TelemetryProfile.Load(path).Name;
+                    if (!string.IsNullOrWhiteSpace(named))
+                        return named.Trim();
+                }
+                catch
+                {
+                    // Fall back to file name.
+                }
+                return Path.GetFileNameWithoutExtension(path) ?? "profile";
+            })
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public string GetTelemetryPath(string profileName) =>
+        Path.Combine(TelemetryProfilesDirectory, Sanitize(profileName) + ".json");
+
+    public bool TelemetryExists(string profileName) => File.Exists(GetTelemetryPath(profileName));
+
+    public TelemetryProfile LoadTelemetry(string profileName) =>
+        TelemetryProfile.Load(GetTelemetryPath(profileName));
+
+    public void SaveTelemetry(TelemetryProfile profile, string profileName)
+    {
+        profile.Name = profileName.Trim();
+        profile.Save(GetTelemetryPath(profileName));
+        var settings = LoadSettings();
+        settings.LastTelemetryProfileName = profile.Name;
+        SaveSettings(settings);
+    }
+
+    public void DeleteTelemetry(string profileName)
+    {
+        if (profileName.Equals(TelemetryProfile.DefaultProfileName, StringComparison.OrdinalIgnoreCase))
+            return; // always keep the Default preset
+        var path = GetTelemetryPath(profileName);
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
+    public TelemetryProfile CaptureTelemetryFromSettings(AppSettings settings)
+    {
+        settings.NormalizeTelemetryTuning();
+        var name = string.IsNullOrWhiteSpace(settings.LastTelemetryProfileName)
+            ? TelemetryProfile.DefaultProfileName
+            : settings.LastTelemetryProfileName.Trim();
+        return TelemetryProfile.FromTuning(name, settings.ToTelemetryTuning());
+    }
+
+    /// <summary>Copy a telemetry profile's tuning into app settings (host/port/rate unchanged).</summary>
+    public void ApplyTelemetryProfileToSettings(AppSettings settings, TelemetryProfile profile)
+    {
+        profile.Normalize();
+        settings.ApplyTelemetryTuning(profile.Tuning);
+        settings.LastTelemetryProfileName = profile.Name;
+    }
+
     /// <summary>
     /// Load the linked FFB profile into the mapping profile's working FFB fields.
     /// Migrates legacy inline FFB settings into a new FFB profile when needed.
@@ -401,8 +501,18 @@ public sealed class ProfileStore
         {
             if (!File.Exists(SettingsPath))
                 return new AppSettings();
-            return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(SettingsPath), JsonOptions)
+            var json = File.ReadAllText(SettingsPath);
+            var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions)
                    ?? new AppSettings();
+            // Older builds only had Unload (= apply on Start + restore on Stop).
+            if (settings.UnloadHidHideConfigWhenStopped &&
+                !json.Contains("AutoApplyHidHideConfigOnStart", StringComparison.Ordinal))
+            {
+                settings.AutoApplyHidHideConfigOnStart = true;
+                SaveSettings(settings);
+            }
+            settings.NormalizeTelemetryTuning();
+            return settings;
         }
         catch
         {
@@ -412,6 +522,7 @@ public sealed class ProfileStore
 
     public void SaveSettings(AppSettings settings)
     {
+        settings.NormalizeTelemetryTuning();
         File.WriteAllText(SettingsPath, JsonSerializer.Serialize(settings, JsonOptions));
     }
 
@@ -447,6 +558,7 @@ public sealed class AppSettings
 {
     public string? LastProfileName { get; set; }
     public string? LastFfbProfileName { get; set; }
+    public string? LastTelemetryProfileName { get; set; }
 
     /// <summary>Device instance IDs hidden from the Detected devices list until the next Refresh devices.</summary>
     public List<string> HiddenDeviceIds { get; set; } = [];
@@ -454,10 +566,15 @@ public sealed class AppSettings
     /// <summary>When true, minimizing hides the window in the notification area. Close still quits.</summary>
     public bool MinimizeToSystemTray { get; set; }
 
-    /// <summary>Topmost in-game overlay of live G920 inputs and FFB diagnostics.</summary>
+    /// <summary>Topmost in-game FFB Debug Overlay (live G920 inputs + FFB diagnostics).</summary>
     public bool DebugOverlay { get; set; }
     public double? DebugOverlayLeft { get; set; }
     public double? DebugOverlayTop { get; set; }
+
+    /// <summary>Topmost in-game Telemetry Debug Overlay (live SimHub UDP packet).</summary>
+    public bool TelemetryDebugOverlay { get; set; }
+    public double? TelemetryDebugOverlayLeft { get; set; }
+    public double? TelemetryDebugOverlayTop { get; set; }
 
     /// <summary>Brief top-center HUD when hardware FFB effect-gain binds fire.</summary>
     public bool EffectChangesOverlay { get; set; } = true;
@@ -465,6 +582,171 @@ public sealed class AppSettings
     /// <summary>Ask GitHub at launch whether a newer published release exists.</summary>
     public bool CheckForUpdates { get; set; } = true;
 
+    /// <summary>
+    /// When true, Start whitelists the emulator and hides all other controllers/wheels
+    /// (virtual G920 stays visible). Off = leave the user's HidHide config alone.
+    /// </summary>
+    public bool AutoApplyHidHideConfigOnStart { get; set; }
+
+    /// <summary>
+    /// When true (and auto-apply runs), Start snapshots HidHide first and Stop restores it.
+    /// </summary>
+    public bool UnloadHidHideConfigWhenStopped { get; set; }
+
+    /// <summary>
+    /// UI unit for telemetry speed tuning/display: <c>mph</c> (default) or <c>kmh</c>.
+    /// SimHub packets always use km/h regardless.
+    /// </summary>
+    public string TelemetrySpeedUnit { get; set; } = "mph";
+
     /// <summary>Release tag the user chose Later for (e.g. v0.2.6). A newer tag notifies again.</summary>
     public string? DismissedUpdateTag { get; set; }
+
+    /// <summary>Send synthesized telemetry to SimHub (UDP External Sim) for games with no native feed.</summary>
+    public bool TelemetryEnabled { get; set; }
+
+    public string TelemetryHost { get; set; } = SimHubPacket.DefaultHost;
+    public int TelemetryPort { get; set; } = SimHubPacket.DefaultPort;
+    public int TelemetrySendHz { get; set; } = SimHubPacket.DefaultSendHz;
+
+    /// <summary>Estimated speed floor when moving (km/h). Stopped still reports 0.</summary>
+    public float TelemetrySpeedMinKmh { get; set; } = TelemetryTuning.DefaultSpeedMinKmh;
+
+    /// <summary>Estimated speed ceiling (km/h).</summary>
+    public float TelemetrySpeedMaxKmh { get; set; } = TelemetryTuning.DefaultSpeedMaxKmh;
+
+    /// <summary>Idle / minimum estimated RPM.</summary>
+    public float TelemetryRpmMin { get; set; } = TelemetryTuning.DefaultRpmMin;
+
+    /// <summary>Engine max / gauge ceiling (SimHub EngineMaxRpm).</summary>
+    public float TelemetryRpmMax { get; set; } = TelemetryTuning.DefaultRpmMax;
+
+    /// <summary>Absolute redline / shift point (SimHub EngineShiftRpm). Not a percent.</summary>
+    public float TelemetryRpmRedline { get; set; } = TelemetryTuning.DefaultRpmRedline;
+
+    /// <summary>Scale for SurfaceRumble (1 = 100%).</summary>
+    public float TelemetrySurfaceRumbleScale { get; set; } = 1f;
+
+    /// <summary>Scale for Impact (1 = 100%).</summary>
+    public float TelemetryImpactScale { get; set; } = 1f;
+
+    /// <summary>Scale for RoadLoad (1 = 100%).</summary>
+    public float TelemetryRoadLoadScale { get; set; } = 1f;
+
+    /// <summary>Scale for ShakeIt Engine vibrations force (1 = 100%). RPM is always sent.</summary>
+    public float TelemetryEngineVibrationScale { get; set; } = 1f;
+
+    /// <summary>Rev-limiter bounce depth when pinned at gear top (0 = off, 1 = 100%).</summary>
+    public float TelemetryRpmBounceAmount { get; set; } = TelemetryTuning.DefaultRpmBounceAmount;
+
+    /// <summary>Rev-limiter bounce flutter rate (Hz).</summary>
+    public float TelemetryRpmBounceHz { get; set; } = TelemetryTuning.DefaultRpmBounceHz;
+
+    /// <summary>Estimated full-throttle accel (km/h per second).</summary>
+    public float TelemetryAccelKmhPerSec { get; set; } = TelemetryTuning.DefaultAccelKmhPerSec;
+
+    /// <summary>Estimated full-brake decel (km/h per second).</summary>
+    public float TelemetryBrakeKmhPerSec { get; set; } = TelemetryTuning.DefaultBrakeKmhPerSec;
+
+    /// <summary>Estimated coast / engine-brake (km/h per second).</summary>
+    public float TelemetryCoastKmhPerSec { get; set; } = TelemetryTuning.DefaultCoastKmhPerSec;
+
+    /// <summary>High-speed aero drag scale (1 = 100%).</summary>
+    public float TelemetryAeroDragScale { get; set; } = TelemetryTuning.DefaultAeroDragScale;
+
+    /// <summary>Gear pull strength on throttle accel (1 = 100%).</summary>
+    public float TelemetryGearPullScale { get; set; } = TelemetryTuning.DefaultGearPullScale;
+
+    /// <summary>How fast speed tapers toward a lower gear's max when overspeeding (km/h per second).</summary>
+    public float TelemetryGearSettleKmhPerSec { get; set; } = TelemetryTuning.DefaultGearSettleKmhPerSec;
+
+    /// <summary>FFB impact / heavy CF speed dump (1 = 100%).</summary>
+    public float TelemetryCrashDumpScale { get; set; } = TelemetryTuning.DefaultCrashDumpScale;
+
+    public float TelemetryGear1MaxKmh { get; set; } = TelemetryTuning.DefaultGear1MaxKmh;
+    public float TelemetryGear2MaxKmh { get; set; } = TelemetryTuning.DefaultGear2MaxKmh;
+    public float TelemetryGear3MaxKmh { get; set; } = TelemetryTuning.DefaultGear3MaxKmh;
+    public float TelemetryGear4MaxKmh { get; set; } = TelemetryTuning.DefaultGear4MaxKmh;
+    public float TelemetryGear5MaxKmh { get; set; } = TelemetryTuning.DefaultGear5MaxKmh;
+    public float TelemetryGear6MaxKmh { get; set; } = TelemetryTuning.DefaultGear6MaxKmh;
+
+    public TelemetryTuning ToTelemetryTuning()
+    {
+        var tuning = new TelemetryTuning
+        {
+            SpeedMinKmh = TelemetrySpeedMinKmh,
+            SpeedMaxKmh = TelemetrySpeedMaxKmh,
+            RpmMin = TelemetryRpmMin,
+            RpmMax = TelemetryRpmMax,
+            RpmRedline = TelemetryRpmRedline,
+            SurfaceRumbleScale = TelemetrySurfaceRumbleScale,
+            ImpactScale = TelemetryImpactScale,
+            RoadLoadScale = TelemetryRoadLoadScale,
+            EngineVibrationScale = TelemetryEngineVibrationScale,
+            RpmBounceAmount = TelemetryRpmBounceAmount,
+            RpmBounceHz = TelemetryRpmBounceHz,
+            AccelKmhPerSec = TelemetryAccelKmhPerSec,
+            BrakeKmhPerSec = TelemetryBrakeKmhPerSec,
+            CoastKmhPerSec = TelemetryCoastKmhPerSec,
+            AeroDragScale = TelemetryAeroDragScale,
+            GearPullScale = TelemetryGearPullScale,
+            GearSettleKmhPerSec = TelemetryGearSettleKmhPerSec,
+            CrashDumpScale = TelemetryCrashDumpScale,
+            Gear1MaxKmh = TelemetryGear1MaxKmh,
+            Gear2MaxKmh = TelemetryGear2MaxKmh,
+            Gear3MaxKmh = TelemetryGear3MaxKmh,
+            Gear4MaxKmh = TelemetryGear4MaxKmh,
+            Gear5MaxKmh = TelemetryGear5MaxKmh,
+            Gear6MaxKmh = TelemetryGear6MaxKmh,
+        };
+        tuning.Clamp();
+        return tuning;
+    }
+
+    public void ApplyTelemetryTuning(TelemetryTuning tuning)
+    {
+        tuning ??= TelemetryTuning.CreateDefault();
+        tuning.Clamp();
+        TelemetrySpeedMinKmh = tuning.SpeedMinKmh;
+        TelemetrySpeedMaxKmh = tuning.SpeedMaxKmh;
+        TelemetryRpmMin = tuning.RpmMin;
+        TelemetryRpmMax = tuning.RpmMax;
+        TelemetryRpmRedline = tuning.RpmRedline;
+        TelemetrySurfaceRumbleScale = tuning.SurfaceRumbleScale;
+        TelemetryImpactScale = tuning.ImpactScale;
+        TelemetryRoadLoadScale = tuning.RoadLoadScale;
+        TelemetryEngineVibrationScale = tuning.EngineVibrationScale;
+        TelemetryRpmBounceAmount = tuning.RpmBounceAmount;
+        TelemetryRpmBounceHz = tuning.RpmBounceHz;
+        TelemetryAccelKmhPerSec = tuning.AccelKmhPerSec;
+        TelemetryBrakeKmhPerSec = tuning.BrakeKmhPerSec;
+        TelemetryCoastKmhPerSec = tuning.CoastKmhPerSec;
+        TelemetryAeroDragScale = tuning.AeroDragScale;
+        TelemetryGearPullScale = tuning.GearPullScale;
+        TelemetryGearSettleKmhPerSec = tuning.GearSettleKmhPerSec;
+        TelemetryCrashDumpScale = tuning.CrashDumpScale;
+        TelemetryGear1MaxKmh = tuning.Gear1MaxKmh;
+        TelemetryGear2MaxKmh = tuning.Gear2MaxKmh;
+        TelemetryGear3MaxKmh = tuning.Gear3MaxKmh;
+        TelemetryGear4MaxKmh = tuning.Gear4MaxKmh;
+        TelemetryGear5MaxKmh = tuning.Gear5MaxKmh;
+        TelemetryGear6MaxKmh = tuning.Gear6MaxKmh;
+    }
+
+    public void NormalizeTelemetryTuning()
+    {
+        ApplyTelemetryTuning(ToTelemetryTuning());
+        TelemetrySendHz = SimHubPacket.ClampSendHz(TelemetrySendHz);
+        if (string.IsNullOrWhiteSpace(LastTelemetryProfileName))
+            LastTelemetryProfileName = TelemetryProfile.DefaultProfileName;
+    }
+}
+
+public sealed class TelemetrySettings
+{
+    public bool Enabled { get; set; }
+    public string Host { get; set; } = SimHubPacket.DefaultHost;
+    public int Port { get; set; } = SimHubPacket.DefaultPort;
+    public int SendHz { get; set; } = SimHubPacket.DefaultSendHz;
+    public TelemetryTuning Tuning { get; set; } = TelemetryTuning.CreateDefault();
 }

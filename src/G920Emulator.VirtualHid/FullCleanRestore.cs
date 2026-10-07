@@ -11,6 +11,7 @@ namespace G920Emulator.VirtualHid;
 ///   • g920ffb COM registration
 ///   • Logitech Steering Wheel SDK ServerBinary pin
 ///   • ProgramData LogitechSDK cache
+///   • ProgramData g920ffb.dll cache (COM InprocServer copy)
 ///   • oem-session.json session state
 ///   • Stale DirectInput cache / orphan virtual C262 PnP nodes
 ///   • hidpp_forcefeedback_x64.dll rename (.g920emulator-disabled) from older G HUB repair
@@ -75,6 +76,16 @@ public static class FullCleanRestore
         {
             failed = true;
             steps.Add("SDK cache: " + ex.Message);
+        }
+
+        try
+        {
+            steps.Add(G920OemRegistration.RemoveCachedG920FfbFiles());
+        }
+        catch (Exception ex)
+        {
+            failed = true;
+            steps.Add("g920ffb cache: " + ex.Message);
         }
 
         try

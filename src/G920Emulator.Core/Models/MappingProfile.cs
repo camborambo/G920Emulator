@@ -53,6 +53,11 @@ public sealed class MappingProfile
 
     public List<Binding> Bindings { get; set; } = [];
 
+    /// <summary>
+    /// Per-slider snap values for FFB "Set as Default" binds (key = <see cref="G920ControlInfo.FfbSliderBind.Id"/>).
+    /// </summary>
+    public Dictionary<string, double> FfbBindDefaults { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -120,6 +125,23 @@ public sealed class MappingProfile
             GetOrCreate(target);
         foreach (var target in G920ControlInfo.FfbNudgeControls)
             GetOrCreate(target);
+
+        FfbBindDefaults ??= new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        // Re-key with ordinal-ignore comparer after JSON deserialize.
+        if (!ReferenceEquals(FfbBindDefaults.Comparer, StringComparer.OrdinalIgnoreCase))
+            FfbBindDefaults = new Dictionary<string, double>(FfbBindDefaults, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public double GetFfbBindDefault(string sliderId, double fallback)
+    {
+        FfbBindDefaults ??= new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        return FfbBindDefaults.TryGetValue(sliderId, out var v) ? v : fallback;
+    }
+
+    public void SetFfbBindDefault(string sliderId, double value)
+    {
+        FfbBindDefaults ??= new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        FfbBindDefaults[sliderId] = value;
     }
 
     private void MergeSources(G920Control from, G920Control into)

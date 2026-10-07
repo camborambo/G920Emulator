@@ -56,7 +56,7 @@ G920 Emulator defaults to **19**. For Unbound, open **Gear R** binding and set *
 
 ## Effect probe
 
-`g920ffb.dll` publishes SHM **v7** (`Local\G920Emulator.FfbTorque.v7`), including `TypesSeen` / `TypesPlaying` bitmasks and per-type mix torque. The emulator **FFB debug** UI and Debug Overlay list each DirectInput type (same names as `g920ffb-effects.log`) as seen or playing, with MIX totals. Full OEM log (`%TEMP%\g920ffb-effects.log`) is written only while the status-bar **Debug** session is active.
+`g920ffb.dll` publishes SHM **v7** (`Local\G920Emulator.FfbTorque.v7`), including `TypesSeen` / `TypesPlaying` bitmasks and per-type mix torque. The emulator **FFB debug** UI and FFB Debug Overlay list each DirectInput type (same names as `g920ffb-effects.log`) as seen or playing, with MIX totals. Full OEM log (`%TEMP%\g920ffb-effects.log`) is written only while the status-bar **Debug** session is active.
 
 ### NFS Unbound (2026-10-04)
 

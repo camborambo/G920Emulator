@@ -1,0 +1,753 @@
+==== ExternalSimManager..ctor ====
+  // ExternalSimManager..ctor len=700
+  ldarg.0 
+  call Void .ctor()
+  ldarg.0 
+  ldarg.1 
+  stfld SimHub.Plugins.ExternalSims.ExternalSimManifest <Manifest>k__BackingField
+  ldarg.0 
+  ldarg.1 
+  newobj Void .ctor(SimHub.Plugins.ExternalSims.ExternalSimManifest)
+  stfld SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetryParser <Parser>k__BackingField
+  ldarg.1 
+  callvirt Boolean get_UseExtractorProcess()
+  brfalse.s 91
+  ldarg.1 
+  callvirt System.String get_ExtractorProcessCommand()
+  call Boolean IsNullOrEmpty(System.String)
+  brtrue.s 78
+  ldarg.1 
+  callvirt System.String get_ExtractorProcessCommand()
+  call Boolean IsPathRooted(System.String)
+  brfalse.s 19
+  ldarg.0 
+  ldarg.1 
+  callvirt System.String get_ExtractorProcessCommand()
+  newobj Void .ctor(System.String)
+  stfld SimHub.Plugins.ExternalSims.Runtime.ExternalProcessRunner <ProcessRunner>k__BackingField
+  br.s 28
+  ldarg.0 
+  ldarg.1 
+  callvirt System.String get_ManifestPath()
+  ldarg.1 
+  callvirt System.String get_ExtractorProcessCommand()
+  call System.String Combine(System.String, System.String)
+  newobj Void .ctor(System.String)
+  stfld SimHub.Plugins.ExternalSims.Runtime.ExternalProcessRunner <ProcessRunner>k__BackingField
+  ldarg.0 
+  call SimHub.Plugins.ExternalSims.Runtime.ExternalProcessRunner get_ProcessRunner()
+  dup 
+  brtrue.s 3
+  pop 
+  br.s 6
+  call Boolean Start()
+  pop 
+  leave.s 14
+  stloc.0 
+  call log4net.ILog get_Current()
+  ldloc.0 
+  callvirt Void Error(System.Object)
+  leave.s 0
+  ldarg.0 
+  newobj Void .ctor()
+  stloc.1 
+  ldloc.1 
+  ldarg.0 
+  call SimHub.Plugins.ExternalSims.ExternalSimManifest get_Manifest()
+  ldc.i4.0 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Yaw(Boolean)
+  ldloc.1 
+  ldarg.0 
+  call SimHub.Plugins.ExternalSims.ExternalSimManifest get_Manifest()
+  ldc.i4.1 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Pitch(Boolean)
+  ldloc.1 
+  ldarg.0 
+  call SimHub.Plugins.ExternalSims.ExternalSimManifest get_Manifest()
+  ldc.i4.2 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Roll(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.8 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Heave(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.7 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Sway(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.6 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Surge(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 32
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Brake(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 31
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Throttle(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.3 
+  newarr SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType
+  dup 
+  ldtoken __StaticArrayInitTypeSize=12 918234F629EBF0C84BFE41B60824833200105B6094AB357EE6A872A28F2BAD6A
+  call Void InitializeArray(System.Array, System.RuntimeFieldHandle)
+  callvirt Boolean HasAllFields(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType[])
+  callvirt Void set_Coordinates(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 38
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Gear(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 37
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_HasTrackLength(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 46
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_HasTrackProgression(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 117
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_TCActive(Boolean)
+  ldloc.1 
+  ldarg.0 
+  call SimHub.Plugins.ExternalSims.ExternalSimManifest get_Manifest()
+  ldc.i4.s 115
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_ABSActive(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 83
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 30
+  ldarg.1 
+  ldc.i4.s 84
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 20
+  ldarg.1 
+  ldc.i4.s 85
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 10
+  ldarg.1 
+  ldc.i4.s 86
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  br.s 1
+  ldc.i4.1 
+  callvirt Void set_WheelsRumble(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 83
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 30
+  ldarg.1 
+  ldc.i4.s 84
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 20
+  ldarg.1 
+  ldc.i4.s 85
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 10
+  ldarg.1 
+  ldc.i4.s 86
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brfalse.s 13
+  ldarg.1 
+  callvirt SimHub.Plugins.ExternalSims.TelemetryBehaviour get_TelemetryBehaviour()
+  callvirt Boolean get_HasRumbleStripsContactSurface()
+  br.s 1
+  ldc.i4.0 
+  callvirt Void set_WheelsOnKerbs(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.4 
+  newarr SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType
+  dup 
+  ldtoken __StaticArrayInitTypeSize=16 EFE5C0D0D3E38AE794B5A638D382F258DADE357B145C6AE5FE44FB0834DBCF57
+  call Void InitializeArray(System.Array, System.RuntimeFieldHandle)
+  callvirt Boolean HasAnyField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType[])
+  callvirt Void set_SuspensionVelocity(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 40
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_GearGrinding(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 9
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brfalse.s 20
+  ldarg.1 
+  ldc.i4.s 10
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brfalse.s 10
+  ldarg.1 
+  ldc.i4.s 11
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  br.s 1
+  ldc.i4.0 
+  callvirt Void set_LocalVelocity(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.3 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_YawChangeVelocity(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.5 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_RollChangeVelocity(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.4 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_PitchChangeVelocity(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 17
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_GroundSpeed(Boolean)
+  ldloc.1 
+  ldarg.1 
+  callvirt SimHub.Plugins.ExternalSims.TelemetryBehaviour get_TelemetryBehaviour()
+  callvirt Boolean get_AllowGimbleLockSanitizer()
+  callvirt Void set_UseGimbleLockSanitizer(Boolean)
+  ldloc.1 
+  stfld GameReaderCommon.Feedback.FeedbackCapabilities capabilities
+  ldarg.0 
+  ldfld GameReaderCommon.Feedback.FeedbackCapabilities capabilities
+  ldarg.1 
+  ldc.i4.4 
+  newarr SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType
+  dup 
+  ldtoken __StaticArrayInitTypeSize=16 45BF1EF58D9DCFD8C84464A15EBDB6A1A8F8954D6AC2FF980265C3F8BBB8C77F
+  call Void InitializeArray(System.Array, System.RuntimeFieldHandle)
+  callvirt Boolean HasAnyField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType[])
+  brtrue.s 3
+  ldnull 
+  br.s 25
+  newobj Void .ctor()
+  dup 
+  ldc.r8 0.5
+  newobj Void .ctor(Double)
+  callvirt Void set_SlipScale(System.Nullable`1[System.Double])
+  callvirt Void set_WheelSlipCalibrationProvider(GameReaderCommon.Feedback.WheelSlipProvider)
+  ret 
+
+==== ExternalSims *Capabilit* members ====
+ExternalSimManager.Method GD_GetFeedbackCapabilities
+ExternalSimManager.Field capabilities
+
+==== SimHub.Plugins.ExternalSims.ExternalSimManifest  ====
+  ExternalSimManifest CreateNew()
+  Void OnDeserializingMethod(StreamingContext)
+  Void OnDeserializedMethod(StreamingContext)
+  Void DefinitionChanged()
+  String GetLogoPath()
+  Void ExternalSimManifest_PropertyChanged(Object, PropertyChangedEventArgs)
+  ExternalSimManifest LoadFromFile(String)
+  ExternalSimManifest LoadFromString(String, String)
+  Void SaveToFile(String)
+  Boolean HasField(StandardFieldType)
+  Boolean HasAllFields(StandardFieldType[])
+  Boolean HasAnyField(StandardFieldType[])
+  Void Register(String, String, Boolean)
+  Void Unregister(String)
+  Boolean IsRegistered(String)
+  String GetLinkFilePath(String, Guid)
+  String GetDefaultExternalSimsFolder()
+  Void <>OnPropertyChanged(PropertyChangedEventArgs)
+
+==== SimHub.Plugins.ExternalSims.TelemetryBehaviour  ====
+  Void DefinitionChanged()
+  Void <>OnPropertyChanged(PropertyChangedEventArgs)
+
+==== SimHub.Plugins.ExternalSims.TelemetryDefinition  ====
+  Void DefinitionChanged()
+  Void NormalizeOrder()
+  Void Fields_CollectionChanged(Object, NotifyCollectionChangedEventArgs)
+  Void F_PropertyChanged(Object, PropertyChangedEventArgs)
+  String GetStringSignature()
+
+==== SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetryParser  ====
+  Int32 GetExpectedPacketLenght(ExternalSimManifest)
+  Boolean DefinitionContains(StandardFieldType)
+  ParseResult Parse(Byte[])
+  ValueTuple`2 GetStatus(ReadOnlySpan`1)
+  ParseResult Parse(ReadOnlySpan`1)
+  Boolean TryGetStandardFormat(StandardFieldType, StandardFieldWireFormat&)
+  ExternalSimTelemetry GetSampleTelemetry()
+  IField CreateNumericFieldDefault(BinaryDataType)
+  Int32 GetHeaderSizeBytes()
+  TelemetryHeader ReadHeader(ReadOnlySpan`1, Int32&)
+  Int32 ComputePayloadSizeBytes(TelemetryDefinition)
+  Void CacheStandardFormats()
+  StandardFieldWireFormat GetStandardFormat(StandardFieldType)
+  StandardFieldWireFormat ReadStandardWireFormat(StandardFieldType)
+  Void ParseStandardField(StandardFieldType, ReadOnlySpan`1, Int32&, ExternalSimTelemetry)
+  IField ReadNumericField(BinaryDataType, ReadOnlySpan`1, Int32&)
+  Int32 SizeOf(BinaryDataType)
+  String ReadFixedUtf8Z(ReadOnlySpan`1, Int32&, Int32)
+  Byte ReadU8(ReadOnlySpan`1, Int32&)
+  SByte ReadI8(ReadOnlySpan`1, Int32&)
+  UInt16 ReadU16LE(ReadOnlySpan`1, Int32&)
+  Int16 ReadI16LE(ReadOnlySpan`1, Int32&)
+  UInt32 ReadU32LE(ReadOnlySpan`1, Int32&)
+  Int32 ReadI32LE(ReadOnlySpan`1, Int32&)
+  UInt64 ReadU64LE(ReadOnlySpan`1, Int32&)
+  Single ReadF32LE(ReadOnlySpan`1, Int32&)
+  Double ReadF64LE(ReadOnlySpan`1, Int32&)
+
+==== SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetry  ====
+  T GetValueOrDefault(StandardFieldType, T)
+  String GetStringOrDefault(StandardFieldType, String)
+  Nullable`1 GetValueOrNull(StandardFieldType)
+  Nullable`1 GetNullableTimeSpanFromDouble(StandardFieldType)
+  TimeSpan GetTimeSpanFromDouble(StandardFieldType)
+  Nullable`1 GetNullableTimeSpanFromSeconds(StandardFieldType)
+  TimeSpan GetTimeSpanFromSeconds(StandardFieldType)
+  IEnumerable`1 GetValues()
+
+==== methods constructing FeedbackCapabilities ====
+
+SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers.EffectsContainerBase..ctor
+  // EffectsContainerBase..ctor len=468
+  ldarg.0 
+  newobj Void .ctor()
+  stfld SimHub.Plugins.DataPlugins.ShakeItV3.Settings.AbstractSettingsStore <SettingsStore>k__BackingField
+  ldarg.0 
+  newobj Void .ctor()
+  stfld SimHub.Plugins.EventMessage _message
+  ldarg.0 
+  ldc.i4.5 
+  stfld Int32 <GainChangeStep>k__BackingField
+  ldarg.0 
+  call System.Guid NewGuid()
+  stfld System.Guid <ContainerId>k__BackingField
+  ldarg.0 
+  newobj Void .ctor()
+  stfld GameReaderCommon.Feedback.FeedbackCapabilities <FeedbackCapabilities>k__BackingField
+  ldarg.0 
+  newobj Void .ctor()
+  stfld System.Object _effectsCacheLock
+  ldarg.0 
+  ldc.r8 50
+  stfld Double <Gain>k__BackingField
+  ldarg.0 
+  call Void .ctor()
+  ldarg.0 
+  ldarg.0 
+  call System.Type GetType()
+  callvirt System.String get_Name()
+  callvirt System.String ToString()
+  stfld System.String <ContainerType>k__BackingField
+  ldarg.0 
+  ldstr "ToggleMute"
+  ldarg.0 
+  ldftn Void <.ctor>b__17_0(SimHub.Plugins.PluginManager, System.String)
+  newobj Void .ctor(System.Object, IntPtr)
+  ldarg.0 
+  ldftn Void <.ctor>b__17_1(SimHub.Plugins.PluginManager, System.String)
+  newobj Void .ctor(System.Object, IntPtr)
+  ldarg.0 
+  ldftn Void <.ctor>b__17_2(SimHub.Plugins.PluginManager, System.String)
+  newobj Void .ctor(System.Object, IntPtr)
+  ldarg.0 
+  ldftn Void UpdateControlStatus()
+  newobj Void .ctor(System.Object, IntPtr)
+  ldarg.0 
+  ldftn Void SendMuteStatusMessage()
+  newobj Void .ctor(System.Object, IntPtr)
+  ldc.i4.0 
+  ldc.i4.4 
+  ldc.i4.0 
+  newobj Void .ctor(System.String, System.Action`2[SimHub.Plugins.PluginManager,System.String], System.Action`2[SimHub.Plugins.PluginManager,System.String], System.Action`2[SimHub.Plugins.PluginManager,System.String], System.Action, System.Action, Boolean, SimHub.Plugins.PressType, Boolean)
+  stfld SimHub.Plugins.DynamicButtonAction <ToggleMute>k__BackingField
+  ldarg.0 
+  ldstr "GainIncrement"
+  ldarg.0 
+  ldftn Void <.ctor>b__17_3(SimHub.Plugins.PluginManager, System.String)
+  newobj Void .ctor(System.Object, IntPtr)
+  ldnull 
+  ldnull 
+  ldarg.0 
+  ldftn Void UpdateControlStatus()
+  newobj Void .ctor(System.Object, IntPtr)
+  ldarg.0 
+  ldftn Void SendGainMessage()
+  newobj Void .ctor(System.Object, IntPtr)
+  ldc.i4.0 
+  ldc.i4.4 
+  ldc.i4.0 
+  newobj Void .ctor(System.String, System.Action`2[SimHub.Plugins.PluginManager,System.String], System.Action`2[SimHub.Plugins.PluginManager,System.String], System.Action`2[SimHub.Plugins.PluginManager,System.String], System.Action, System.Action, Boolean, SimHub.Plugins.PressType, Boolean)
+  stfld SimHub.Plugins.DynamicButtonAction <IncrementGainAction>k__BackingField
+  ldarg.0 
+  ldstr "GainDecrement"
+  ldarg.0 
+  ldftn Void <.ctor>b__17_4(SimHub.Plugins.PluginManager, System.String)
+  newobj Void .ctor(System.Object, IntPtr)
+  ldnull 
+  ldnull 
+  ldarg.0 
+  ldftn Void UpdateControlStatus()
+  newobj Void .ctor(System.Object, IntPtr)
+  ldarg.0 
+  ldftn Void SendGainMessage()
+  newobj Void .ctor(System.Object, IntPtr)
+  ldc.i4.0 
+  ldc.i4.4 
+  ldc.i4.0 
+  newobj Void .ctor(System.String, System.Action`2[SimHub.Plugins.PluginManager,System.String], System.Action`2[SimHub.Plugins.PluginManager,System.String], System.Action`2[SimHub.Plugins.PluginManager,System.String], System.Action, System.Action, Boolean, SimHub.Plugins.PressType, Boolean)
+  stfld SimHub.Plugins.DynamicButtonAction <DecrementGainAction>k__BackingField
+  ldarg.0 
+  ldarg.0 
+  call System.Type GetType()
+  ldtoken SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers.Attributes.ShakeItContainerMetadataAttribute
+  call System.Type GetTypeFromHandle(System.RuntimeTypeHandle)
+  ldc.i4.0 
+  callvirt System.Object[] GetCustomAttributes(System.Type, Boolean)
+  call System.Collections.Generic.IEnumerable`1[SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers.Attributes.ShakeItContainerMetadataAttribute] Cast[ShakeItContainerMetadataAttribute](System.Collections.IEnumerable)
+  call SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers.Attributes.ShakeItContainerMetadataAttribute FirstOrDefault[ShakeItContainerMetadataAttribute](System.Collections.Generic.IEnumerable`1[SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers.Attributes.ShakeItContainerMetadataAttribute])
+  dup 
+  brtrue.s 4
+  pop 
+  ldnull 
+  br.s 11
+  ldarg.0 
+  call System.Type GetType()
+  call WoteverLocalization.ITranslatableString GetTranlatableName(System.Type)
+  dup 
+  brtrue.s 17
+  pop 
+  ldarg.0 
+  call System.Type GetType()
+  callvirt System.String get_Name()
+  call WoteverLocalization.ITranslatableString FromConstant(System.String)
+  stfld WoteverLocalization.ITranslatableString <ContainerName>k__BackingField
+  ldarg.0 
+  ldarg.0 
+  call System.Type GetType()
+  ldtoken SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers.Attributes.ShakeItContainerMetadataAttribute
+  call System.Type GetTypeFromHandle(System.RuntimeTypeHandle)
+  ldc.i4.0 
+  callvirt System.Object[] GetCustomAttributes(System.Type, Boolean)
+  call System.Collections.Generic.IEnumerable`1[SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers.Attributes.ShakeItContainerMetadataAttribute] Cast[ShakeItContainerMetadataAttribute](System.Collections.IEnumerable)
+  call SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers.Attributes.ShakeItContainerMetadataAttribute FirstOrDefault[ShakeItContainerMetadataAttribute](System.Collections.Generic.IEnumerable`1[SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers.Attributes.ShakeItContainerMetadataAttribute])
+  dup 
+  brtrue.s 4
+  pop 
+  ldnull 
+  br.s 11
+  ldarg.0 
+  call System.Type GetType()
+  call WoteverLocalization.ITranslatableString GetTranlatableDescription(System.Type)
+  dup 
+  brtrue.s 11
+  pop 
+  ldsfld System.String Empty
+  call WoteverLocalization.ITranslatableString FromConstant(System.String)
+  stfld WoteverLocalization.ITranslatableString <ContainerDescription>k__BackingField
+  ldarg.0 
+  ldarg.0 
+  ldftn SimHub.Plugins.DataPlugins.ShakeItV3.Effects.EffectBase <.ctor>b__17_5()
+  newobj Void .ctor(System.Object, IntPtr)
+  newobj Void .ctor(System.Func`1[SimHub.Plugins.DataPlugins.ShakeItV3.Effects.EffectBase])
+  stfld System.Lazy`1[SimHub.Plugins.DataPlugins.ShakeItV3.Effects.EffectBase] firstEffect
+  ret 
+
+SimHub.Plugins.CustomGames.ControllerGameManager.GD_GetFeedbackCapabilities
+  // ControllerGameManager.GD_GetFeedbackCapabilities len=76
+  newobj Void .ctor()
+  dup 
+  ldc.i4.1 
+  callvirt Void set_Yaw(Boolean)
+  dup 
+  ldc.i4.1 
+  callvirt Void set_Pitch(Boolean)
+  dup 
+  ldc.i4.1 
+  callvirt Void set_Roll(Boolean)
+  dup 
+  ldc.i4.1 
+  callvirt Void set_Heave(Boolean)
+  dup 
+  ldc.i4.1 
+  callvirt Void set_Surge(Boolean)
+  dup 
+  ldc.i4.1 
+  callvirt Void set_GroundSpeed(Boolean)
+  dup 
+  ldc.i4.1 
+  callvirt Void set_RPM(Boolean)
+  dup 
+  ldc.i4.1 
+  callvirt Void set_Gear(Boolean)
+  dup 
+  ldc.i4.1 
+  callvirt Void set_DirectTractionLoss(Boolean)
+  dup 
+  ldc.i4.1 
+  callvirt Void set_Sway(Boolean)
+  ret 
+
+SimHub.Plugins.ExternalSims.Runtime.ExternalSimManager..ctor
+  // ExternalSimManager..ctor len=700
+  ldarg.0 
+  call Void .ctor()
+  ldarg.0 
+  ldarg.1 
+  stfld SimHub.Plugins.ExternalSims.ExternalSimManifest <Manifest>k__BackingField
+  ldarg.0 
+  ldarg.1 
+  newobj Void .ctor(SimHub.Plugins.ExternalSims.ExternalSimManifest)
+  stfld SimHub.Plugins.ExternalSims.Parser.ExternalSimTelemetryParser <Parser>k__BackingField
+  ldarg.1 
+  callvirt Boolean get_UseExtractorProcess()
+  brfalse.s 91
+  ldarg.1 
+  callvirt System.String get_ExtractorProcessCommand()
+  call Boolean IsNullOrEmpty(System.String)
+  brtrue.s 78
+  ldarg.1 
+  callvirt System.String get_ExtractorProcessCommand()
+  call Boolean IsPathRooted(System.String)
+  brfalse.s 19
+  ldarg.0 
+  ldarg.1 
+  callvirt System.String get_ExtractorProcessCommand()
+  newobj Void .ctor(System.String)
+  stfld SimHub.Plugins.ExternalSims.Runtime.ExternalProcessRunner <ProcessRunner>k__BackingField
+  br.s 28
+  ldarg.0 
+  ldarg.1 
+  callvirt System.String get_ManifestPath()
+  ldarg.1 
+  callvirt System.String get_ExtractorProcessCommand()
+  call System.String Combine(System.String, System.String)
+  newobj Void .ctor(System.String)
+  stfld SimHub.Plugins.ExternalSims.Runtime.ExternalProcessRunner <ProcessRunner>k__BackingField
+  ldarg.0 
+  call SimHub.Plugins.ExternalSims.Runtime.ExternalProcessRunner get_ProcessRunner()
+  dup 
+  brtrue.s 3
+  pop 
+  br.s 6
+  call Boolean Start()
+  pop 
+  leave.s 14
+  stloc.0 
+  call log4net.ILog get_Current()
+  ldloc.0 
+  callvirt Void Error(System.Object)
+  leave.s 0
+  ldarg.0 
+  newobj Void .ctor()
+  stloc.1 
+  ldloc.1 
+  ldarg.0 
+  call SimHub.Plugins.ExternalSims.ExternalSimManifest get_Manifest()
+  ldc.i4.0 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Yaw(Boolean)
+  ldloc.1 
+  ldarg.0 
+  call SimHub.Plugins.ExternalSims.ExternalSimManifest get_Manifest()
+  ldc.i4.1 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Pitch(Boolean)
+  ldloc.1 
+  ldarg.0 
+  call SimHub.Plugins.ExternalSims.ExternalSimManifest get_Manifest()
+  ldc.i4.2 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Roll(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.8 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Heave(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.7 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Sway(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.6 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Surge(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 32
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Brake(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 31
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Throttle(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.3 
+  newarr SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType
+  dup 
+  ldtoken __StaticArrayInitTypeSize=12 918234F629EBF0C84BFE41B60824833200105B6094AB357EE6A872A28F2BAD6A
+  call Void InitializeArray(System.Array, System.RuntimeFieldHandle)
+  callvirt Boolean HasAllFields(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType[])
+  callvirt Void set_Coordinates(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 38
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_Gear(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 37
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_HasTrackLength(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 46
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_HasTrackProgression(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 117
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_TCActive(Boolean)
+  ldloc.1 
+  ldarg.0 
+  call SimHub.Plugins.ExternalSims.ExternalSimManifest get_Manifest()
+  ldc.i4.s 115
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_ABSActive(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 83
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 30
+  ldarg.1 
+  ldc.i4.s 84
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 20
+  ldarg.1 
+  ldc.i4.s 85
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 10
+  ldarg.1 
+  ldc.i4.s 86
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  br.s 1
+  ldc.i4.1 
+  callvirt Void set_WheelsRumble(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 83
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 30
+  ldarg.1 
+  ldc.i4.s 84
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 20
+  ldarg.1 
+  ldc.i4.s 85
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brtrue.s 10
+  ldarg.1 
+  ldc.i4.s 86
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brfalse.s 13
+  ldarg.1 
+  callvirt SimHub.Plugins.ExternalSims.TelemetryBehaviour get_TelemetryBehaviour()
+  callvirt Boolean get_HasRumbleStripsContactSurface()
+  br.s 1
+  ldc.i4.0 
+  callvirt Void set_WheelsOnKerbs(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.4 
+  newarr SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType
+  dup 
+  ldtoken __StaticArrayInitTypeSize=16 EFE5C0D0D3E38AE794B5A638D382F258DADE357B145C6AE5FE44FB0834DBCF57
+  call Void InitializeArray(System.Array, System.RuntimeFieldHandle)
+  callvirt Boolean HasAnyField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType[])
+  callvirt Void set_SuspensionVelocity(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 40
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_GearGrinding(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 9
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brfalse.s 20
+  ldarg.1 
+  ldc.i4.s 10
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  brfalse.s 10
+  ldarg.1 
+  ldc.i4.s 11
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  br.s 1
+  ldc.i4.0 
+  callvirt Void set_LocalVelocity(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.3 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_YawChangeVelocity(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.5 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_RollChangeVelocity(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.4 
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_PitchChangeVelocity(Boolean)
+  ldloc.1 
+  ldarg.1 
+  ldc.i4.s 17
+  callvirt Boolean HasField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType)
+  callvirt Void set_GroundSpeed(Boolean)
+  ldloc.1 
+  ldarg.1 
+  callvirt SimHub.Plugins.ExternalSims.TelemetryBehaviour get_TelemetryBehaviour()
+  callvirt Boolean get_AllowGimbleLockSanitizer()
+  callvirt Void set_UseGimbleLockSanitizer(Boolean)
+  ldloc.1 
+  stfld GameReaderCommon.Feedback.FeedbackCapabilities capabilities
+  ldarg.0 
+  ldfld GameReaderCommon.Feedback.FeedbackCapabilities capabilities
+  ldarg.1 
+  ldc.i4.4 
+  newarr SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType
+  dup 
+  ldtoken __StaticArrayInitTypeSize=16 45BF1EF58D9DCFD8C84464A15EBDB6A1A8F8954D6AC2FF980265C3F8BBB8C77F
+  call Void InitializeArray(System.Array, System.RuntimeFieldHandle)
+  callvirt Boolean HasAnyField(SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardFieldType[])
+  brtrue.s 3
+  ldnull 
+  br.s 25
+  newobj Void .ctor()
+  dup 
+  ldc.r8 0.5
+  newobj Void .ctor(Double)
+  callvirt Void set_SlipScale(System.Nullable`1[System.Double])
+  callvirt Void set_WheelSlipCalibrationProvider(GameReaderCommon.Feedback.WheelSlipProvider)
+  ret 

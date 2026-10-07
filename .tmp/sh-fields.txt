@@ -1,0 +1,2017 @@
+ublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+clr-namespace:SimHub.Plugins.UI
+styles#clr-namespace:SimHub.Plugins.Styles
+%SimHub.Plugins.UI.SHDialogContentBase
+WoteverLocalization.Loc
+LocNs$
+DeviceVariantPicker
+LocOptIn
+SimHub.Plugins.Styles.SHListBox
+lstDevices
+SimHub.Plugins.Styles.SHListBox
+ItemMouseDoubleClick$
+HandleDoubleClick
+0,0,4,0q
+ElementName$
+DeviceDescriptors
+SelectedItem
+DeviceDescriptor
+Columns$
+#WoteverCommon.WPF.AutoGrid.AutoGrid
+auto,*,*,*
+BitmapScalingMode$
+Center=
+Padding$
+Center=
+TextAlignment$
+Center=
+VariantDescription
+Right=
+CornerRadius$
+IsRecommendedVariant
+Converter
+8WoteverCommon.WPF.Converters.SHBoolToVisibilityConverter
+DemiBold"
+WoteverLocalization.SLoc
+'%DeviceVariantPicker_Label_Recommended
+Recommended+
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+.SimHub.Plugins.Devices.UI.ExportTemplateDialog
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+QMahApps.Metro, Version=1.5.0.23, Culture=neutral, PublicKeyToken=f4fb5a3c4d1e5b4f
+controls,http://metro.mahapps.com/winfx/xaml/controls
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+styles#clr-namespace:SimHub.Plugins.Styles
+clr-namespace:SimHub.Plugins.UI
+%SimHub.Plugins.UI.SHDialogContentBase
+WoteverLocalization.Loc
+LocOptOut
+LeftBottomButtonContent
+Center=
+IsChecked
+InstallPreset
+><Install template in user template directory after generation
+DataContext
+ElementName$
+StandardDevicePreset
+#88000000
+Padding$
+CornerRadius$
+What is a device template ?
+A device template is a file defining a whole new device based on the current one. This includes custom picture, custom name and brand as well as the various profiles and settings included in the current profile being exported. Once installed in DevicesDefaults\StandardDevicesTemplatesUser the new device will appear in the device list.
+Picture
+Picture must be clean, properly detoured with a transparent background then cropped. Ideally a CAD render will make it cleaner.
+(SimHub.Plugins.Styles.SHSectionSeparator
+Device name
+USDon't abuse of capitalization for device name, don't add brand in the product name.
+ValidatesOnDataErrors
+Brand name
+ljDon't abuse of capitalization for brand name, brand gets shown automatically in front of the product name.
+Device unique Id
+Keep the Device Unique ID consistent for a single device so SimHub can keep track of a unique device along the various versions of the template.
+ColumnDefinitions
+StandardDeviceId
+'SimHub.Plugins.Styles.SHButtonSecondary
+'SimHub.Plugins.Styles.SHButtonSecondary
+Click$
+GenerateID_Click
+4,0,0,0q
+Generate
+Maximum instances
+:8How many times the device can be instantiated in SimHub.
+$MahApps.Metro.Controls.NumericUpDown
+Minimum$
+Maximum$
+MaximumInstances
+Template version
+Increment the version for each template revisions, in case of multiple versions of the same device (identified with the Device unique Id) Simhub will peak the highest compatible with the user SimHub version.
+100000Q
+TemplateVersion
+Minimum SimHub version
+jhThe minimum version of SimHub this template can be loaded on (Fixed to the version used for generation).
+IsReadOnly
+MinimumSimHubVersion
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+E'clr-namespace:SimHub.Plugins.Devices.UI
+SimHub.Plugins.Devices.UI
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+/SimHub.Plugins.Devices.UI.GenericDeviceSettings
+clr-namespace:SimHub.Plugins.UI
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+d2http://schemas.microsoft.com/expression/blend/2008
+local'clr-namespace:SimHub.Plugins.Devices.UI
+styles#clr-namespace:SimHub.Plugins.Styles
+%SimHub.Plugins.UI.SHDialogContentBase
+WoteverLocalization.Loc
+LocNs$
+GenericDeviceSettings
+LocOptIn
+DataContext
+ElementName$
+DeviceInstance
+&SimHub.Plugins.Styles.SHToggleCheckbox
+IsChecked
+SuspendWhenMonitorIsOff
+WoteverLocalization.SLoc
+=;GenericDeviceSettings_CheckBox_SuspendWhenMonitorIsSleeping
+" Suspend when monitor is sleeping+
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+E'clr-namespace:SimHub.Plugins.Devices.UI
+SimHub.Plugins.Devices.UI
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+.SimHub.Plugins.Devices.UI.ImportDeviceTemplate
+clr-namespace:SimHub.Plugins.UI
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+d2http://schemas.microsoft.com/expression/blend/2008
+local'clr-namespace:SimHub.Plugins.Devices.UI
+styles#clr-namespace:SimHub.Plugins.Styles
+_MahApps.Metro.IconPacks.Core, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+fMahApps.Metro.IconPacks.FontAwesome, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+cMahApps.Metro.IconPacks.Material, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+iconpacks-http://metro.mahapps.com/winfx/xaml/iconpacks
+SimHub.Plugins.UI.SHMetroWindow
+WindowStartupLocation$
+CenterScreen=
+Title$
+Device import
+QMahApps.Metro, Version=1.5.0.23, Culture=neutral, PublicKeyToken=f4fb5a3c4d1e5b4f
+"MahApps.Metro.Controls.MetroWindow
+ShowMaxRestoreButton
+ResizeMode$
+NoResize=
+WoteverLocalization.Loc
+LocNs$
+DeviceVariantPicker
+LocOptIn
+SizeToContent$
+WidthAndHeight=
+20,20,20,0q
+Center=
+WoteverLocalization.SLoc
+RPDeviceVariantPicker_Label_DoYouWantToInstallOrUpdateTheFollowingDeviceDefinition
+DBDo you want to install or update the following device definition ?+
+Center=
+ColumnDefinitions
+$SimHub.Plugins.Styles.SHSubTitledBox
+ShowCog
+Center=
+ElementName$
+Path$#
+StandardDeviceDescriptor.Name
+Columns$
+Opacity$
+ContentStringFormat
+<:DeviceVariantPicker_LabelStringFormat_MinimumSimhubVersion
+Minimum Simhub version : {0}+
+BStandardDeviceDescriptor.StandardDevicePreset.MinimumSimHubVersion
+:8DeviceVariantPicker_LabelStringFormat_DefinitionRevision
+Definition revision : {0}+
+=StandardDeviceDescriptor.StandardDevicePreset.TemplateVersion
+20,0,0,0q
+0.DeviceVariantPicker_LabelStringFormat_DeviceId
+Device id : {0}+
+>StandardDeviceDescriptor.StandardDevicePreset.StandardDeviceId
+42DeviceVariantPicker_LabelStringFormat_USBSignature
+USB Signature : {0}+
+JStandardDeviceDescriptor.StandardDevicePreset.DetectionDescriptor.AsString
+StandardDeviceDescriptor.Icon
+%SimHub.Plugins.Styles.SHButtonPrimary
+%SimHub.Plugins.Styles.SHButtonPrimary
+Click$
+SHButtonPrimary_Click
+10,0,20,10q
+20,10,20,10q
+Orientation$
+Horizontal=
+(MahApps.Metro.IconPacks.PackIconMaterial
+Import=
+Center=
+*(DeviceVariantPicker_Label_ImportInSimhub
+Import in Simhub+
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+E'clr-namespace:SimHub.Plugins.Devices.UI
+SimHub.Plugins.Devices.UI
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+#SimHub.Plugins.Devices.UI.NoDevices
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+d2http://schemas.microsoft.com/expression/blend/2008
+local'clr-namespace:SimHub.Plugins.Devices.UI
+styles#clr-namespace:SimHub.Plugins.Styles
+WoteverLocalization.Loc
+LocNs$
+NoDevices
+LocOptIn
+,SimHub.Plugins.Styles.SHRoundedClipContainer
+CornerRadius$
+9/SimHub.Plugins;component/Resources/DevicesBackground.png
+StretchDirection$
+UniformToFill=
+Opacity$
+Center=
+Center=
+Center=
+WoteverLocalization.SLoc
+(&NoDevices_Label_NoDevicesConfiguredYet
+No devices configured yet !+
+%SimHub.Plugins.Styles.SHButtonPrimary
+%SimHub.Plugins.Styles.SHButtonPrimary
+Click$
+SHButtonPrimary_Click
+Center=
+Center=
+30,20q
+NoDevices_Button_AddDevice
+Add device+
+"SimHub.Plugins.Styles.SHLinkButton
+"SimHub.Plugins.Styles.SHLinkButton
+Click$
+SHButtonImport_Click
+Center=
+Center=
+%#NoDevices_Link_ImportDeviceFromFile
+Import device from file+
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+1SimHub.Plugins.ExternalSims.Editor.ReceiverTester
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+styles#clr-namespace:SimHub.Plugins.Styles
+clr-namespace:SimHub.Plugins.UI
+%SimHub.Plugins.UI.SHDialogContentBase
+RowDefinitions
+"SimHub.Plugins.Styles.SHSubSection
+Title$
+Status
+ColumnDefinitions
+ContentStringFormat$
+Listening to : {0}
+ElementName$
+Model.UdpPort
+Last packet status : {0}
+Model.LastStatus
+#Valid packets frequency : {0:0.0}Hz
+Model.SmoothedFrequency
+Valid packets received : {0}
+Model.PacketValidCounter
+Total packets received : {0}
+Model.PacketCounter
+Fields
+SimHub.Plugins.Styles.SHListBox
+IsSharedSizeScope
+DisableSelection
+Model.Values
+Consolas)
+Display
+]GongSolutions.WPF.DragDrop, Version=3.0.0.0, Culture=neutral, PublicKeyToken=91f1945125b7a587
+kLclr-namespace:GongSolutions.Wpf.DragDrop;assembly=GongSolutions.Wpf.DragDrop
+GongSolutions.Wpf.DragDrop
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+q=clr-namespace:SimHub.Plugins.ExternalSims.Fields.CustomFields/SimHub.Plugins.ExternalSims.Fields.CustomFields
+u?clr-namespace:SimHub.Plugins.ExternalSims.Fields.StandardFields1SimHub.Plugins.ExternalSims.Fields.StandardFields
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+GGameReaderCommon, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+M8clr-namespace:GameReaderCommon;assembly=GameReaderCommon
+GameReaderCommon
+4SimHub.Plugins.ExternalSims.Editor.SimManifestEditor
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+QMahApps.Metro, Version=1.5.0.23, Culture=neutral, PublicKeyToken=f4fb5a3c4d1e5b4f
+controls,http://metro.mahapps.com/winfx/xaml/controls
+_MahApps.Metro.IconPacks.Core, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+fMahApps.Metro.IconPacks.FontAwesome, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+cMahApps.Metro.IconPacks.Material, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+converter-http://metro.mahapps.com/winfx/xaml/iconpacks
+_System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+i:http://schemas.microsoft.com/expression/2010/interactivity
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+ddLclr-namespace:GongSolutions.Wpf.DragDrop;assembly=GongSolutions.Wpf.DragDrop
+customfields=clr-namespace:SimHub.Plugins.ExternalSims.Fields.CustomFields
+standardfields?clr-namespace:SimHub.Plugins.ExternalSims.Fields.StandardFields
+styles#clr-namespace:SimHub.Plugins.Styles
+clr-namespace:SimHub.Plugins.UI
+gamereadercommon8clr-namespace:GameReaderCommon;assembly=GameReaderCommon
+SimHub.Plugins.UI.SHMetroWindow
+_New Definition
+Command$
+InputGestureText$
+Ctrl+N
+_Open Definition...
+Ctrl+O
+Ctrl+S
+Save _As...
+SaveAs
+Ctrl+Shift+S
+ElementName$
+Manifest
+Converter
+7WoteverCommon.WPF.Converters.IsNullToCollapsedConverter
+Invert
+Center=
+Center=
+%SimHub.Plugins.Styles.SHButtonPrimary
+Center=
+Center=
+Open exiting sim definition
+Center=
+Center=
+Create new sim definition
+Manifest
+1SimHub.Plugins.Styles.SHTabbedScrollViewerControl
+SimHub.Plugins.Styles.SHTabItem
+Simulation identity
+DataContext
+Manifest
+Simulation Unique ID
+Opacity$
+'%Identifies this simulation as unique.
+42Use renew ID if you copied an existing definition.
+-SimHub.Plugins.Styles.SHRoundedStackContainer
+CornerRadius$
+Orientation$
+Horizontal=
+BorderThickness$
+IsReadOnly
+Consolas)
+UniqueId
+TwoWay=
+UpdateSourceTrigger$
+PropertyChanged=
+'SimHub.Plugins.Styles.SHButtonSecondary
+'SimHub.Plugins.Styles.SHButtonSecondary
+Click$
+RenewID_Click
+Center=
+Center=
+2SimHub.Plugins.Styles.SHMaterialIconContentControl
+Alert=
+IconBrush
+Renew ID
+Simulation name
+Required.
+TwoWay=
+PropertyChanged=
+-+Icon path (relative to the definition file)
+Required. 460x215 JPG file
+Horizontal=
+Consolas)
+IconPath
+TwoWay=
+PropertyChanged=
+SelectLogo_Click
+Center=
+Center=
+Select file
+Definition registration
+_]The definition registration is indicating to Simhub which simulation are available in SimHub.
+SimHub.Plugins.UI.SHCheckMark
+IsChecked
+Text$"
+Definition is not registered
+ManifestRegistered
+8WoteverCommon.WPF.Converters.SHBoolToVisibilityConverter
+6WoteverCommon.WPF.Converters.BoolToVisibilityConverter
+Invert
+!Definition is properly registered
+ManifestRegistered
+%SimHub.Plugins.Styles.SHButtonPrimary
+Click$
+RegisterManifest_Click
+Register definition
+ManifestRegistered
+UnregisterManifest_Click
+Unregister definition
+ManifestRegistered
+$Sim identification and start command
+-+Automatic simulation switching (Autodetect)
+<:Define the processes to identify the simulation as running
+VTThe processes being listed will automatically activate the simulation when detected.
+AddProcess_Click
+Right=
+Add process
+SimHub.Plugins.Styles.SHListBox
+DisableSelection
+RemoveScroll
+Manifest.DetectionProcesses
+ColumnDefinitions
+Center=
+97Process name (without .exe extension, case insensitive)
+ProcessName
+(SimHub.Plugins.Styles.SHButtonChromeless
+(SimHub.Plugins.Styles.SHButtonChromeless
+DeleteProcess_Click$
+Delete=
+Delete
+Global behaviour
+Data conversion revision
+LJSelects how standard telemetry fields are converted into SimHub game data.
+Name$$
+dataConversionRevisionSelector
+DisplayMemberPath$
+SelectedValuePath$
+Revision
+DataConversionRevisions
+SelectedValue
+Manifest.ManagerVersion
+TwoWay=
+#10FFFFFF
+CornerRadius$
+4,2,4,4q
+Padding$
+SemiBold"
+Revision changelog
+0,4,0,0q
+dataConversionRevisionSelector
+SelectedItem.Changelog
+Game family
+QOMajor game category, Flight will unlock a some flight dedicated motion effects.
+IsChecked
+&Manifest.TelemetryBehaviour.GameFamily
+3WoteverCommon.WPF.Converters.EnumToBooleanConverter
+GameReaderCommon.GameFamily
+Racing
+EnumValue##
+Racing/Others
+&Manifest.TelemetryBehaviour.GameFamily
+Flight##
+Flight
+&SimHub.Plugins.Styles.SHToggleCheckbox
+4Manifest.TelemetryBehaviour.AllowGimbleLockSanitizer
+Enable gimbal lock sanitizer
+Enable this if your telemetry may produce unstable yaw/roll near gimbal lock conditions (pitch near 
+), typically in flight sims or roller coasters. This provides a stabilized orientation option for motion (used by default in profiles).
+9Manifest.TelemetryBehaviour.HasRumbleStripsContactSurface
+.,Tyre contact material contains rumble strips
+KIUncheck if you never provide Rumble strips material in TyreContactSurface
+,*Wind default max speed in meter per second
+~|This speed is used to determine the minimum speed to be considerd for wind generation. This value will be dynamically raised
+$MahApps.Metro.Controls.NumericUpDown
+StringFormat$
+{0:0} m/s
++Manifest.TelemetryBehaviour.DefaultMaxSpeed
+Extractor process
+An extractor process can be used if the simulation does not provide telemetry directly. The process will be started and stopped automatically with the simulation activation/deactivation in SimHub. The extractor process will be in charge to collect, format and send telemetry instead of the game.
+Manifest.UseExtractorProcess
+Use extractor process
+Manifest.UseExtractorProcess
+20Extractor path (relative to the definition file)
+Required. .exe
+Horizontal=
+Consolas)
+ Manifest.ExtractorProcessCommand
+TwoWay=
+PropertyChanged=
+SelectExtractor_Click
+Center=
+Center=
+Select file
+Telemetry definition
+B@Set the default UDP port the simulation will be sending data to.
+$SimHub.Plugins.UI.InlineTitledSlider
+ShowSlider
+SimHub.Plugins.UI.TitledSlider
+Maximum$
+65535Q
+Minimum$
+Title$
+Default UDP Port
+Manifest.DefaultUDPPort
+Telemetry data layout
+Defines which data fields will be available. A mandatory header must always be provided. Standard fields allow SimHub to consume telemetry directly (Yaw, Pitch, Roll, Speed, 
+). Custom fields can be added for dashboard displays or custom formulas.
+mkAny field reorder changes the binary packet layout. Update your sender to match the new TelemetrySignature.
+omDo not include unavailable fields. The selected fields also describe which SimHub features will be available.
+#10FFFFFF$
+IsSharedSizeScope
+Telemetry resume
+Consolas)
+ContentStringFormat$
+GameSignature = {0}
+Manifest.GameSignature
+.WoteverCommon.WPF.Converters.IntToHexConverter
+Consolas)
+, TelemetrySignature = {0}
+Manifest.TelemetrySignature
+Consolas)
+, Packet length = {0}
+Manifest.PacketLength
+Consolas)
+ ({0} bytes)
+Manifest.PacketLength
+Consolas)
+, ProtocolVersion = {0}
+,Manifest.TelemetryDefinition.ProtocolVersion
+Telemetry header (Fixed)
+SimHub.Plugins.Styles.SHListRow
+20,0,0,0q
+#GongSolutions.Wpf.DragDrop.DragDrop
+IsDropTarget
+IsDragSource
+SharedSizeGroup$
+Field name
+Center=
+Center=
+Center=
+Data type
+Center=
+Center=
+Description
+20,0,0,0q
+4Manifest.TelemetryDefinition.HeaderfieldsDescription
+Consolas)
+Center=
+FieldName
+Center=
+Consolas)
+Center=
+FieldType
+Center=
+FieldTitle
+Center=
+Description
+(MahApps.Metro.IconPacks.PackIconMaterial
+Center=
+Telemetry data fields
+20,0,0,0q
+Field name
+Center=
+Center=
+Center=
+Data type
+Center=
+Center=
+Description
+20,0,0,0q
+#Manifest.TelemetryDefinition.Fields
+Resources
+DataType
+?SimHub.Plugins.ExternalSims.Fields.StandardFields.StandardField
+DragSourceIgnore 
+BlackBrush
+DSimHub.Plugins.ExternalSims.Fields.CustomFields.CustomTelemetryField
+(System.Windows.Interactivity.Interaction
+Behaviors
+5WoteverCommon.WPF.Behaviors.IdentifierTextBoxBehavior
+SanitizeOnLostFocus
+SelectedItem
+TextWrapping
+Consolas)
+Center=
+FieldType
+Center=
+Consolas)
+Center=
+DataTypeDescription
+Center=
+DisplayName
+Center=
+Description
+DeleteField_Click$
+Delete=
+DragVertical=
+Center=
+Consolas)
+Center=
+TwoWay=
+PropertyChanged=
+Sanitize=
+BinaryType
+AvailableDataTypes
+4,0,0,0q
+ {0} bytes
+HasLength
+Length
+{0} bytes
+Center=
+HasLength
+EffectiveLength
+Center=
+DisplayName
+TwoWay=
+PropertyChanged=
+Center=
+Comment
+TwoWay=
+PropertyChanged=
+DeleteField_Click$
+Delete=
+DragVertical=
+Center=
+Orientation$
+Horizontal=
+Right=
+Reorder_Click
+Right=
+4,4,20,4q
+,SimHub.Plugins.Styles.SHFAIconContentControl
+SortSolid=
+Apply standard ordering
+AddStandardField_Click
+Right=
+PlusSolid=
+Standard telemetry field
+AddCustomField_Click
+Right=
+PlusSolid=
+Custom field
+Code generators and testing
+Orientation$
+Horizontal=
+GenerateCode_Click
+Right=
+CodeBraces=
+Copy C# Demo code to clipboard
+GenerateCodeCPP_Click
+Right=
+CodeBraces=
+Copy C++ Demo code to clipboard
+Receiver_Click
+Right=
+Monitor=
+Open telemetry receiver tester
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+6SimHub.Plugins.ExternalSims.Editor.StandardFieldPicker
+clr-namespace:SimHub.Plugins.UI
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+d2http://schemas.microsoft.com/expression/blend/2008
+styles#clr-namespace:SimHub.Plugins.Styles
+QMahApps.Metro, Version=1.5.0.23, Culture=neutral, PublicKeyToken=f4fb5a3c4d1e5b4f
+Controls,http://metro.mahapps.com/winfx/xaml/controls
+RowDefinitions
+ColumnDefinitions
+Orientation$
+Horizontal=
+Filter:
+Center=
+0,0,8,0q
+$MahApps.Metro.Controls.TextBoxHelper
+ClearTextButton
+FilterText+
+UpdateSourceTrigger$
+PropertyChanged=
+12,0,0,0q
+Center=
+Opacity$
+FilterStatus+
+Right=
+Center=
+SelectedCountText+
+Horizontal=
+Right=
+Select all
+8,0,0,0q
+SelectAllCommand+
+Select none
+8,0,0,0q
+SelectNoneCommand+
+SimHub.Plugins.Styles.SHListBox
+SimHub.Plugins.Styles.SHListBox
+PreviewKeyDown$
+FieldsList_PreviewKeyDown
+ItemMouseDoubleClick$$
+SHListBox_ItemMouseDoubleClick
+SelectionMode$
+Extended=
+ItemsView+
+Padding$
+&SimHub.Plugins.Styles.SHToggleCheckbox
+8,2,12,0q
+Center=
+IsChecked
+IsChecked+
+TwoWay=
+Horizontal=
+SemiBold"
+TypeText+
+Value+
+0,2,0,0q
+Description+
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+]3clr-namespace:SimHub.Plugins.GenericResponseFilters%SimHub.Plugins.GenericResponseFilters
+6SimHub.Plugins.GenericResponseFilters.ControlPointView
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+d2http://schemas.microsoft.com/expression/blend/2008
+local3clr-namespace:SimHub.Plugins.GenericResponseFilters
+CornerRadius$
+-13,-13,0,0q
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+a5clr-namespace:SimHub.Plugins.DataPlugins.ShakeItV3.UI'SimHub.Plugins.DataPlugins.ShakeItV3.UI
+Dclr-namespace:SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers6SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers
+k:clr-namespace:SimHub.Plugins.DataPlugins.ShakeItV3.Filters,SimHub.Plugins.DataPlugins.ShakeItV3.Filters
+3SimHub.Plugins.GenericResponseFilters.ResponseCurve
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+d2http://schemas.microsoft.com/expression/blend/2008
+local5clr-namespace:SimHub.Plugins.DataPlugins.ShakeItV3.UI
+NOxyPlot.Wpf, Version=1.0.0.0, Culture=neutral, PublicKeyToken=75e952ba404cdbb0
+http://oxyplot.org/wpf
+effectscontainersDclr-namespace:SimHub.Plugins.DataPlugins.ShakeItV3.EffectsContainers
+filters:clr-namespace:SimHub.Plugins.DataPlugins.ShakeItV3.Filters
+OxyPlot.Wpf.Plot
+(WoteverCommon.WPF.Behaviors.MarginSetter
+Ignore
+-8,-6,0,-8q
+OxyPlot.Wpf.PlotBase
+IsMouseWheelEnabled
+PlotAreaBorderThickness$
+BlackColor
+PlotAreaBorderColor#
+DefaultTrackerTemplate
+Series
+OxyPlot.Wpf.LineSeries
+OxyPlot.Wpf.Series
+Color#
+ResponseCurve
+OxyPlot.Wpf.LinearAxis
+OxyPlot.Wpf.Axis
+IsAxisVisible
+Position$
+Bottom=
+FontSize$
+AxislineColor#
+TextColor#
+Opacity$
+TicklineColor#
+MajorStep$
+MajorGridlineColor$
+#4497BCC1
+Transparent
+MajorGridlineStyle$
+MajorGridlineThickness$
+Minimum$
+Maximum$
+MinorStep$
+Center=
+0,4,0,0q
+CornerRadius$
+0,0,2,2
+Center=
+Center=
+0,-6,0,-4q
+WoteverLocalization.SLoc
+ShakeItSettings_ResponseCurve
+Response curve+
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+]3clr-namespace:SimHub.Plugins.GenericResponseFilters%SimHub.Plugins.GenericResponseFilters
+9SimHub.Plugins.GenericResponseFilters.SplineResponseCurve
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+_MahApps.Metro.IconPacks.Core, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+fMahApps.Metro.IconPacks.FontAwesome, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+cMahApps.Metro.IconPacks.Material, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+iconpacks-http://metro.mahapps.com/winfx/xaml/iconpacks
+NOxyPlot.Wpf, Version=1.0.0.0, Culture=neutral, PublicKeyToken=75e952ba404cdbb0
+http://oxyplot.org/wpf
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+filters3clr-namespace:SimHub.Plugins.GenericResponseFilters
+#33000000
+Padding$
+4,8,4,4q
+CornerRadius$
+Opacity
+ElementName$
+IsEnabled
+Converter
+2WoteverCommon.WPF.Converters.BoolToDoubleConverter
+TrueValue$
+FalseValue$
+24,0,8,24q
+8SimHub.Plugins.GenericResponseFilters.ProportionalCanvas
+IsHitTestVisible
+EndPoint$
+0.5,1&
+StartPoint$
+0.5,0&
+Color$
+#66000000
+#33000000
+Offset$
+#66000000
+0.488Q
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+OxyPlot.Wpf.PlotView
+OxyPlot.Wpf.PlotBase
+IsMouseWheelEnabled
+(WoteverCommon.WPF.Behaviors.MarginSetter
+Ignore
+-8,-6,0,-8q
+DefaultTrackerTemplate
+Center=
+0,4,0,0q
+0,0,2,2
+24,0,8,24q
+IsMouseOver
+Orientation$
+Horizontal=
+Center=
+ChromelessButtonStyle#
+ToolTip$
+#EE000000$
+(MahApps.Metro.IconPacks.PackIconMaterial
+Pencil=
+BlackBrush#
+Center=
+Center=
+8WoteverCommon.WPF.Converters.SHBoolToVisibilityConverter
+Copy to clipboard
+#EE000000$
+ContentCopy=
+Center=
+Center=
+pasteCurve
+Paste from clipboard
+#EE000000$
+ContentPaste=
+Center=
+Center=
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+]3clr-namespace:SimHub.Plugins.GenericResponseFilters%SimHub.Plugins.GenericResponseFilters
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+?SimHub.Plugins.GenericResponseFilters.SplineResponseCurveEditor
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+_MahApps.Metro.IconPacks.Core, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+fMahApps.Metro.IconPacks.FontAwesome, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+cMahApps.Metro.IconPacks.Material, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+iconpacks-http://metro.mahapps.com/winfx/xaml/iconpacks
+NOxyPlot.Wpf, Version=1.0.0.0, Culture=neutral, PublicKeyToken=75e952ba404cdbb0
+http://oxyplot.org/wpf
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+filters3clr-namespace:SimHub.Plugins.GenericResponseFilters
+styles#clr-namespace:SimHub.Plugins.Styles
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI.SHMetroWindow
+WoteverLocalization.Loc
+LocNs$
+SplineResponseCurveEditor
+Title$
+Edit response curve
+LocOptIn
+DataContext
+ElementName$
+EditedFilter
+RowDefinitions
+0,0,20,0q
+ColumnDefinitions
+8SimHub.Plugins.GenericResponseFilters.ProportionalCanvas
+44,15,14,35q
+IsHitTestVisible
+EndPoint$
+0.5,1&
+StartPoint$
+0.5,0&
+Color$
+#66000000
+#33000000
+Offset$
+#66000000
+0.488Q
+Opacity$
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualWidth
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+44,15,14,35q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+ActualHeight
+0.5,1&
+0.5,0&
+#FF222222
+#FF222222
+#FFAAAAAA
+0.488Q
+OxyPlot.Wpf.PlotView
+5,5,6,0q
+OxyPlot.Wpf.PlotBase
+IsMouseWheelEnabled
+(WoteverCommon.WPF.Behaviors.MarginSetter
+Ignore
+DefaultTrackerTemplate
+44,14,14,35q
+ControlPointsEx
+TargetType"
+Property
+XPercent
+Bottom
+YPercent
+-13,-13,-13,-13q
+CornerRadius$
+AccentColorBrush#
+Center=
+Center=
+Effect
+'System.Windows.Media.Effects.BlurEffect
+Radius$
+KernelType$
+Gaussian=
+(MahApps.Metro.IconPacks.PackIconMaterial
+ArrowAll=
+Center=
+Center=
+Locked
+Converter
+8WoteverCommon.WPF.Converters.SHBoolToVisibilityConverter
+6WoteverCommon.WPF.Converters.BoolToVisibilityConverter
+Invert
+-50,-50,-50,0q
+Center=
+#33000000$
+Center=
+Padding$
+Orientation$
+Horizontal=
+Center=
+Center=
+ContentStringFormat$
+{0:0} x 
+LocDisable$
+0,0,-10,-15q
+CanDelete
+ChromelessButtonStyle#
+Bottom=
+Right=
+CloseCircle=
+Center=
+Center=
+Horizontal=
+30,15,15,0q
+WoteverLocalization.SLoc
+0.SplineResponseCurveEditor_Label_CurveSmoothing
+Curve smoothing+
+cbCurveFitting
+DisplayMemberPath$
+SelectedValuePath$
+SelectedValue
+CurveFitting+
+Horizontal=
+'SimHub.Plugins.Styles.SHButtonSecondary
+'SimHub.Plugins.Styles.SHButtonSecondary
+Click$
+resetButton_Click
+(&SplineResponseCurveEditor_Button_Reset
+Reset+
+copyButton_Click
+,*SplineResponseCurveEditor_Button_CopyCurve
+Copy curve+
+btnPasteSpline
+pasteButton_Click
+-+SplineResponseCurveEditor_Button_PasteCurve
+Paste curve+
+Center=
+10,0,0,0q
+#33000000$
+EditedFilter.ExpectOnlyRaising
+Horizontal=
+Center=
+)EditedFilter.FilterPreviewModel.IsRaising
+0,0,8,0q
+CheckCircle=
+Center=
+.,SplineResponseCurveEditor_Label_CurveIsValid
+Curve is valid+
+Horizontal=
+)EditedFilter.FilterPreviewModel.IsRaising
+0,0,8,0q
+AlertCircle=
+Center=
+;9SplineResponseCurveEditor_Label_CurveIsNotRaisingAllAlong
+Curve is not raising all along+
+Right=
+Horizontal=
+%SimHub.Plugins.Styles.SHButtonPrimary
+%SimHub.Plugins.Styles.SHButtonPrimary
+Click$
+SaveButton_Click
+CancelButton_Click
+Constants_CancelUpperCase+
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+E'clr-namespace:SimHub.Plugins.UI.Scaling
+SimHub.Plugins.UI.Scaling
+clr-namespace:SimHub.Plugins
+SimHub.Plugins
+SimHub.Plugins.HelpWindow
+clr-namespace:SimHub.Plugins.UI
+scaling'clr-namespace:SimHub.Plugins.UI.Scaling
+QMahApps.Metro, Version=1.5.0.23, Culture=neutral, PublicKeyToken=f4fb5a3c4d1e5b4f
+controls,http://metro.mahapps.com/winfx/xaml/controls
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+d2http://schemas.microsoft.com/expression/blend/2008
+clr-namespace:SimHub.Plugins
+Title$
+maingrd
+UseLayoutRounding
+SimHub.Plugins
+(SimHub.Plugins.HomeWidgets.UI.WidgetList
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+ElementName$
+Path$'
+!Manager.WidgetSettings.Containers
+Columns$
+1,1,1,1q
+WidgetControl
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+I)clr-namespace:SimHub.Plugins.InputPlugins
+SimHub.Plugins.InputPlugins
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+<SimHub.Plugins.InputPlugins.JoystickPluginSettingsControlWPF
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+inputplugins)clr-namespace:SimHub.Plugins.InputPlugins
+styles#clr-namespace:SimHub.Plugins.Styles
+WoteverLocalization.Loc
+LocOptIn
+LocNs$&
+ JoystickPluginSettingsControlWPF
+SimHub.Plugins.Styles.SHSection
+WoteverLocalization.SLoc
+)'JoystickPlugin_DETECTEDCONTROLLERSTitle
+DETECTED CONTROLLERS+
+Stretch=
+RowDefinitions
+SimHub.Plugins.Styles.SHListBox
+DisableSelection
+ConnectedDevices
+ColumnDefinitions
+Orientation$
+Horizontal=
+Center=
+Center=
+Opacity
+Settings.Enabled
+Converter
+2WoteverCommon.WPF.Converters.BoolToDoubleConverter
+TrueValue$
+FalseValue$
+4,0,0,0q
+Settings.IsXinput
+8WoteverCommon.WPF.Converters.SHBoolToVisibilityConverter
+Padding$
+CornerRadius$
+#33000000._
+2SimHub.Plugins.Styles.SHMaterialIconContentControl
+Alert=
+IconBrush
+/-JoystickPluginSettingsControlWPF_Label_Xinput
+XInput+
+Center=
+Right=
+Connected
+Constants_Connected+
+&SimHub.Plugins.Styles.SHToggleCheckbox
+IsChecked
+Settings.Enabled
+?=JoystickPlugin_YouCanUseTheseControllersInTheControlsSettings
+DBYou can use these controllers in the &quot;controls&quot; settings+
+4,0,0,0q
+ElementName$
+HasXinput
+#33000000._
+Alert=
+\ZJoystickPluginSettingsControlWPF_Label_XinputControllersMightNotWorkWhenSimhubIsNotFocused
+?=XInput controllers might not work when Simhub is not focused.+
+Stretch=
+JoystickPlugin_Diagnostic
+Diagnostic+
+EnableLogging
+JoystickPlugin_ShowInputs
+Show inputs+
+Right=
+Constants_Clear+
+Visible=
+Padding$
+SimHub.Plugins
+:SimHub.Plugins.KeyboardEmulation.KeyboardEmulatorKeyEditor
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+QMahApps.Metro, Version=1.5.0.23, Culture=neutral, PublicKeyToken=f4fb5a3c4d1e5b4f
+Custom,http://metro.mahapps.com/winfx/xaml/controls
+ColumnDefinitions
+CaretBrush
+ElementName$
+Value.TextDescription
+OneWay=
+%MahApps.Metro.Controls.ControlsHelper
+CornerRadius$
+0,4,4,0
+WoteverLocalization.NoLoc
+NWpf.Controls.PanAndZoom, Version=2.3.4.0, Culture=neutral, PublicKeyToken=null
+bFclr-namespace:Wpf.Controls.PanAndZoom;assembly=Wpf.Controls.PanAndZoom
+Wpf.Controls.PanAndZoom
+SimHub.Plugins
+MapViewer.MapViewerWindow
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+QMahApps.Metro, Version=1.5.0.23, Culture=neutral, PublicKeyToken=f4fb5a3c4d1e5b4f
+controls,http://metro.mahapps.com/winfx/xaml/controls
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+pazFclr-namespace:Wpf.Controls.PanAndZoom;assembly=Wpf.Controls.PanAndZoom
+Title$
+MainWindow
+WoteverLocalization.Loc
+LocDisable$
+RowDefinitions
+"Wpf.Controls.PanAndZoom.ZoomBorder
+ZoomBorder
+Stretch$
+ZoomSpeed$
+Stretch=
+Stretch=
+Child.
+Right=
+WoteverLocalization.SLoc
+MapViewerWindow_Next
+Previous
+MapViewerWindow_Previous
+Previous+
+Bottom=
+Delete
+MapViewerWindow_DeleteFile
+Delete file+
+Bottom=
+Right=
+Orientation$
+Horizontal=
+Track width
+$MahApps.Metro.Controls.NumericUpDown
+numTrackWidth
+Value$
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+G(clr-namespace:SimHub.Plugins.MatrixFonts
+SimHub.Plugins.MatrixFonts
++SimHub.Plugins.MatrixFonts.MatrixfontEditor
+QMahApps.Metro, Version=1.5.0.23, Culture=neutral, PublicKeyToken=f4fb5a3c4d1e5b4f
+controls,http://metro.mahapps.com/winfx/xaml/controls
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+d2http://schemas.microsoft.com/expression/blend/2008
+local(clr-namespace:SimHub.Plugins.MatrixFonts
+AccentColorBrush#
+WoteverLocalization.Loc
+LocNs$
+MatrixfontEditor
+LocOptIn
+WoteverLocalization.SLoc
+MatrixfontEditor_MenuItem_File
+#!MatrixfontEditor_MenuItem_NewFont
+New font+
+$"MatrixfontEditor_MenuItem_LoadFont
+Load font+
+$"MatrixfontEditor_MenuItem_SaveFont
+Save font+
+" MatrixfontEditor_MenuItem_SaveAs
+Save as+
+,*MatrixfontEditor_MenuItem_ImportLegacyFont
+Import legacy font+
+ColumnDefinitions
+RowDefinitions
+Orientation$
+Horizontal=
+Right=
+IsChecked
+IsGearFont
+.,MatrixfontEditor_CheckBox_IncludeGearCharset
+Include Gear charset+
+IsTextFont
+/-MatrixfontEditor_CheckBox_IncludeASCIICharset
+Include ASCII charset+
+Horizontal=
+Right=
+IsGearFont
+Converter
+8WoteverCommon.WPF.Converters.SHBoolToVisibilityConverter
+'%MatrixfontEditor_Label_GearFixedWidth
+Gear fixed width+
+$MahApps.Metro.Controls.NumericUpDown
+Minimum$
+Maximum$
+GearWidth
+(&MatrixfontEditor_Label_GearFixedHeight
+Gear fixed height+
+GearHeigth
+lstChars
+Characters
+Columns$
+ContextMenu
+Constants_Copy+
+Constants_Paste+
+Constants_Clear+
+53MatrixfontEditor_MenuItem_ApplyWidthToAllCharacters
+Apply width to all characters+
+64MatrixfontEditor_MenuItem_ApplyHeightToAllCharacters
+Apply height to all characters+
+Center=
+Center=
+ContentStringFormat$
+ '{0}'
+Consolas)
+Center=
+Pixels
+Horizontal=
+-WoteverCommon.WPF.Converters.BrushConverterEx
+DataContext
+ElementName$
+lstChars
+SelectedValue
+Center=
+Center=
+Consolas)
+,*MatrixfontEditor_LabelStringFormat_Editing
+Editing [apos]{0}[apos]+
+Horizontal=
+IsFixedSize
+-WoteverCommon.WPF.Converters.NotBoolConverter
+Center=
+MatrixfontEditor_Label_Width
+Width+
+Center=
+MatrixfontEditor_Label_Height
+Height+
+Height
+Center=
+Center=
+Center=
+Center=
+Center=
+Pixels
+Horizontal=
+Enabled
+<?xml version='1.0'?>
+<Obfuscator>
+<Var name="InPath" value="." />
+<Var name="OutPath" value=".\Obfuscated" />
+<Var name="HidePrivateApi" value="true" />
+<Var name="HideStrings" value="true" />
+<Var name="UseKoreanNames" value="true" />
+<Var name="SuppressIldasm" value="true" />
+<Var name="RenameFields" value="true" />
+<Var name="OptimizeMethods" value="true" />
+<!--<Var name="KeyFile" value="..\..\SimHubWPF\SimHubLicensingKey.snk" />-->
+<!--<AssemblySearchPath path=".\x86" />-->
+<Module file="$(InPath)\SimHub.Plugins.dll">
+<SkipNamespace name="*" />
+<ForceType name="SimHub.Plugins.Devices.Registry.DevicesDescriptorRegistry" />
+<ForceType name="SimHub.Plugins.Devices.Registry.DescriptorBuilder.TrustedCaller" />
+<ForceType name="SimHub.Plugins.Devices.Registry.DescriptorBuilder.KeyObfuscator" />
+<ForceType name="SimHub.Plugins.Devices.Registry.DescriptorBuilder.DeviceDefDecryptorWithGuard" />
+<ForceType name="SimHub.Plugins.Devices.Registry.DescriptorBuilder.DeviceDefinitionIO" />
+<ForceType name="SimHub.Plugins.Devices.DescriptorBuilderDescriptor" />
+<ForceType name="SimHub.Plugins.OutputPlugins.GraphicalDash.JsonFileEncryptionHelper" />
+<ForceType name="SimHub.Plugins.OutputPlugins.GraphicalDash.DashboardExporter" />
+</Module>
+<!--<AssemblySearchPath path="..\..\_Plugins\SimHub.Licensing\Obfuscated\" />-->
+</Obfuscator>!E
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+m;clr-namespace:SimHub.Plugins.OutputPlugins.GraphicalDash.UI-SimHub.Plugins.OutputPlugins.GraphicalDash.UI
+MSimHub.Plugins.OutputPlugins.AscherRacing.AscherMcLarenArturaPROSCColorEditor
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+d2http://schemas.microsoft.com/expression/blend/2008
+local;clr-namespace:SimHub.Plugins.OutputPlugins.GraphicalDash.UI
+Padding$
+Opacity
+ElementName$
+IsEnabled
+Converter
+2WoteverCommon.WPF.Converters.BoolToDoubleConverter
+TrueValue$
+FalseValue$
+mainCanvas
+>pack://siteoforigin:,,,/DevicesUI/AscherMcLarenArturaPROSC.png
+Uniform=
+@SimHub.Plugins.OutputPlugins.GraphicalDash.UI.DefaultButtonColor
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+m;clr-namespace:SimHub.Plugins.OutputPlugins.GraphicalDash.UI-SimHub.Plugins.OutputPlugins.GraphicalDash.UI
+OSimHub.Plugins.OutputPlugins.AscherRacing.AscherMcLarenArturaSPORTSCColorEditor
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+d2http://schemas.microsoft.com/expression/blend/2008
+local;clr-namespace:SimHub.Plugins.OutputPlugins.GraphicalDash.UI
+Padding$
+Opacity
+ElementName$
+IsEnabled
+Converter
+2WoteverCommon.WPF.Converters.BoolToDoubleConverter
+TrueValue$
+FalseValue$
+mainCanvas
+@pack://siteoforigin:,,,/DevicesUI/AscherMcLarenArturaSPORTSC.png
+Uniform=
+@SimHub.Plugins.OutputPlugins.GraphicalDash.UI.DefaultButtonColor
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+Center=
+]GongSolutions.WPF.DragDrop, Version=3.0.0.0, Culture=neutral, PublicKeyToken=91f1945125b7a587
+kLclr-namespace:GongSolutions.Wpf.DragDrop;assembly=GongSolutions.Wpf.DragDrop
+GongSolutions.Wpf.DragDrop
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+8SimHub.Plugins.OutputPlugins.AscherRacing.ProfilesDialog
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+_MahApps.Metro.IconPacks.Core, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+fMahApps.Metro.IconPacks.FontAwesome, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+cMahApps.Metro.IconPacks.Material, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+iconPacks-http://metro.mahapps.com/winfx/xaml/iconpacks
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+ddLclr-namespace:GongSolutions.Wpf.DragDrop;assembly=GongSolutions.Wpf.DragDrop
+clr-namespace:SimHub.Plugins.UI
+%SimHub.Plugins.UI.SHDialogContentBase
+#GongSolutions.Wpf.DragDrop.DragDrop
+IsDragSource
+IsDropTarget
+ElementName$
+Path$#
+Device.Settings.SavedProfiles
+Resources
+TargetType 
+MetroListBoxItem
+BasedOn
+Property
+Value 
+GrayBrush10
+Columns
+ActualWidth+
+Converter
+4WoteverCommon.WPF.Converters.UniformGridColConverter
+MinColumns$
+MinItemWidth$
+RelativeSource
+FindAncestor+
+AncestorType"
+container
+#33000000#
+IsHitTestVisible
+Points
+Loaded+
+8WoteverCommon.WPF.Converters.SHBoolToVisibilityConverter
+Opacity$
+FindAncestor+"
+IsMouseOver
+Orientation$
+Horizontal=
+Center=
+ToolTip$
+Load preset
+Center=
+Center=
+Loaded+
+-WoteverCommon.WPF.Converters.NotBoolConverter
++MahApps.Metro.IconPacks.PackIconFontAwesome
+FileUploadSolid=
+Delete preset
+Center=
+Center=
+TrashAltSolid=
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+9SimHub.Plugins.OutputPlugins.AscherRacing.SettingsControl
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+_MahApps.Metro.IconPacks.Core, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+fMahApps.Metro.IconPacks.FontAwesome, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+cMahApps.Metro.IconPacks.Material, Version=3.0.0.0, Culture=neutral, PublicKeyToken=0c0d510f9915137a
+iconPacks-http://metro.mahapps.com/winfx/xaml/iconpacks
+d2http://schemas.microsoft.com/expression/blend/2008
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+styles#clr-namespace:SimHub.Plugins.Styles
+clr-namespace:SimHub.Plugins.UI
+WoteverLocalization.Loc
+LocNs$!
+AscherRacingSettingsControl
+LocOptIn
+ElementName$
+Device.IsConnected
+SimHub.Plugins.Styles.SHSection
+WoteverLocalization.SLoc
+1/AscherRacingSettingsControl_SectionTitle_Colors
+Colors+
+ColumnDefinitions
+RowDefinitions
+Center=
+ColorEditor
+SimHub.Plugins.UI.TitledSlider
+Maximum$
+Minimum$
+42AscherRacingSettingsControl_SliderTitle_Brightness
+Brightness+
+Device.Settings.Brightness
+Orientation$
+Horizontal=
+Center=
+"SimHub.Plugins.Styles.SHLinkButton
+"SimHub.Plugins.Styles.SHLinkButton
+Click$
+resetToDefaults_Click
+75AscherRacingSettingsControl_Link_ResetWheelToDefaults
+Reset wheel to defaults+
+ SHLinkButtonSaveNewProfile_Click
+<:AscherRacingSettingsControl_Link_SaveColorPresetToComputer
+Save color preset to computer+
+SHLinkButtonLoadProfile_Click
+ECAscherRacingSettingsControl_Link_LoadManageComputerSavedColorPreset
+)'Load/manage computer saved color preset+
+10,0,0,0q
+$SimHub.Plugins.Styles.SHSectionTitle
+Device presets
+Device.Settings.DeviceProfiles
+Resources
+TargetType 
+MetroListBoxItem
+BasedOn
+Property
+Value 
+GrayBrush10
+container
+#33000000#
+IsHitTestVisible
+Opacity
+Loaded
+Converter
+2WoteverCommon.WPF.Converters.BoolToDoubleConverter
+TrueValue$
+FalseValue$
+Points
+Loaded+
+8WoteverCommon.WPF.Converters.SHBoolToVisibilityConverter
+Loaded+
+6WoteverCommon.WPF.Converters.BoolToVisibilityConverter
+Invert
+RelativeSource
+FindAncestor+
+AncestorType"
+IsMouseOver
+Horizontal=
+Center=
+ToolTip$
+Load preset
+Center=
+Center=
++MahApps.Metro.IconPacks.PackIconFontAwesome
+CheckSolid=
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+o<clr-namespace:SimHub.Plugins.OutputPlugins.BeltTensionner.UI.SimHub.Plugins.OutputPlugins.BeltTensionner.UI
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+i9clr-namespace:SimHub.Plugins.OutputPlugins.BeltTensionner+SimHub.Plugins.OutputPlugins.BeltTensionner
+o<clr-namespace:SimHub.Plugins.OutputPlugins.BeltTensionner.UI.SimHub.Plugins.OutputPlugins.BeltTensionner.UI
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+a5clr-namespace:SimHub.Plugins.DataPlugins.RGBDriver.UI'SimHub.Plugins.DataPlugins.RGBDriver.UI
+DSimHub.Plugins.OutputPlugins.BeltTensionner.UI.BeltTensionnerMonitor
+XPresentationFramework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NAvalonDock, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+\AvalonDock.Themes.VS2013, Version=4.72.1.0, Culture=neutral, PublicKeyToken=3e4669d2f30244f4
+PWoteverCommon, Version=1.1.0.0, Culture=neutral, PublicKeyToken=35893a067a282a97
+SPresentationCore, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+NWindowsBase, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+JWoteverLocalization, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null
+ZWindowsFormsIntegration, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35
+9http://schemas.microsoft.com/winfx/2006/xaml/presentation
+NSystem.Xaml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089
+x,http://schemas.microsoft.com/winfx/2006/xaml
+mc;http://schemas.openxmlformats.org/markup-compatibility/2006
+d2http://schemas.microsoft.com/expression/blend/2008
+local<clr-namespace:SimHub.Plugins.OutputPlugins.BeltTensionner.UI
+styles#clr-namespace:SimHub.Plugins.Styles
+models9clr-namespace:SimHub.Plugins.OutputPlugins.BeltTensionner
+ui<clr-namespace:SimHub.Plugins.OutputPlugins.BeltTensionner.UI
+clr-namespace:SimHub.Plugins.UI
+ui25clr-namespace:SimHub.Plugins.DataPlugins.RGBDriver.UI
+%SimHub.Plugins.UI.SHDialogContentBase
+WoteverLocalization.Loc
+LocOptOut
+DataContext
+ElementName$
+BeltTensionnerSettings
+SimHub.Plugins.Styles.SHSection
+WoteverLocalization.SLoc
+(&BeltTensionnerPluginUI_ProcessedOutput
+Processed output+
+-18,0q
+ColumnDefinitions
+RowDefinitions
+Center=
+-+BeltTensionnerPluginUI_LeftActuatorPosition
+Left actuator position+
+GSimHub.Plugins.OutputPlugins.BeltTensionner.UI.DualDirectionProgressBar
+Vertical
+Maximum$
+Status.Left.Value
+Center=
+ContentStringFormat$
+Current : {0:0.0%} 
+Status.Left.Value
+Delay$
+Speed : {0:0}hz 
+Status.ActuatorSpeed.Value
+Center=
+.,BeltTensionnerPluginUI_RightActuatorPosition
+Right actuator position+
+Status.Right.Value
+Center=
+Current : {0:0.0%} 
+Status.Right.Value
+Speed : {0:0}hz 
+Status.ActuatorSpeed.Value
+BeltTensionnerPluginUI_Forces
+Forces+
+ SimHub.Plugins.Styles.SHFlowGrid
+Columns$
+0,0,2,0q
+'SimHub.Plugins.Styles.SHSubSectionTitle
+BeltTensionnerPluginUI_Surge
+Surge+
+-18,0q
+Center=
+%#BeltTensionnerPluginUI_RawGameValue
+Raw game value+
+Status.CurrentSurge.Value
+,CurrentProfile.SurgeSettings.MaxAcceleration
+Center=
+Center=
+&$BeltTensionnerPluginUI_FilteredValue
+Filtered value+
+Status.CurrentSurgeEffect.Value
+Center=
+2,0,0,0q
+BeltTensionnerPluginUI_Sway
+Center=
+%#BeltTensionnerPluginUI_RawGameValue
+Raw game value+
+Status.CurrentSway.Value
++CurrentProfile.SwaySettings.MaxAcceleration
+Center=
+Center=
+&$BeltTensionnerPluginUI_FilteredValue
+Filtered value+
+Status.CurrentSwayEffect.Value
+Center=
+0,0,2,0q
+Pitch acceleration
+Center=
+Pitch acceleration (Raw)
+%Status.CurrentPitchAcceleration.Value
+8CurrentProfile.PitchAccelerationSettings.MaxAcceleration
+Center=
+Pitch acceleration (Filtered)
++Status.CurrentPitchAccelerationEffect.Value
+2,0,0,0q
+Roll acceleration
+Center=
+Roll acceleration (Raw)
+$Status.CurrentRollAcceleration.Value
+7CurrentProfile.RollAccelerationSettings.MaxAcceleration
+Center=
+Roll acceleration (Filtered)
+*Status.CurrentRollAccelerationEffect.Value
+LSimHub.Plugins, Version=1.0.9769.30184, Culture=neutral, PublicKeyToken=null
+i9clr-namespace:SimHub.Plugins.OutputPlugins.BeltTensionner+SimHub.Plugins.OutputPlugins.BeltTensionner
+o<clr-namespace:SimHub.Plugins.OutputPlugins.BeltTensionner.UI.SimHub.Plugins.OutputPlugins.BeltTensionner.UI
+=#clr-namespace:SimHub.Plugins.Styles
+SimHub.Plugins.Styles
+clr-namespace:SimHub.Plugins.UI
+SimHub.Plugins.UI
+a5clr-namespace:SimHub.Plugins.DataPlugins.RGBDriver.UI'SimHub.Plugins.DataPlugins.RGBDriver.UI
+ESimHub.Plugins.OutputPlugins.BeltTensionner.UI.BeltTensionnerPluginUI

@@ -85,7 +85,8 @@ Details: [user guide → Profiles](docs/user-guide.md#profiles).
 - Binding UI for axes, buttons, POV hats, **D-pad Up/Down/Left/Right** (for pads without a hat), and axis→button mappings
 - H-pattern gears **R, 1–6** (R defaults to button **19** / LGS; pick **12** in Bind Gear R for Unbound)
 - Force feedback via our DirectInput OEM driver (`g920ffb.dll`) — not Logitech HID++ — with separate FFB profiles, per-effect gains, optional feel and torque-shaping sliders, and in-car **Bind** buttons
-- **Debug Overlay** and **Effect Changes Overlay** for live inputs / FFB and on-screen slider toasts while you drive
+- **FFB Debug Overlay**, **Telemetry Debug Overlay**, and **Effect Changes Overlay** for live inputs / FFB / SimHub packet and on-screen slider toasts while you drive
+- **Telemetry** tab: UDP feed to SimHub for games with no native telemetry (estimated dash + G-force + FFB-derived rumble/impact), plus optional **G920 Emulator RPM** SimHub plugin so built-in ShakeIt Engine vibrations works
 - Optional GitHub update check that downloads the new zip to Downloads
 - JSON input + FFB profiles in AppData (see above)
 
@@ -124,6 +125,7 @@ native/g920ffb                DirectInput OEM EffectDriver (g920ffb.dll)
 native/winuhid                Bundled WinUHid runtime + INF (copied into dist)
 native/logisdk                Bundled Logitech Steering Wheel SDK runtimes
 docs/                         User and technical guides
+simhub/                       SimHub External Sim definition + G920Emulator.SimHubPlugin.dll (Register installs both)
 tools/                        Build helpers (g920ffb, WinUHid, probes)
 publish.ps1                   Self-contained win-x64 → dist\G920Emulator + zip
 CHANGELOG.md                  Version notes

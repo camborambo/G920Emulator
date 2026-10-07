@@ -1,0 +1,3307 @@
+==== get_IsSupportedOnCurrentGame ====
+  // EffectsContainerBase.get_IsSupportedOnCurrentGame len=81
+  ldarg.0 
+  ldflda System.Nullable`1[System.Boolean] _IsSupportedOnCurrentGame
+  call Boolean get_HasValue()
+  brfalse.s 12
+  ldarg.0 
+  ldflda System.Nullable`1[System.Boolean] _IsSupportedOnCurrentGame
+  call Boolean get_Value()
+  ret 
+  ldarg.0 
+  ldfld System.Lazy`1[SimHub.Plugins.DataPlugins.ShakeItV3.Effects.EffectBase] firstEffect
+  callvirt SimHub.Plugins.DataPlugins.ShakeItV3.Effects.EffectBase get_Value()
+  stloc.0 
+  ldarg.0 
+  callvirt GameReaderCommon.Feedback.FeedbackCapabilities get_FeedbackCapabilities()
+  brfalse.s 20
+  ldloc.0 
+  brtrue.s 3
+  ldc.i4.0 
+  br.s 15
+  ldloc.0 
+  ldarg.0 
+  callvirt GameReaderCommon.Feedback.FeedbackCapabilities get_FeedbackCapabilities()
+  callvirt Boolean GetIsSupportedOnCurrentGame(GameReaderCommon.Feedback.FeedbackCapabilities)
+  br.s 1
+  ldc.i4.0 
+  stloc.1 
+  ldarg.0 
+  ldloc.1 
+  newobj Void .ctor(Boolean)
+  stfld System.Nullable`1[System.Boolean] _IsSupportedOnCurrentGame
+  ldloc.1 
+  ret 
+
+==== SetFeedbackCapabilities ====
+  // EffectsContainerBase.SetFeedbackCapabilities len=27
+  ldarg.0 
+  ldarg.2 
+  call Void set_CurrentGame(System.String)
+  ldarg.0 
+  ldarg.1 
+  callvirt Void set_FeedbackCapabilities(GameReaderCommon.Feedback.FeedbackCapabilities)
+  ldarg.0 
+  ldflda System.Nullable`1[System.Boolean] _IsSupportedOnCurrentGame
+  initobj System.Nullable`1[System.Boolean]
+  ret 
+
+==== callers of set_RPMPercent ====
+SimHub.Plugins.DataPlugins.RGBDriverCommon.LedsGameData.Update
+  // LedsGameData.Update len=846
+  ldarg.0 
+  ldarg.1 
+  callvirt Boolean get_GameRunning()
+  callvirt Void set_GameRunning(Boolean)
+  ldarg.0 
+  ldarg.1 
+  callvirt System.String get_GameName()
+  callvirt Void set_GameName(System.String)
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  brfalse 799
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_IsInPitLane()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_IsInPitLane(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_PitLimiterOn()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_PitLimiterOn(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_FuelPercent()
+  callvirt Void set_FuelPercent(Double)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Fuel()
+  callvirt Void set_Fuel(Double)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_CarSettings_CurrentDisplayedRPMPercent()
+  callvirt Void set_RPMPercent(Double)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_CarSettings_RPMRedLineReached()
+  ldc.r8 0
+  cgt 
+  callvirt Void set_RPMRedlineReached(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Rpms()
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_CarSettings_CurrentGearRedLineRPM()
+  ldc.r8 1
+  call Double Max(Double, Double)
+  div 
+  ldc.r8 100
+  mul 
+  callvirt Void set_RPMToRedlinePercent(Double)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Rpms()
+  callvirt Void set_Rpms(Double)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedKmh()
+  callvirt Void set_SpeedKmh(Double)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedMph()
+  callvirt Void set_SpeedMph(Double)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Turbo()
+  callvirt Void set_Turbo(Double)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TurboPercent()
+  callvirt Void set_TurboPercent(Double)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_ABSLevel()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_AbsEnabled(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_ABSActive()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_AbsActive(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_DRSEnabled()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_DRSEnabled(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_DRSAvailable()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_DRSAvailable(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_TCLevel()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_TCEnabled(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_TCActive()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_TCActive(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_Gear()
+  callvirt Void set_Gear(System.String)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_Flag_Black()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_BlackFlag(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_Flag_Yellow()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_YellowFlag(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_Flag_White()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_WhiteFlag(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_Flag_Blue()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_BlueFlag(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_Flag_Green()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_GreenFlag(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_TurnIndicatorLeft()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_TurnIndicatorLeft(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_TurnIndicatorRight()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_TurnIndicatorRight(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_CarModel()
+  callvirt Void set_CarModel(System.String)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_CarId()
+  callvirt Void set_CarId(System.String)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_CarSettings_MaxGears()
+  stloc.0 
+  ldloca.s 0
+  call System.String ToString()
+  callvirt Void set_MaxGear(System.String)
+  ldarg.0 
+  ldarg.2 
+  ldstr "PersistantTrackerPlugin.SessionBestLiveDeltaSeconds"
+  callvirt System.Object GetPropertyValue(System.String)
+  unbox.any System.Double
+  callvirt Void set_SessionBestDelta(Double)
+  ldarg.0 
+  ldarg.2 
+  ldstr "PersistantTrackerPlugin.AllTimeBestLiveDeltaSeconds"
+  callvirt System.Object GetPropertyValue(System.String)
+  unbox.any System.Double
+  callvirt Void set_AllTimeBestDelta(Double)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_CarSettings_FuelAlertActive()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_LowFuelAlert(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_SpotterCarLeft()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_SpotterCarLeft(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_SpotterCarRight()
+  ldc.i4.0 
+  cgt 
+  callvirt Void set_SpotterCarRight(Boolean)
+  ldarg.0 
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Brake()
+  callvirt Void set_Brake(Double)
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase OldData
+  dup 
+  brtrue.s 12
+  pop 
+  ldloca.s 1
+  initobj System.Nullable`1[System.Double]
+  ldloc.1 
+  br.s 10
+  call Double get_Rpms()
+  newobj Void .ctor(Double)
+  stloc.1 
+  ldloca.s 1
+  call Double GetValueOrDefault()
+  ldc.r8 0
+  bne.un.s 46
+  ldarg.1 
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Rpms()
+  ldc.r8 0
+  ble.un.s 24
+  ldarg.0 
+  ldarg.1 
+  callvirt System.DateTime get_FrameTime()
+  callvirt Void set_CarStartedTime(System.DateTime)
+  ret 
+  ldarg.0 
+  ldsfld System.DateTime MinValue
+  callvirt Void set_CarStartedTime(System.DateTime)
+  ret 
+
+GameReaderCommon.GameManagerBase`3.PreParseDataBase
+  // GameManagerBase`3.PreParseDataBase len=10771
+  ldarg.0 
+  call 0A00018B
+  stloc.0 
+  ldc.r8 1
+  stloc.1 
+  ldarg.0 
+  call 0A00018C
+  pop 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldarg.0 
+  callvirt 0A00018D
+  callvirt Void set_GameInMenu(Boolean)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A00018E
+  stloc.s 15
+  ldloca.s 15
+  call Boolean get_HasValue()
+  brtrue.s 7
+  call System.DateTime get_Now()
+  br.s 7
+  ldloca.s 15
+  call System.DateTime GetValueOrDefault()
+  callvirt Void set_PacketTime(System.DateTime)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A00017A
+  callvirt Void set_Spectating(Boolean)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000190
+  callvirt Void set_IsGameReplay(Boolean)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000191
+  callvirt Void set_Gear(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000192
+  call Double Abs(Double)
+  callvirt Void set_SpeedKmh(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000193
+  callvirt Void set_Flag_Orange(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000194
+  callvirt Void set_Flag_Black(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000195
+  callvirt Void set_Flag_Blue(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000196
+  callvirt Void set_Flag_Yellow(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000197
+  callvirt Void set_Flag_White(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000198
+  callvirt Void set_Flag_Checkered(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A000102
+  ldarg.0 
+  callvirt 0A000199
+  callvirt Int32 Filter(Int32)
+  callvirt Void set_Flag_Green(Int32)
+  ldarg.0 
+  call 0A000172
+  callvirt GameReaderCommon.LocalPressureUnit get_LocalPressureUnit()
+  ldc.i4.2 
+  bne.un.s 12
+  ldc.r8 0.0689476
+  stloc.1 
+  br.s 24
+  ldarg.0 
+  call 0A000172
+  callvirt GameReaderCommon.LocalPressureUnit get_LocalPressureUnit()
+  ldc.i4.1 
+  bne.un.s 10
+  ldc.r8 6.89476
+  stloc.1 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A00019A
+  ldloc.1 
+  mul 
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_OilPressure(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A00019B
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_OilTemperature(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A00019D
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_WaterTemperature(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A00019E
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_AirTemperature(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A00019F
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_RoadTemperature(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000165
+  callvirt Void set_CarModel(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001A0
+  callvirt Void set_CarId(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001A1
+  callvirt Void set_TrackId(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A00016A
+  callvirt Void set_TrackName(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001A2
+  callvirt Void set_TrackConfig(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001A3
+  callvirt Void set_CurrentLapTime(System.TimeSpan)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001A4
+  callvirt Void set_LastLapTime(System.TimeSpan)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001A5
+  callvirt Void set_BestLapTime(System.TimeSpan)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001A6
+  callvirt Void set_SessionTimeLeft(System.TimeSpan)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001A7
+  callvirt Void set_DeltaToAllTimeBest(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001A8
+  stloc.s 16
+  ldloca.s 16
+  call Boolean get_HasValue()
+  brtrue.s 27
+  ldarg.0 
+  call 0A0001AA
+  callvirt System.Nullable`1[System.Double] GetAllTimeBestLap()
+  stloc.s 17
+  ldloca.s 17
+  call Double GetValueOrDefault()
+  call System.TimeSpan FromSeconds(Double)
+  br.s 7
+  ldloca.s 16
+  call System.TimeSpan GetValueOrDefault()
+  callvirt Void set_AllTimeBest(System.TimeSpan)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001AE
+  callvirt Void set_DeltaToSessionBest(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001AF
+  callvirt Void set_SessionTypeName(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001B0
+  callvirt Void set_CompletedLaps(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001B1
+  callvirt Void set_IsLapValid(Boolean)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A000154
+  callvirt Void set_LapInvalidated(Boolean)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001B2
+  callvirt Void set_TotalLaps(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001B3
+  ldarg.0 
+  call 0A0001B4
+  ldc.r8 100
+  ldc.r8 0
+  ldc.r8 100
+  ldc.i4.1 
+  call Double Map(Double, Double, Double, Double, Double, Boolean)
+  callvirt Void set_TyreWearFrontLeft(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001B6
+  ldarg.0 
+  call 0A0001B4
+  ldc.r8 100
+  ldc.r8 0
+  ldc.r8 100
+  ldc.i4.1 
+  call Double Map(Double, Double, Double, Double, Double, Boolean)
+  callvirt Void set_TyreWearFrontRight(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001B7
+  ldarg.0 
+  call 0A0001B4
+  ldc.r8 100
+  ldc.r8 0
+  ldc.r8 100
+  ldc.i4.1 
+  call Double Map(Double, Double, Double, Double, Double, Boolean)
+  callvirt Void set_TyreWearRearLeft(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001B8
+  ldarg.0 
+  call 0A0001B4
+  ldc.r8 100
+  ldc.r8 0
+  ldc.r8 100
+  ldc.i4.1 
+  call Double Map(Double, Double, Double, Double, Double, Boolean)
+  callvirt Void set_TyreWearRearRight(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001B9
+  callvirt Void set_TyreDirtFrontLeft(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001BA
+  callvirt Void set_TyreDirtFrontRight(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001BB
+  callvirt Void set_TyreDirtRearLeft(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001BC
+  callvirt Void set_TyreDirtRearRight(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001BD
+  ldloc.1 
+  mul 
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyrePressureFrontLeft(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001BE
+  ldloc.1 
+  mul 
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyrePressureFrontRight(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001BF
+  ldloc.1 
+  mul 
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyrePressureRearLeft(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001C0
+  ldloc.1 
+  mul 
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyrePressureRearRight(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001C1
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_BrakeTemperatureFrontLeft(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001C2
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_BrakeTemperatureFrontRight(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001C3
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_BrakeTemperatureRearLeft(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001C4
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_BrakeTemperatureRearRight(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001C5
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureFrontLeft(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001C6
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureFrontRight(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001C7
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureRearLeft(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001C8
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureRearRight(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001C9
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureFrontLeftInner(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001CA
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureFrontLeftMiddle(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001CB
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureFrontLeftOuter(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001CC
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureFrontRightInner(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001CD
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureFrontRightMiddle(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001CE
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureFrontRightOuter(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001CF
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureRearLeftInner(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001D0
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureRearLeftMiddle(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001D1
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureRearLeftOuter(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001D2
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureRearRightInner(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001D3
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureRearRightMiddle(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001D4
+  call 0A00019C
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_TyreTemperatureRearRightOuter(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001D5
+  callvirt Void set_CarDamage1(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001D6
+  callvirt Void set_CarDamage2(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001D7
+  callvirt Void set_CarDamage3(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001D8
+  callvirt Void set_CarDamage4(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001D9
+  callvirt Void set_CarDamage5(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001DA
+  callvirt Void set_TurnIndicatorLeft(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001DB
+  callvirt Void set_TurnIndicatorRight(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001DC
+  callvirt Void set_PushToPassActive(System.Nullable`1[System.Boolean])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001DD
+  callvirt Void set_IsInPitLane(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001DE
+  callvirt Void set_IsInPit(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_IsInPit()
+  ldc.i4.0 
+  ble.s 70
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase OldData
+  dup 
+  brtrue.s 13
+  pop 
+  ldloca.s 18
+  initobj System.Nullable`1[System.Int32]
+  ldloc.s 18
+  br.s 10
+  call Int32 get_IsInPit()
+  newobj Void .ctor(Int32)
+  stloc.s 18
+  ldloca.s 18
+  call Int32 GetValueOrDefault()
+  brtrue.s 22
+  ldarg.0 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.DateTime get_PacketTime()
+  call 0A0001E0
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_IsInPit()
+  ldc.i4.0 
+  ble.s 54
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.DateTime get_PacketTime()
+  ldarg.0 
+  call 0A0001E1
+  call System.TimeSpan op_Subtraction(System.DateTime, System.DateTime)
+  stloc.s 19
+  ldloca.s 19
+  call Double get_TotalSeconds()
+  callvirt Void set_IsInPitSince(Double)
+  br.s 83
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase OldData
+  dup 
+  brtrue.s 4
+  pop 
+  ldc.i4.0 
+  br.s 16
+  call Double get_IsInPitSince()
+  ldc.r8 0
+  cgt 
+  brfalse.s 22
+  ldarg.0 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase OldData
+  callvirt Double get_IsInPitSince()
+  stfld 0A000158
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldc.r8 0
+  callvirt Void set_IsInPitSince(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A000158
+  callvirt Void set_LastPitStopDuration(Double)
+  ldarg.0 
+  callvirt 0A0001E2
+  stloc.2 
+  ldloca.s 2
+  call Boolean get_HasValue()
+  brfalse.s 72
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldloca.s 2
+  call Double get_Value()
+  call 0A0001E5
+  newobj Void .ctor(Double)
+  callvirt Void set_PitLimiterSpeed(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloca.s 2
+  call Double get_Value()
+  ldc.r8 3.6
+  div 
+  newobj Void .ctor(Double)
+  callvirt Void set_PitLimiterSpeedMs(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001E6
+  callvirt Void set_PitLimiterOn(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001E7
+  callvirt Void set_EngineTorque(Double)
+  ldarg.0 
+  call 0A000157
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000168
+  callvirt Void set_Rpms(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001E8
+  callvirt Void set_MaxRpm(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001E9
+  callvirt Void set_CarCoordinates(Double[])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001EA
+  callvirt Void set_RelativeCarCoordinates(Double[])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldarg.0 
+  callvirt 0A0001EB
+  call 0A0001EC
+  callvirt Void set_TrackPositionPercent(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001ED
+  callvirt Void set_Position(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001EE
+  callvirt Void set_Clutch(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001EF
+  callvirt Void set_Throttle(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001F0
+  callvirt Void set_Brake(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001F1
+  callvirt Void set_Handbrake(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001F2
+  callvirt Void set_Turbo(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001F3
+  callvirt Void set_MaxTurbo(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001F4
+  callvirt Void set_EstimatedFuelRemaingLaps(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001F5
+  callvirt Void set_ERSMax(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001F6
+  callvirt Void set_ERSStored(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_ERSMax()
+  ldc.r8 0
+  bgt.s 11
+  ldc.r8 0
+  br.s 43
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_ERSStored()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_ERSMax()
+  div 
+  ldc.r8 100
+  mul 
+  callvirt Void set_ERSPercent(Double)
+  ldarg.0 
+  call 0A0001F7
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001F8
+  stloc.s 17
+  ldloca.s 17
+  call Double GetValueOrDefault()
+  ldc.i4.1 
+  call Double Round(Double, Int32)
+  callvirt Void set_BrakeBias(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001F9
+  callvirt Void set_MapAllowed(Boolean)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001FA
+  callvirt Void set_DRSEnabled(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001FB
+  callvirt Void set_DRSAvailable(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001FC
+  callvirt Void set_TCLevel(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001FD
+  callvirt Void set_TCActive(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A0001FE
+  stloc.s 18
+  ldloca.s 18
+  ldc.i4.m1 
+  call Int32 GetValueOrDefault(Int32)
+  callvirt Void set_EngineMap(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000200
+  callvirt Void set_ABSLevel(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000201
+  callvirt Void set_ABSActive(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000169
+  callvirt Void set_EngineIgnitionOn(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000202
+  callvirt Void set_EngineStarted(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000203
+  callvirt Void set_AccelerationSway(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000204
+  callvirt Void set_AccelerationSurge(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000205
+  callvirt Void set_AccelerationHeave(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000206
+  callvirt Void set_RollChangeVelocity(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000207
+  callvirt Void set_PitchChangeVelocity(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000208
+  callvirt Void set_YawChangeVelocity(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000209
+  callvirt Void set_GroundSpeedKmH(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_GroundSpeedKmH()
+  stloc.s 17
+  ldloca.s 17
+  call Boolean get_HasValue()
+  brtrue.s 12
+  ldloca.s 17
+  initobj System.Nullable`1[System.Double]
+  ldloc.s 17
+  br.s 22
+  ldarg.0 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_GroundSpeedKmH()
+  call 0A00020A
+  callvirt Void set_GroundSpeedLocal(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldc.i4.0 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_CompletedLaps()
+  call Int32 Max(Int32, Int32)
+  callvirt Void set_CompletedLaps(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldc.i4.0 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_TotalLaps()
+  call Int32 Max(Int32, Int32)
+  callvirt Void set_TotalLaps(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_CompletedLaps()
+  ldc.i4.1 
+  add 
+  callvirt Void set_CurrentLap(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_TotalLaps()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_CompletedLaps()
+  sub 
+  ldc.i4.0 
+  call Int32 Max(Int32, Int32)
+  callvirt Void set_RemainingLaps(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  callvirt 0A00013E
+  dup 
+  brtrue.s 13
+  pop 
+  ldloca.s 17
+  initobj System.Nullable`1[System.Double]
+  ldloc.s 17
+  br.s 10
+  call Double get_MaxEngineTorque()
+  newobj Void .ctor(Double)
+  stloc.s 17
+  ldloca.s 17
+  ldc.r8 0
+  call Double GetValueOrDefault(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxEngineTorque()
+  call Double Max(Double, Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_EngineTorque()
+  call Double Max(Double, Double)
+  callvirt Void set_MaxEngineTorque(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.TimeSpan get_BestLapTime()
+  ldsfld System.TimeSpan Zero
+  call Boolean op_LessThan(System.TimeSpan, System.TimeSpan)
+  brfalse.s 21
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldsfld System.TimeSpan Zero
+  callvirt Void set_BestLapTime(System.TimeSpan)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.TimeSpan get_LastLapTime()
+  ldsfld System.TimeSpan Zero
+  call Boolean op_LessThan(System.TimeSpan, System.TimeSpan)
+  brfalse.s 21
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldsfld System.TimeSpan Zero
+  callvirt Void set_LastLapTime(System.TimeSpan)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxRpm()
+  ldc.r8 0
+  bgt.un.s 113
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  callvirt 0A00013E
+  dup 
+  brtrue.s 13
+  pop 
+  ldloca.s 17
+  initobj System.Nullable`1[System.Double]
+  ldloc.s 17
+  br.s 10
+  call Double get_MaxRpm()
+  newobj Void .ctor(Double)
+  stloc.s 17
+  ldloca.s 17
+  ldc.r8 0
+  call Double GetValueOrDefault(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxRpm()
+  call Double Max(Double, Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Rpms()
+  call Double Max(Double, Double)
+  callvirt Void set_MaxRpm(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldc.r8 0
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Rpms()
+  call Double Max(Double, Double)
+  callvirt Void set_Rpms(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A00020C
+  callvirt Void set_Redline(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxFuel()
+  ldc.r8 0
+  bgt.un.s 113
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  callvirt 0A00013E
+  dup 
+  brtrue.s 13
+  pop 
+  ldloca.s 17
+  initobj System.Nullable`1[System.Double]
+  ldloc.s 17
+  br.s 10
+  call Double get_MaxFuel()
+  newobj Void .ctor(Double)
+  stloc.s 17
+  ldloca.s 17
+  ldc.r8 0
+  call Double GetValueOrDefault(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxFuel()
+  call Double Max(Double, Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Fuel()
+  call Double Max(Double, Double)
+  callvirt Void set_MaxFuel(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxTurbo()
+  ldc.r8 0
+  bgt.un.s 113
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  callvirt 0A00013E
+  dup 
+  brtrue.s 13
+  pop 
+  ldloca.s 17
+  initobj System.Nullable`1[System.Double]
+  ldloc.s 17
+  br.s 10
+  call Double get_MaxTurbo()
+  newobj Void .ctor(Double)
+  stloc.s 17
+  ldloca.s 17
+  ldc.r8 0
+  call Double GetValueOrDefault(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxTurbo()
+  call Double Max(Double, Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Turbo()
+  call Double Max(Double, Double)
+  callvirt Void set_MaxTurbo(Double)
+  ldarg.0 
+  callvirt 0A00020D
+  stloc.3 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedKmh()
+  ldloc.3 
+  brtrue.s 7
+  ldc.r4 1
+  br.s 5
+  ldc.r4 0.6213712
+  conv.r8 
+  mul 
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_SpeedMph(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedKmh()
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_SpeedKmh(Double)
+  ldc.i4.4 
+  newarr System.Double
+  dup 
+  ldc.i4.0 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreDirtFrontLeft()
+  stelem.r8 
+  dup 
+  ldc.i4.1 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreDirtFrontRight()
+  stelem.r8 
+  dup 
+  ldc.i4.2 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreDirtRearLeft()
+  stelem.r8 
+  dup 
+  ldc.i4.3 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreDirtRearRight()
+  stelem.r8 
+  stloc.s 4
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 4
+  call Double Average(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_TyresDirtyLevelAvg(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 4
+  call Double Max(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_TyresDirtyLevelMax(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 4
+  call Double Min(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_TyresDirtyLevelMin(Double)
+  ldc.i4.4 
+  newarr System.Double
+  dup 
+  ldc.i4.0 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_BrakeTemperatureFrontLeft()
+  stelem.r8 
+  dup 
+  ldc.i4.1 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_BrakeTemperatureFrontRight()
+  stelem.r8 
+  dup 
+  ldc.i4.2 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_BrakeTemperatureRearLeft()
+  stelem.r8 
+  dup 
+  ldc.i4.3 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_BrakeTemperatureRearRight()
+  stelem.r8 
+  stloc.s 5
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 5
+  call Double Average(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_BrakesTemperatureAvg(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 5
+  call Double Max(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_BrakesTemperatureMax(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 5
+  call Double Min(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_BrakesTemperatureMin(Double)
+  ldc.i4.4 
+  newarr System.Double
+  dup 
+  ldc.i4.0 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreTemperatureFrontLeft()
+  stelem.r8 
+  dup 
+  ldc.i4.1 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreTemperatureFrontRight()
+  stelem.r8 
+  dup 
+  ldc.i4.2 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreTemperatureRearLeft()
+  stelem.r8 
+  dup 
+  ldc.i4.3 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreTemperatureRearRight()
+  stelem.r8 
+  stloc.s 6
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 6
+  call Double Average(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_TyresTemperatureAvg(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 6
+  call Double Max(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_TyresTemperatureMax(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 6
+  call Double Min(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_TyresTemperatureMin(Double)
+  ldc.i4.4 
+  newarr System.Double
+  dup 
+  ldc.i4.0 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreWearFrontLeft()
+  stelem.r8 
+  dup 
+  ldc.i4.1 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreWearFrontRight()
+  stelem.r8 
+  dup 
+  ldc.i4.2 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreWearRearLeft()
+  stelem.r8 
+  dup 
+  ldc.i4.3 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TyreWearRearRight()
+  stelem.r8 
+  stloc.s 7
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 7
+  call Double Average(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_TyresWearAvg(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 7
+  call Double Max(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_TyresWearMax(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 7
+  call Double Min(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_TyresWearMin(Double)
+  ldarg.0 
+  call 0A000156
+  ldc.i4.5 
+  newarr System.Double
+  dup 
+  ldc.i4.0 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_CarDamage1()
+  stelem.r8 
+  dup 
+  ldc.i4.1 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_CarDamage2()
+  stelem.r8 
+  dup 
+  ldc.i4.2 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_CarDamage3()
+  stelem.r8 
+  dup 
+  ldc.i4.3 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_CarDamage4()
+  stelem.r8 
+  dup 
+  ldc.i4.4 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_CarDamage5()
+  stelem.r8 
+  stloc.s 8
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 8
+  call Double Average(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_CarDamagesAvg(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 8
+  call Double Max(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_CarDamagesMax(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 8
+  call Double Min(System.Collections.Generic.IEnumerable`1[System.Double])
+  callvirt Void set_CarDamagesMin(Double)
+  ldarg.0 
+  ldfld 0A000114
+  callvirt Int32 get_Interval()
+  pop 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Rpms()
+  callvirt Void set_FilteredRpms(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedKmh()
+  callvirt Void set_FilteredSpeedKmh(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedMph()
+  callvirt Void set_FilteredSpeedMph(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxTurbo()
+  ldc.r8 0
+  ble.un.s 59
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Turbo()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxTurbo()
+  div 
+  ldc.r8 100
+  mul 
+  callvirt Void set_TurboPercent(Double)
+  ldarg.0 
+  call 0A000211
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_CarModel()
+  brtrue.s 27
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F3
+  ldfld System.String FakeCarName
+  callvirt Void set_CarModel(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_CarId()
+  brtrue.s 32
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_CarModel()
+  callvirt Void set_CarId(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_TrackName()
+  brtrue.s 27
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F3
+  ldfld System.String FakeTrackName
+  callvirt Void set_TrackName(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_TrackId()
+  brtrue.s 27
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F3
+  ldfld System.String FakeTrackName
+  callvirt Void set_TrackId(System.String)
+  ldarg.0 
+  ldfld 0A0000F3
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedKmh()
+  ldarg.0 
+  ldfld 0A0000F3
+  ldfld Double SessionMaxSpeed
+  call Double Max(Double, Double)
+  stfld Double SessionMaxSpeed
+  ldarg.0 
+  ldfld 0A0000F3
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedKmh()
+  ldarg.0 
+  ldfld 0A0000F3
+  ldfld Double LapMaxSpeed
+  call Double Max(Double, Double)
+  stfld Double LapMaxSpeed
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F3
+  ldfld Double SessionMaxSpeed
+  callvirt Void set_MaxSpeedKmh(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F3
+  ldfld Double SessionMaxSpeed
+  ldc.r8 0.6213712096214294
+  mul 
+  ldc.i4.2 
+  call Double Round(Double, Int32)
+  callvirt Void set_MaxSpeedMph(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  call 0A000172
+  callvirt GameReaderCommon.LocalSpeedUnit get_LocalSpeedUnit()
+  brfalse.s 18
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxSpeedMph()
+  br.s 16
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxSpeedKmh()
+  callvirt Void set_MaxSpeedLocal(Double)
+  ldarg.0 
+  call 0A000172
+  callvirt GameReaderCommon.LocalSpeedUnit get_LocalSpeedUnit()
+  brtrue.s 55
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedKmh()
+  callvirt Void set_SpeedLocal(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldstr "KMH"
+  callvirt Void set_SpeedLocalUnit(System.String)
+  br.s 53
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedMph()
+  callvirt Void set_SpeedLocal(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldstr "MPH"
+  callvirt Void set_SpeedLocalUnit(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedLocal()
+  callvirt Void set_FilteredSpeedLocal(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_Flag_Black()
+  ldc.i4.0 
+  ble.s 26
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldstr "Black"
+  callvirt Void set_Flag_Name(System.String)
+  br 166
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_Flag_Blue()
+  ldc.i4.0 
+  ble.s 23
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldstr "Blue"
+  callvirt Void set_Flag_Name(System.String)
+  br.s 124
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_Flag_White()
+  ldc.i4.0 
+  ble.s 23
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldstr "White"
+  callvirt Void set_Flag_Name(System.String)
+  br.s 82
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_Flag_Yellow()
+  ldc.i4.0 
+  ble.s 23
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldstr "Yellow"
+  callvirt Void set_Flag_Name(System.String)
+  br.s 40
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_Flag_Checkered()
+  ldc.i4.0 
+  ble.s 21
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldstr "Checkered"
+  callvirt Void set_Flag_Name(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F3
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.LapHistoryEntry] get_SessionLapHistory()
+  call System.Collections.Generic.List`1[GameReaderCommon.LapHistoryEntry] ToList[LapHistoryEntry](System.Collections.Generic.IEnumerable`1[GameReaderCommon.LapHistoryEntry])
+  callvirt Void set_SessionLapHistory(System.Collections.Generic.List`1[GameReaderCommon.LapHistoryEntry])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000212
+  callvirt Void set_TrackLength(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000212
+  callvirt Void set_ReportedTrackLength(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TrackLength()
+  ldc.r8 0
+  bgt.un.s 27
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  call 0A0001AA
+  callvirt Double GetTrackLength()
+  callvirt Void set_TrackLength(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TrackLength()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_TrackPositionPercent()
+  mul 
+  callvirt Void set_TrackPositionMeters(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  call 0A00016C
+  call System.String AsString(GameReaderCommon.ReplayModes)
+  callvirt Void set_ReplayMode(System.String)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000213
+  dup 
+  brtrue.s 6
+  pop 
+  newobj Void .ctor()
+  callvirt Void set_Opponents(System.Collections.Generic.List`1[GameReaderCommon.Opponent])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  ldsfld 0A000214
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A000215
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A000214
+  call System.Linq.IOrderedEnumerable`1[GameReaderCommon.Opponent] OrderBy[Opponent,Int32](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Int32])
+  ldsfld 0A000218
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A000219
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A000218
+  call System.Linq.IOrderedEnumerable`1[GameReaderCommon.Opponent] ThenBy[Opponent,Int32](System.Linq.IOrderedEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Int32])
+  ldsfld 0A00021B
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A00021C
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A00021B
+  call System.Linq.IOrderedEnumerable`1[GameReaderCommon.Opponent] ThenBy[Opponent,TimeSpan](System.Linq.IOrderedEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.TimeSpan])
+  call System.Collections.Generic.List`1[GameReaderCommon.Opponent] ToList[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent])
+  callvirt Void set_Opponents(System.Collections.Generic.List`1[GameReaderCommon.Opponent])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A00021E
+  call Double NormalizeAngle(Double)
+  callvirt Void set_OrientationYaw(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A00021F
+  call Double NormalizeAngle(Double)
+  callvirt Void set_OrientationPitch(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  callvirt 0A000220
+  call Double NormalizeAngle(Double)
+  callvirt Void set_OrientationRoll(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase OldData
+  brfalse 156
+  ldloc.0 
+  ldc.r8 0
+  ble.un 141
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000EF
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_OrientationYaw()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.TimeSpan get_GuessedElaspedGameTime()
+  callvirt Double GetVelocity(Double, System.TimeSpan)
+  callvirt Void set_OrientationYawVelocity(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000EF
+  callvirt Double get_LastAcceleration()
+  callvirt Void set_OrientationYawAcceleration(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_OrientationRoll()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase OldData
+  callvirt Double get_OrientationRoll()
+  call Double AnglesDifference(Double, Double)
+  ldloc.0 
+  div 
+  callvirt Void set_OrientationRollAcceleration(Double)
+  ldarg.0 
+  call 0A000221
+  ldarg.0 
+  callvirt 0A00017A
+  brtrue 212
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  callvirt Int32 get_Count()
+  brfalse.s 57
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  ldsfld 0A000223
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A000224
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A000223
+  call Boolean Any[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Boolean])
+  brtrue 132
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  newobj Void .ctor()
+  dup 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_CarModel()
+  callvirt Void set_CarName(System.String)
+  dup 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.TimeSpan get_BestLapTime()
+  callvirt Void set_BestLapTime(System.TimeSpan)
+  dup 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double[] get_CarCoordinates()
+  callvirt Void set_Coordinates(Double[])
+  dup 
+  ldc.i4.1 
+  callvirt Void set_IsPlayer(Boolean)
+  dup 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_Position()
+  callvirt Void set_Position(Int32)
+  dup 
+  ldstr "Me"
+  callvirt Void set_Name(System.String)
+  callvirt Void Add(GameReaderCommon.Opponent)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  ldsfld 0A000228
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A000229
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A000228
+  call GameReaderCommon.Opponent FirstOrDefault[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Boolean])
+  dup 
+  brtrue.s 4
+  pop 
+  ldnull 
+  br.s 5
+  call System.String get_Name()
+  callvirt Void set_PlayerName(System.String)
+  ldarg.0 
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  call 0A00022B
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  ldsfld 0A00022C
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A00022D
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A00022C
+  call System.Collections.Generic.IEnumerable`1[System.Linq.IGrouping`2[System.String,GameReaderCommon.Opponent]] GroupBy[Opponent,String](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.String])
+  ldsfld 0A000230
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A000231
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A000230
+  call System.Collections.Generic.IEnumerable`1[GameReaderCommon.LeaderboardCarClassDescription] Select[IGrouping`2,LeaderboardCarClassDescription](System.Collections.Generic.IEnumerable`1[System.Linq.IGrouping`2[System.String,GameReaderCommon.Opponent]], System.Func`2[System.Linq.IGrouping`2[System.String,GameReaderCommon.Opponent],GameReaderCommon.LeaderboardCarClassDescription])
+  call System.Collections.Generic.List`1[GameReaderCommon.LeaderboardCarClassDescription] ToList[LeaderboardCarClassDescription](System.Collections.Generic.IEnumerable`1[GameReaderCommon.LeaderboardCarClassDescription])
+  callvirt Void set_OpponentsClassses(System.Collections.Generic.List`1[GameReaderCommon.LeaderboardCarClassDescription])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  ldarg.0 
+  ldftn 0A000233
+  newobj Void .ctor(System.Object, IntPtr)
+  call System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent] Where[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Boolean])
+  call System.Collections.Generic.List`1[GameReaderCommon.Opponent] ToList[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent])
+  callvirt Void set_OpponentsPlayerClass(System.Collections.Generic.List`1[GameReaderCommon.Opponent])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  ldarg.0 
+  ldftn 0A000235
+  newobj Void .ctor(System.Object, IntPtr)
+  call System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent] Where[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Boolean])
+  ldsfld 0A000236
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A000237
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A000236
+  call System.Linq.IOrderedEnumerable`1[GameReaderCommon.Opponent] OrderBy[Opponent,Nullable`1](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Nullable`1[System.Double]])
+  call System.Collections.Generic.List`1[GameReaderCommon.Opponent] ToList[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent])
+  callvirt Void set_OpponentsAheadOnTrack(System.Collections.Generic.List`1[GameReaderCommon.Opponent])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  ldarg.0 
+  ldftn 0A000239
+  newobj Void .ctor(System.Object, IntPtr)
+  call System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent] Where[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Boolean])
+  ldsfld 0A00023A
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A00023B
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A00023A
+  call System.Linq.IOrderedEnumerable`1[GameReaderCommon.Opponent] OrderBy[Opponent,Nullable`1](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Nullable`1[System.Double]])
+  call System.Collections.Generic.List`1[GameReaderCommon.Opponent] ToList[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent])
+  callvirt Void set_OpponentsBehindOnTrack(System.Collections.Generic.List`1[GameReaderCommon.Opponent])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  ldarg.0 
+  ldftn 0A00023C
+  newobj Void .ctor(System.Object, IntPtr)
+  call System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent] Where[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Boolean])
+  ldsfld 0A00023D
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A00023E
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A00023D
+  call System.Linq.IOrderedEnumerable`1[GameReaderCommon.Opponent] OrderBy[Opponent,Nullable`1](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Nullable`1[System.Double]])
+  call System.Collections.Generic.List`1[GameReaderCommon.Opponent] ToList[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent])
+  callvirt Void set_OpponentsAheadOnTrackPlayerClass(System.Collections.Generic.List`1[GameReaderCommon.Opponent])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  ldarg.0 
+  ldftn 0A00023F
+  newobj Void .ctor(System.Object, IntPtr)
+  call System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent] Where[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Boolean])
+  ldsfld 0A000240
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A000241
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A000240
+  call System.Linq.IOrderedEnumerable`1[GameReaderCommon.Opponent] OrderBy[Opponent,Nullable`1](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Nullable`1[System.Double]])
+  call System.Collections.Generic.List`1[GameReaderCommon.Opponent] ToList[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent])
+  callvirt Void set_OpponentsBehindOnTrackPlayerClass(System.Collections.Generic.List`1[GameReaderCommon.Opponent])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  call Int32 Count[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent])
+  callvirt Void set_OpponentsCount(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_OpponentsPlayerClass()
+  call Int32 Count[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent])
+  callvirt Void set_PlayerClassOpponentsCount(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  ldsfld 0A000243
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A000244
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A000243
+  callvirt Int32 FindIndex(System.Predicate`1[GameReaderCommon.Opponent])
+  stloc.s 9
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 9
+  ldc.i4.0 
+  bge.s 3
+  ldc.i4.m1 
+  br.s 4
+  ldloc.s 9
+  ldc.i4.1 
+  add 
+  callvirt Void set_PlayerLeaderboardPosition(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Collections.Generic.List`1[GameReaderCommon.Opponent] get_Opponents()
+  ldsfld 0A000247
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A000248
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A000247
+  call GameReaderCommon.Opponent FirstOrDefault[Opponent](System.Collections.Generic.IEnumerable`1[GameReaderCommon.Opponent], System.Func`2[GameReaderCommon.Opponent,System.Boolean])
+  stloc.s 10
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 10
+  brtrue.s 12
+  ldloca.s 17
+  initobj System.Nullable`1[System.Double]
+  ldloc.s 17
+  br.s 7
+  ldloc.s 10
+  call System.Nullable`1[System.Double] get_SplitDeltaSelf()
+  callvirt Void set_SelfsplitDelta(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 10
+  brtrue.s 12
+  ldloca.s 17
+  initobj System.Nullable`1[System.Double]
+  ldloc.s 17
+  br.s 7
+  ldloc.s 10
+  call System.Nullable`1[System.Double] get_SplitDeltaBestLapOpponent()
+  callvirt Void set_BestSplitDelta(System.Nullable`1[System.Double])
+  ldarg.0 
+  callvirt 0A000249
+  stloc.s 11
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_TCActive()
+  callvirt Void SetTCActive(Int32)
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_ABSActive()
+  callvirt Void SetABSActive(Int32)
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_PitchChangeVelocity()
+  callvirt Void SetPitchChangeVelocity(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_RollChangeVelocity()
+  callvirt Void SetRollChangeVelocity(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_YawChangeVelocity()
+  callvirt Void SetYawChangeVelocity(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_PitchChangeVelocity()
+  callvirt Void SetPitchChangeVelocitySanitized(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_RollChangeVelocity()
+  callvirt Void SetRollChangeVelocitySanitized(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_YawChangeVelocity()
+  callvirt Void SetYawChangeVelocitySanitized(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_GroundSpeedKmH()
+  callvirt Void SetGroundSpeed(System.Nullable`1[System.Double])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 11
+  callvirt Void set_FeedbackData(GameReaderCommon.Feedback.FeedbackData)
+  ldarg.0 
+  ldc.i4.1 
+  call 0A00024A
+  stloc.s 12
+  ldloc.s 12
+  callvirt Boolean get_UseGimbleLockSanitizer()
+  brfalse 137
+  ldarg.0 
+  ldfld 0A0000F3
+  ldfld GameReaderCommon.MotionSanitizer MotionSanitizer
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_OrientationPitch()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_OrientationRoll()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_OrientationYaw()
+  callvirt Telemetry Process(Double, Double, Double)
+  stloc.s 20
+  ldarg.0 
+  call 0A00024B
+  ldloc.s 20
+  ldfld Double Y
+  call Double NormalizeAngle(Double)
+  callvirt Void set_OrientationYawSanitized(Double)
+  ldarg.0 
+  call 0A00024B
+  ldloc.s 20
+  ldfld Double P
+  call Double NormalizeAngle(Double)
+  callvirt Void set_OrientationPitchSanitized(Double)
+  ldarg.0 
+  call 0A00024B
+  ldloc.s 20
+  ldfld Double R
+  call Double NormalizeAngle(Double)
+  callvirt Void set_OrientationRollSanitized(Double)
+  br.s 81
+  ldarg.0 
+  call 0A00024B
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_OrientationYaw()
+  callvirt Void set_OrientationYawSanitized(Double)
+  ldarg.0 
+  call 0A00024B
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_OrientationPitch()
+  callvirt Void set_OrientationPitchSanitized(Double)
+  ldarg.0 
+  call 0A00024B
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_OrientationRoll()
+  callvirt Void set_OrientationRollSanitized(Double)
+  ldloc.s 12
+  callvirt Boolean get_RollChangeVelocityEstimated()
+  brtrue.s 21
+  ldloc.s 12
+  callvirt Boolean get_YawChangeVelocityEstimated()
+  brtrue.s 12
+  ldloc.s 12
+  callvirt Boolean get_PitchChangeVelocityEstimated()
+  brfalse 407
+  ldarg.0 
+  ldfld 0A0000F3
+  ldfld GameReaderCommon.AngularRateFilter angularRateFilter
+  ldarg.0 
+  call 0A00024B
+  callvirt Double get_OrientationYaw()
+  ldarg.0 
+  call 0A00024B
+  callvirt Double get_OrientationPitch()
+  ldarg.0 
+  call 0A00024B
+  callvirt Double get_OrientationRoll()
+  callvirt System.ValueTuple`3[System.Double,System.Double,System.Double] Update(Double, Double, Double)
+  stloc.s 21
+  ldarg.0 
+  ldfld 0A0000F3
+  ldfld GameReaderCommon.AngularRateFilter angularRateFilterSanitized
+  ldarg.0 
+  call 0A00024B
+  callvirt Double get_OrientationYawSanitized()
+  ldarg.0 
+  call 0A00024B
+  callvirt Double get_OrientationPitchSanitized()
+  ldarg.0 
+  call 0A00024B
+  callvirt Double get_OrientationRollSanitized()
+  callvirt System.ValueTuple`3[System.Double,System.Double,System.Double] Update(Double, Double, Double)
+  stloc.s 22
+  ldloc.s 12
+  callvirt Boolean get_RollChangeVelocityEstimated()
+  brfalse.s 92
+  ldarg.0 
+  call 0A00024B
+  ldloc.s 22
+  ldfld Double Item3
+  newobj Void .ctor(Double)
+  callvirt Void set_RollChangeVelocitySanitized(System.Nullable`1[System.Double])
+  ldarg.0 
+  call 0A00024B
+  ldloc.s 21
+  ldfld Double Item3
+  newobj Void .ctor(Double)
+  callvirt Void set_RollChangeVelocity(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_RollChangeVelocity()
+  callvirt Void SetRollChangeVelocity(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_RollChangeVelocitySanitized()
+  callvirt Void SetRollChangeVelocitySanitized(System.Nullable`1[System.Double])
+  ldloc.s 12
+  callvirt Boolean get_PitchChangeVelocityEstimated()
+  brfalse.s 94
+  ldarg.0 
+  call 0A00024B
+  ldloc.s 22
+  ldfld Double Item2
+  neg 
+  newobj Void .ctor(Double)
+  callvirt Void set_PitchChangeVelocitySanitized(System.Nullable`1[System.Double])
+  ldarg.0 
+  call 0A00024B
+  ldloc.s 21
+  ldfld Double Item2
+  neg 
+  newobj Void .ctor(Double)
+  callvirt Void set_PitchChangeVelocity(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_PitchChangeVelocity()
+  callvirt Void SetPitchChangeVelocity(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_PitchChangeVelocitySanitized()
+  callvirt Void SetPitchChangeVelocitySanitized(System.Nullable`1[System.Double])
+  ldloc.s 12
+  callvirt Boolean get_YawChangeVelocityEstimated()
+  brfalse.s 92
+  ldarg.0 
+  call 0A00024B
+  ldloc.s 22
+  ldfld Double Item1
+  newobj Void .ctor(Double)
+  callvirt Void set_YawChangeVelocitySanitized(System.Nullable`1[System.Double])
+  ldarg.0 
+  call 0A00024B
+  ldloc.s 21
+  ldfld Double Item1
+  newobj Void .ctor(Double)
+  callvirt Void set_YawChangeVelocity(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_YawChangeVelocity()
+  callvirt Void SetYawChangeVelocity(System.Nullable`1[System.Double])
+  ldloc.s 11
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.Nullable`1[System.Double] get_YawChangeVelocitySanitized()
+  callvirt Void SetYawChangeVelocitySanitized(System.Nullable`1[System.Double])
+  ldloc.s 12
+  callvirt Boolean get_WheelsSpeed()
+  brfalse.s 83
+  ldloc.s 12
+  callvirt Boolean get_WheelsRPS()
+  brtrue.s 74
+  ldc.i4.0 
+  stloc.s 23
+  br.s 64
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  callvirt Double[] get_WheelRPS()
+  ldloc.s 23
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  callvirt Double[] get_WheelSpeed()
+  ldloc.s 23
+  ldelem.r8 
+  ldc.r8 1.9
+  div 
+  stelem.r8 
+  ldloc.s 23
+  ldc.i4.1 
+  add 
+  stloc.s 23
+  ldloc.s 23
+  ldc.i4.4 
+  blt.s 187
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedKmh()
+  callvirt Void set_Speed(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Brake()
+  callvirt Void set_Brake(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Clutch()
+  callvirt Void set_Clutch(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Throttle()
+  callvirt Void set_Throttle(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Rpms()
+  ldc.r8 1
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_MaxRpm()
+  call Double Max(Double, Double)
+  div 
+  callvirt Void set_RPMPercent(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_Gear()
+  call Int32 GearToInt(System.String)
+  callvirt Void set_Gear(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase OldData
+  brfalse 382
+  ldarg.0 
+  ldfld 0A000104
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  callvirt GameReaderCommon.Feedback.LocalVelocity get_LocalVelocity()
+  callvirt System.Numerics.Vector3 ToVector()
+  callvirt Void Enqueue(System.Numerics.Vector3)
+  br.s 12
+  ldarg.0 
+  ldfld 0A000104
+  callvirt System.Numerics.Vector3 Dequeue()
+  pop 
+  ldarg.0 
+  ldfld 0A000104
+  callvirt Int32 get_Count()
+  ldc.i4.3 
+  bgt.s 230
+  ldarg.0 
+  ldfld 0A000106
+  ldsfld 0A000252
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A000253
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A000252
+  ldc.r4 0
+  call Double AverageOrDefault[Double](System.Collections.Generic.IEnumerable`1[System.Double], System.Func`2[System.Double,System.Single], Single)
+  stloc.s 24
+  ldarg.0 
+  ldfld 0A000104
+  ldsfld 0A000256
+  dup 
+  brtrue.s 23
+  pop 
+  ldsfld 0A00014E
+  ldftn 0A000257
+  newobj Void .ctor(System.Object, IntPtr)
+  dup 
+  stsfld 0A000256
+  ldc.r4 0
+  call Double AverageOrDefault[Vector3](System.Collections.Generic.IEnumerable`1[System.Numerics.Vector3], System.Func`2[System.Numerics.Vector3,System.Single], Single)
+  stloc.s 25
+  ldc.r8 40
+  ldc.r8 5
+  ldloc.s 25
+  ldc.i4.1 
+  call Double Offset(Double, Double, Double, Boolean)
+  ldc.r8 1
+  add 
+  stloc.s 26
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  ldfld 0A000106
+  callvirt Int32 get_Count()
+  ldc.i4.3 
+  beq.s 11
+  ldc.r8 0
+  br.s 57
+  ldc.r8 0
+  ldarg.0 
+  ldfld 0A000104
+  call System.Numerics.Vector3 Last[Vector3](System.Collections.Generic.IEnumerable`1[System.Numerics.Vector3])
+  ldarg.0 
+  ldfld 0A000104
+  call System.Numerics.Vector3 First[Vector3](System.Collections.Generic.IEnumerable`1[System.Numerics.Vector3])
+  call System.Numerics.Vector3 op_Subtraction(System.Numerics.Vector3, System.Numerics.Vector3)
+  stloc.s 27
+  ldloca.s 27
+  call Single Length()
+  conv.r8 
+  ldloc.s 24
+  sub 
+  call Double Max(Double, Double)
+  ldloc.s 26
+  mul 
+  callvirt Void set_VelocityDistance(Double)
+  ldarg.0 
+  ldfld 0A000106
+  ldarg.0 
+  ldfld 0A000104
+  call System.Numerics.Vector3 Last[Vector3](System.Collections.Generic.IEnumerable`1[System.Numerics.Vector3])
+  ldarg.0 
+  ldfld 0A000104
+  call System.Numerics.Vector3 First[Vector3](System.Collections.Generic.IEnumerable`1[System.Numerics.Vector3])
+  call System.Numerics.Vector3 op_Subtraction(System.Numerics.Vector3, System.Numerics.Vector3)
+  stloc.s 27
+  ldloca.s 27
+  call Single Length()
+  conv.r8 
+  callvirt Void Enqueue(Double)
+  br.s 12
+  ldarg.0 
+  ldfld 0A000106
+  callvirt Double Dequeue()
+  pop 
+  ldarg.0 
+  ldfld 0A000106
+  callvirt Int32 get_Count()
+  ldc.i4.3 
+  bgt.s 230
+  br.s 22
+  ldarg.0 
+  ldfld 0A000106
+  callvirt Void Clear()
+  ldarg.0 
+  ldfld 0A000104
+  callvirt Void Clear()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_OrientationYaw()
+  callvirt Void set_OrientationYaw(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_OrientationPitch()
+  callvirt Void set_OrientationPitch(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_OrientationRoll()
+  callvirt Void set_OrientationRoll(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double[] get_CarCoordinates()
+  dup 
+  brtrue.s 7
+  pop 
+  ldc.i4.3 
+  newarr System.Double
+  callvirt Void set_Coordinates(Double[])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  ldarg.0 
+  call 0A000260
+  callvirt Void set_OrientationYawChangePerSecond(Double)
+  ldarg.0 
+  callvirt 0A000204
+  stloc.s 13
+  ldloca.s 13
+  call Boolean get_HasValue()
+  brtrue 384
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase OldData
+  brfalse 392
+  call System.DateTime get_Now()
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase OldData
+  callvirt System.DateTime get_PacketTime()
+  call System.TimeSpan op_Subtraction(System.DateTime, System.DateTime)
+  stloc.s 19
+  ldloca.s 19
+  call Double get_TotalSeconds()
+  ldc.r8 0
+  ble.un 343
+  ldarg.0 
+  ldfld 0A0000F3
+  ldarg.0 
+  ldfld 0A0000F3
+  callvirt System.Collections.Generic.Queue`1[System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double]] get_Acceleration()
+  dup 
+  brtrue.s 6
+  pop 
+  newobj Void .ctor()
+  callvirt Void set_Acceleration(System.Collections.Generic.Queue`1[System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double]])
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_SpeedKmh()
+  stloc.s 28
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  callvirt System.Nullable`1[System.Double] get_GroundSpeed()
+  stloc.s 17
+  ldloca.s 17
+  call Boolean get_HasValue()
+  brfalse.s 32
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt GameReaderCommon.Feedback.FeedbackData get_FeedbackData()
+  callvirt System.Nullable`1[System.Double] get_GroundSpeed()
+  stloc.s 17
+  ldloca.s 17
+  call Double get_Value()
+  stloc.s 28
+  ldarg.0 
+  ldfld 0A0000F3
+  callvirt System.Collections.Generic.Queue`1[System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double]] get_Acceleration()
+  call System.DateTime get_Now()
+  ldloc.s 28
+  newobj Void .ctor(System.DateTime, Double)
+  callvirt Void Enqueue(System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double])
+  ldarg.0 
+  ldfld 0A0000F3
+  callvirt System.Collections.Generic.Queue`1[System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double]] get_Acceleration()
+  callvirt Int32 get_Count()
+  ldc.i4.2 
+  blt.s 209
+  ldarg.0 
+  ldfld 0A0000F3
+  callvirt System.Collections.Generic.Queue`1[System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double]] get_Acceleration()
+  call System.DateTime get_Now()
+  ldloc.s 28
+  newobj Void .ctor(System.DateTime, Double)
+  callvirt Void Enqueue(System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double])
+  br.s 17
+  ldarg.0 
+  ldfld 0A0000F3
+  callvirt System.Collections.Generic.Queue`1[System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double]] get_Acceleration()
+  callvirt System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double] Dequeue()
+  pop 
+  ldarg.0 
+  ldfld 0A0000F3
+  callvirt System.Collections.Generic.Queue`1[System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double]] get_Acceleration()
+  callvirt Int32 get_Count()
+  ldc.i4.3 
+  bgt.s 220
+  ldarg.0 
+  ldfld 0A0000F3
+  callvirt System.Collections.Generic.Queue`1[System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double]] get_Acceleration()
+  callvirt System.Collections.Generic.KeyValuePair`2[System.DateTime,System.Double] Peek()
+  stloc.s 29
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 28
+  ldc.r8 0.277778
+  mul 
+  ldloca.s 29
+  call Double get_Value()
+  ldc.r8 0.277778
+  mul 
+  sub 
+  call System.DateTime get_Now()
+  ldloca.s 29
+  call System.DateTime get_Key()
+  call System.TimeSpan op_Subtraction(System.DateTime, System.DateTime)
+  stloc.s 19
+  ldloca.s 19
+  call Double get_TotalSeconds()
+  div 
+  callvirt Void set_GlobalAccelerationG(Double)
+  br.s 24
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloca.s 13
+  call Double get_Value()
+  neg 
+  callvirt Void set_GlobalAccelerationG(Double)
+  ldloc.s 12
+  callvirt Boolean get_SuspensionPosition()
+  brfalse.s 6
+  ldarg.0 
+  call 0A000268
+  ldloc.s 12
+  callvirt Boolean get_LandingEffect()
+  brfalse.s 6
+  ldarg.0 
+  call 0A000269
+  ldarg.0 
+  call 0A00026A
+  callvirt Double GetFuelRemainingLaps()
+  stloc.s 14
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 14
+  callvirt Void set_CarSettings_FuelAlertFuelRemainingLaps(Double)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldloc.s 14
+  ldc.r8 0
+  ble.un.s 83
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Int32 get_IsInPit()
+  brtrue.s 65
+  ldarg.0 
+  call 0A00015A
+  callvirt GameReaderCommon.GameSettings.Car.GameSettings get_GameSettings()
+  callvirt Boolean get_EnableLowFuelAlert()
+  brfalse.s 47
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt Double get_Fuel()
+  ldc.r8 0
+  ble.un.s 20
+  ldloc.s 14
+  ldarg.0 
+  call 0A00015A
+  callvirt GameReaderCommon.GameSettings.Car.GameSettings get_GameSettings()
+  callvirt Double get_LowFuelLapsLevel()
+  ble.s 3
+  ldc.i4.0 
+  br.s 1
+  ldc.i4.1 
+  callvirt Void set_CarSettings_FuelAlertActive(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  call 0A00015A
+  callvirt GameReaderCommon.GameSettings.Car.GameSettings get_GameSettings()
+  callvirt Boolean get_EnableLowFuelAlert()
+  ldc.i4.0 
+  cgt.un 
+  callvirt Void set_CarSettings_FuelAlertEnabled(Int32)
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  ldarg.0 
+  call 0A00015A
+  callvirt GameReaderCommon.GameSettings.Car.GameSettings get_GameSettings()
+  callvirt Double get_LowFuelLapsLevel()
+  callvirt Void set_CarSettings_FuelAlertLaps(Double)
+  ldarg.0 
+  ldfld 0A000111
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_CarModel()
+  callvirt Void set_CarModel(System.String)
+  ldarg.0 
+  ldfld 0A000111
+  ldarg.0 
+  ldfld 0A0000F2
+  ldfld GameReaderCommon.StatusDataBase NewData
+  callvirt System.String get_TrackName()
+  callvirt Void set_TrackName(System.String)
+  ldarg.0 
+  call 0A00026B
+  ret 
+
+
+=== StandardFieldType count 132 ===
+ 16 SpeedKmh
+ 17 GroundSpeedKmh
+ 22 PitLimiterSpeedMs
+ 25 EngineRpm
+ 26 EngineMaxRpm
+ 27 EngineShiftRpm

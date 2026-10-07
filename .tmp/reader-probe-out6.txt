@@ -1,0 +1,42 @@
+SimHub.Plugins.DataPlugins.ShakeItV3.Device.ShakeITV3PluginDevice`2 ifaces=IWPFSettings,IPlugin,IDataPlugin,ISettingPlugin,IMainMenu,IWPFSettingsV2,IReusable,IDynamicActionPlugin,ILimitedUIWidth,INotifyPropertyChanged,ISubPlugin
+SimHub.Plugins.DataPlugins.ShakeItV3.ShakeITBSV3Plugin ifaces=IWPFSettings,IPlugin,IDataPlugin,ISettingPlugin,IMainMenu,IWPFSettingsV2,IReusable,IDynamicActionPlugin,ILimitedUIWidth,INotifyPropertyChanged
+SimHub.Plugins.DataPlugins.ShakeItV3.ShakeITMotorsV3Plugin ifaces=IWPFSettings,IPlugin,IDataPlugin,ISettingPlugin,IMainMenu,IWPFSettingsV2,IReusable,IDynamicActionPlugin,ILimitedUIWidth,INotifyPropertyChanged
+SimHub.Plugins.DataPlugins.ShakeItV3.ShakeITV3PluginBase`2 ifaces=IWPFSettings,IPlugin,IDataPlugin,ISettingPlugin,IMainMenu,IWPFSettingsV2,IReusable,IDynamicActionPlugin,ILimitedUIWidth,INotifyPropertyChanged
+SimHub.Plugins.DataPlugins.ShakeItV3.UI.Profiles.ShakeITProfileProperties ifaces=IResource,IAnimatable,IInputElement,IFrameworkInputElement,ISupportInitialize,IHaveResources,IQueryAmbient,IAddChild,IComponentConnector
+
+EffectsContainerBase FeedbackCapabilities=
+ P FeedbackCapabilities FeedbackCapabilities set=True
+ M get_IsSupportedOnCurrentGame
+ M SetFeedbackCapabilities
+ M get_FeedbackCapabilities
+ M set_FeedbackCapabilities
+
+Callers of SetFeedbackCapabilities (scan plugins methods IL - sample):
+ShakeItDeviceSettings`1.SetGameCapabilities
+ShakeItDeviceSettings`1.GetEffectsFactoriesForCurrentGame
+ShakeItSettings`1.SetGameCapabilities
+ShakeItSettings`1.GetEffectsFactoriesForCurrentGame
+ShakeItSettings.SetGameCapabilities
+ShakeItSettings.GetEffectsFactoriesForCurrentGame
+AcceleratingGroupContainer.SetFeedbackCapabilities
+ThrottlePressedGroupContainer.SetFeedbackCapabilities
+BrakePressedGroupContainer.SetFeedbackCapabilities
+DeceleratingGroupContainer.SetFeedbackCapabilities
+ConditionalGroupContainer.SetFeedbackCapabilities
+GroupContainer.SetFeedbackCapabilities
+IContainerGroupExtensions.SetChildsInfos
+WheelsSlipContainer.SetFeedbackCapabilities
+ShakeitSettingsMotorsWithFrequencyOutputManagerBase`2.SetGameCapabilities
+ShakeitSettingsMotorsWithFrequencyOutputManagerBase`2.GetEffectsFactoriesForCurrentGame
+
+Unhandled Exception: System.BadImageFormatException: Could not load file or assembly 'SimHub.FanatecManaged, Version=1.0.8939.23765, Culture=neutral, PublicKeyToken=null' or one of its dependencies. An attempt was made to load a program with an incorrect format. ---> System.BadImageFormatException: Could not load file or assembly 'file:///C:\Program Files (x86)\SimHub\SimHub.FanatecManaged.dll' or one of its dependencies. An attempt was made to load a program with an incorrect format.
+   at System.Reflection.RuntimeAssembly._nLoad(AssemblyName fileName, String codeBase, Evidence assemblySecurity, RuntimeAssembly locationHint, StackCrawlMark& stackMark, IntPtr pPrivHostBinder, Boolean throwOnFileNotFound, Boolean forIntrospection, Boolean suppressSecurityChecks)
+   at System.Reflection.RuntimeAssembly.InternalLoadAssemblyName(AssemblyName assemblyRef, Evidence assemblySecurity, RuntimeAssembly reqAssembly, StackCrawlMark& stackMark, IntPtr pPrivHostBinder, Boolean throwOnFileNotFound, Boolean forIntrospection, Boolean suppressSecurityChecks)
+   at System.Reflection.RuntimeAssembly.InternalLoadFrom(String assemblyFile, Evidence securityEvidence, Byte[] hashValue, AssemblyHashAlgorithm hashAlgorithm, Boolean forIntrospection, Boolean suppressSecurityChecks, StackCrawlMark& stackMark)
+   at System.Reflection.Assembly.LoadFrom(String assemblyFile)
+   at Program.<>c__DisplayClass0_0.<<Main>$>b__0(Object _, ResolveEventArgs args) in G:\Projects\Github\G920Emulator\.tmp\reader-probe\Program.cs:line 8
+   at System.AppDomain.OnAssemblyResolveEvent(RuntimeAssembly assembly, String assemblyFullName)
+   --- End of inner exception stack trace ---
+   at System.RuntimeMethodHandle.GetMethodBody(IRuntimeMethodInfo method, RuntimeType declaringType)
+   at System.Reflection.RuntimeMethodInfo.GetMethodBody()
+   at Program.<Main>$(String[] args) in G:\Projects\Github\G920Emulator\.tmp\reader-probe\Program.cs:line 41

@@ -1,0 +1,86 @@
+OMSI caps:
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_Speed
+  set_LocalVelocity
+
+SupportedGameManager:
+ P DetectionPriority : Nullable`1
+ P IsEditing : Boolean
+ P IsRegistered : Boolean
+ P IsShortcutOnly : Boolean
+ P AutomaticSwitchingAllowed : Boolean
+ P Readers : List`1
+ P HasReaderChoice : Boolean
+ P SteamId : String
+ P LogoOverride : String
+ P StoreId : String
+ P EpicId : String
+ P EpicLink : String
+ P IsRunning : Boolean
+ P IsReplay : Boolean
+ P IsNotRunning : Boolean
+ P IsPaused : Boolean
+ P GameFeatures : GameFeatures
+ P ProcessNames : String[]
+ P DetectedInstallPath : String
+ P Name : String
+ P NameAndReader : String
+ P ReaderDescription : String
+ P Code : String
+ P GameFamily : GameFamily
+ P Instance : IGameManager
+ P IsActive : Boolean
+ P Thumbnail : GraphicalDashItemThumbnail
+ P LogoPath : String
+ P DefaultTyreWearMinimum : Double
+ P CurrentTyreWearMinimum : Double
+ P IsHidden : Boolean
+ P IsShown : Boolean
+ P HiddenSettings : ConcurrentDictionary`2
+ P GamesSettings : ConcurrentDictionary`2
+ P GameSettings : GameSettings
+ P CurrentReader : SupportedGameManagerGameReader
+ P SteamArguments : String
+ P UseSteamExe : Boolean
+ P Launcher : ILauncher
+ P SteamStartupOptions : Dictionary`2
+ P DefaultStartupCommand : String
+ M ActivateGame(Boolean)
+ M CreateReader(SupportedGameManagerGameReader)
+ M ShowTelemetryUI()
+ M GameSettingsUI()
+ M RaisePropertyChanged(Object,String)
+ M UDPPort()
+ M GetRunningProcess(Dictionary`2)
+ M CreateLauncher()
+ M GetConfigTabs()
+ M <>OnPropertyChanged(PropertyChangedEventArgs)
+
+CreateReader:
+  SupportedGameManagerGameReader.get_Type
+  Activator.CreateInstance
+db SimHub.Plugins.SupportedGameManagerExtensions
+db SimHub.Plugins.SupportedGameManagerGameReader
+db SimHub.Plugins.SupportedGameList
+db SimHub.Plugins.SupportedGameManager
+db SimHub.Plugins.UI.SupportedGamePicker
+db SimHub.Plugins.CustomGames.CustomSupportedGameManager
+db SimHub.Plugins.CustomGames.CustomSupportedGameManagerSettings
+db SimHub.Plugins.CustomGames.UI.CustomSupportedGameManagerConfigurationUI
+ext field latestData : ExternalSimTelemetry Private
+ext field <Manifest>k__BackingField : ExternalSimManifest Private, InitOnly
+ext field <Parser>k__BackingField : ExternalSimTelemetryParser Private, InitOnly
+ext field <ProcessRunner>k__BackingField : ExternalProcessRunner Private, InitOnly
+ext field capabilities : FeedbackCapabilities Private
+ext field data : GameData`1 Family
+RPM prop can write=True
+SetFeedbackCapabilities=Void SetFeedbackCapabilities(GameReaderCommon.Feedback.FeedbackCapabilities, System.String)
+GameManager prop=GameReaderCommon.IGameManager GameManager
+pm.GetPlugins()->IEnumerable`1
+pm.GetPlugin()->T
+pm.GetPluginInterface()->T
+pm.GetPluginsInterface()->IEnumerable`1
+pm.ShowPluginUI()->Void

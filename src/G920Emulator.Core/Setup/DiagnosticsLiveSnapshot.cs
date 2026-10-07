@@ -1,4 +1,5 @@
 using G920Emulator.Core.Ffb;
+using G920Emulator.Core.Telemetry;
 
 namespace G920Emulator.Core.Setup;
 
@@ -25,4 +26,6 @@ public sealed class DiagnosticsLiveSnapshot
     public FfbOutputFeel? OutputFeel { get; init; }
 
     public FfbDiagnostics? Ffb { get; init; }
+    public string TelemetryStatus { get; init; } = "";
+    public TelemetryFrame? Telemetry { get; init; }
 }

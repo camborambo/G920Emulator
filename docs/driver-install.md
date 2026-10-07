@@ -83,7 +83,7 @@ Dependencies shows **OEM / Logitech SDK registration** as Idle / Active / Needs 
 
 ### Full clean restore (optional)
 
-Nuclear option if you want every app leftover removed: **Dependencies → Full clean restore…** (stop the bridge first). That also turns off test signing and removes OEM/SDK pins, SDK cache, DirectInput leftovers, orphan virtual G920 nodes, older hidpp rename, and WinUHid. **Not required for FH6** — prefer **Uninstall WinUHid**.
+Nuclear option if you want every app leftover removed: **Dependencies → Full clean restore…** (stop the bridge first). That also turns off test signing and removes OEM/SDK pins, ProgramData caches (`LogitechSDK` + `g920ffb`), DirectInput leftovers, orphan virtual G920 nodes, older hidpp rename, and WinUHid. **Not required for FH6** — prefer **Uninstall WinUHid**.
 
 Full clean does **not** change Secure Boot, HidHide, or your profiles under `%AppData%\G920Emulator`. If you disabled Secure Boot only for the WinUHid install, you can re-enable it afterward (with WinUHid installed and test signing off).
 

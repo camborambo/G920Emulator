@@ -7,6 +7,48 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- Settings **Debug Overlay** renamed to **FFB Debug Overlay** (same window; settings key unchanged).
+
+### Added
+
+- **Telemetry Debug Overlay** (Settings): topmost live SimHub UDP packet (gear, speed/RPM, pedals, G-force, FFB→SimHub scales).
+- **G920 Emulator RPM** SimHub plugin: installed by **Register with SimHub**; enables ShakeIt built-in **Engine vibrations** for the External Sim (sets the RPM feedback capability the same way native games like Forza do). Restart SimHub after registering.
+- Telemetry **estimation profiles** (Save / Save as / Default / Delete), same pattern as FFB profiles — stored under `telemetry-profiles`. Host/port/rate stay global in settings.
+- Telemetry **Engine** scale (0–200%) under ShakeIt / FFB scales — same pattern as Rumble / Impact / Road load. RPM is always sent; the SimHub RPM plugin applies the scale to Engine vibrations force.
+- Telemetry **RPM bounce** / **Bounce rate**: rev-limiter flutter when estimated speed/RPM is pinned at a gear’s top (adjustable depth and Hz; 0 bounce = flat ceiling).
+- Telemetry RPM now tracks **speed-in-gear** (not WOT→max): upshifts drop RPM, and taller gears build RPM slower with **Gear pull** / Accel.
+- Telemetry **Gear settle** rate: after a downshift, estimated speed tapers toward the new gear's max instead of snapping; adjustable under Estimation tuning.
+- **Telemetry** tab: optional SimHub External Sim UDP feed for games with no native telemetry (Heat / Unbound first). Speed/RPM/gear are estimated from pedals and shifter; rumble/impact/road load come from the virtual G920 FFB mix. Requires SimHub 9.11.5+. No game-process injection.
+- **Remove registration** on the Telemetry tab deletes the SimHub `.simlink` so you can drop the game tile (and cached icon) after a restart.
+- Telemetry UDP send rate slider is **30–60 Hz** (60 is SimHub's External Sim max; faster packets are ignored).
+- Simulated G-force for SimHub: `LocalSurgeMs2` / `LocalSwayMs2` / `LocalHeaveMs2` from speed change, steering, and FFB impact/rumble (ShakeIt-ready; not real chassis physics). Re-register the External Sim after updating.
+- Telemetry **G-force circle** (friction circle): live ball on X/Y axes for surge × sway.
+- FFB **Bind** dialog **Set as Default**: pick a snap value (slider + label) and a hardware button that restores that slider while driving (saved on the input profile).
+- Telemetry **Estimation tuning**: Speed/RPM min–max ranges and SurfaceRumble / Impact / RoadLoad scales (saved in settings).
+
+### Fixed
+
+- Install folder no longer stays "in use" after close: leave the app directory as CWD at startup, run helpers from `%TEMP%`, skip deferred pnputil cleanup on exit, and register `g920ffb.dll` from `%ProgramData%\G920Emulator\g920ffb\` so Steam/games do not lock the Desktop install folder. **Full clean restore** also deletes that `g920ffb` cache (and the whole `%ProgramData%\G920Emulator` tree when elevated).
+- Telemetry RPM can reach configured **Max**: soft headroom uses √(remaining/band). Coast stays off-throttle only; aero scales with (1−throttle)² so WOT can pin the gear but lifting brings RPM down again. Tiny brake noise ignored under gas. Telemetry Debug Overlay shows gear-speed %.
+- Telemetry RPM no longer jumps near Max: removed the late pin catch-up that forced a faster RPM tau above 97% gear speed.
+- Telemetry: removed gear-cap ease pull and bounce-from-Max (both snapped RPM on short gears). Under strong throttle, impact dumps are skipped so √ headroom can finish the pin without a late yank. Debug overlay shows RPM as % of max.
+- Telemetry tall gears can reach their configured max again: aero was keyed off global vmax (drag wall ~30 mph short in 5th). Aero is per gear cap, and throttle fades free drag while climbing so WOT can work up to each gear max.
+- Telemetry idle RPM: no longer set `SessionPaused` when OEM FFB goes quiet (SimHub was zeroing the dash), and keep `EngineRpm` floored at the configured idle while the session is live.
+- Telemetry RPM no longer snaps to 0 at the bottom of a taper in gear: stopping (speed &lt; 0.5) used to end the session; in-gear / short linger now holds idle instead.
+- SimHub **Engine vibrations** (built-in): External Sims never advertise the RPM feedback capability on their own; the **G920 Emulator RPM** plugin patches that when **G920 Emulator (estimated)** is active, and applies the **Engine** force scale from this app.
+- HidHide **Start** no longer reads the restore-point snapshot before you answer Yes/No; capture/apply use one batched CLI script (was four+ sequential HidHideCLI launches). Device hide scans once after the virtual G920 exists.
+- HidHide restore on Stop/Exit no longer blocks for up to 90s: batched CLI, short timeouts (exit ~6s / stop ~12s), orphan helpers killed, unfinished restore retries on next launch.
+- HidHide restore actually reapplies the saved config: no more false “success” without writing lists, incomplete diffs when live lists failed to load, or clearing the restore point before verification.
+- HidHide auto-hide only cloaks devices from HidHide’s **Gaming devices only** list (`--dev-gaming`) — no more `--dev-all` system scan. Also unhides obvious non-gaming false positives left by older builds.
+- Start detects an open **HidHide Client** (driver lock / 0x0005) and offers to close it before reading or applying config.
+- Start after Stop no longer fails with **CLI returned no data**: orphan cleanup was leaving a cancel flag that aborted the next HidHide capture.
+- Settings menu labels: **Apply HidHide on Start** and **Restore my HidHide on Stop** (both off = leave HidHide alone).
+- Telemetry RPM max slider now matches what SimHub receives: full throttle reaches the configured max (gear no longer caps below it).
+- Telemetry **Redline** is a separate absolute RPM (SimHub `EngineShiftRpm`), not a percent of max — adjustable next to idle–max.
+- Telemetry no longer hard-clamps speed to the current gear cap (instant drop on downshift / N→gear).
+
 ## [0.2.6] - 2026-10-06
 
 ### Added

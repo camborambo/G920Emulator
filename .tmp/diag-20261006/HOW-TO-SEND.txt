@@ -1,0 +1,23 @@
+﻿Attach this zip to a GitHub issue:
+  https://github.com/camborambo/G920Emulator/issues
+
+How this zip was captured:
+  1. Click Debug on the main window (starts OEM / HID++ file logging).
+  2. Start bridge, launch the game, reproduce briefly (do not leave Debug on for a full race).
+  3. Stop debug, then Export log…
+
+Leave Debug off during normal play — Forza-class titles stream OEM updates every frame;
+older builds could stall the game on log I/O while the emulator UI stayed live.
+
+For Fanatec vs Simucube FFB comparison, do the same on both PCs with the same build.
+
+Key files in this zip:
+  summary.txt       — machine, deps, processes, g920ffb.dll stamp
+  devices.txt       — every DirectInput game device (incl. virtual G920 + FFB flag)
+  ffb-snapshot.txt  — live OEM mix / bridge attach / gains at export time
+  hidhide.txt       — cloak, apps whitelist, hidden devices (via HidHideCLI)
+  oem-registry.txt  — OEMForceFeedback CLSID / Effects / DLL path for VID_046D&PID_C262
+  game-ffb-analysis.txt — OEM race signature (Triangle/CF vs spring-only / Vibration)
+  logs\g920ffb-effects.log — game OEM calls (SESSION / CALL / EFFECT / MIX)
+  logs\g920emulator-perf.log — emulator vs game CPU/RAM every 10s (hint= is our load, not the game GPU)
+Repository: https://github.com/camborambo/G920Emulator

@@ -156,13 +156,21 @@ public static class G920OemRegistration
     /// <summary>
     /// Deletes our private Logitech SDK DLL cache under ProgramData (files only; registry via restore).
     /// </summary>
-    public static string RemoveCachedSdkFiles()
+    public static string RemoveCachedSdkFiles() =>
+        RemoveProgramDataCacheDir(SteeringWheelSdkCacheDir, "SDK cache");
+
+    /// <summary>
+    /// Deletes the runtime g920ffb.dll cache under ProgramData (COM InprocServer copy).
+    /// </summary>
+    public static string RemoveCachedG920FfbFiles() =>
+        RemoveProgramDataCacheDir(G920FfbCacheDir, "g920ffb cache");
+
+    private static string RemoveProgramDataCacheDir(string dir, string label)
     {
         try
         {
-            var dir = SteeringWheelSdkCacheDir;
             if (!Directory.Exists(dir))
-                return "SDK cache: already absent";
+                return label + ": already absent";
 
             Directory.Delete(dir, recursive: true);
 
@@ -175,11 +183,11 @@ public static class G920OemRegistration
                 try { Directory.Delete(parent); } catch { /* ignore */ }
             }
 
-            return "SDK cache removed: " + dir;
+            return label + " removed: " + dir;
         }
         catch (Exception ex)
         {
-            return "SDK cache: " + ex.Message;
+            return label + ": " + ex.Message;
         }
     }
 
@@ -396,7 +404,38 @@ public static class G920OemRegistration
         }
     }
 
+    /// <summary>
+    /// Runtime copy of g920ffb.dll. Steam/games load the COM InprocServer from this path;
+    /// keeping it out of the install folder lets users delete Desktop\G920Emulator after exit.
+    /// </summary>
+    public static string G920FfbCacheDir => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        "G920Emulator",
+        "g920ffb");
+
+    public static string G920FfbCachedDllPath => Path.Combine(G920FfbCacheDir, "g920ffb.dll");
+
     private static string? ResolveG920FfbDllPath()
+    {
+        var source = FindBundledG920FfbDll();
+        if (source is null)
+            return File.Exists(G920FfbCachedDllPath) ? G920FfbCachedDllPath : null;
+
+        try
+        {
+            Directory.CreateDirectory(G920FfbCacheDir);
+            if (!SameFile(source, G920FfbCachedDllPath))
+                File.Copy(source, G920FfbCachedDllPath, overwrite: true);
+            return G920FfbCachedDllPath;
+        }
+        catch
+        {
+            // Fall back to install-folder DLL if cache copy fails (folder may stay locked).
+            return source;
+        }
+    }
+
+    private static string? FindBundledG920FfbDll()
     {
         var candidates = new List<string>();
         try

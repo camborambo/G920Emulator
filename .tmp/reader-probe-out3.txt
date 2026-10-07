@@ -1,0 +1,1628 @@
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersDirt2Manager : CodemastersExtradata1Manager
+
+==== CodemastersReader.CodemastersDirt2Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersDirt3Manager : CodemastersExtradata1Manager
+
+==== CodemastersReader.CodemastersDirt3Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersDirtShowdownManager : CodemastersExtradata1Manager
+
+==== CodemastersReader.CodemastersDirtShowdownManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12012Manager : CodemastersManager
+
+==== CodemastersReader.CodemastersF12012Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12013Manager : CodemastersManager
+
+==== CodemastersReader.CodemastersF12013Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12014Manager : CodemastersManager
+
+==== CodemastersReader.CodemastersF12014Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12015Manager : CodemastersManager
+
+==== CodemastersReader.CodemastersF12015Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12017Manager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersF12017Manager GD_GetFeedbackCapabilities declared=CodemastersF12017Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersExtradata1Manager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersExtradata1Manager GD_GetFeedbackCapabilities declared=CodemastersExtradata1Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_SuspensionPosition
+  set_LandingEffect
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12026Manager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersF12026Manager GD_GetFeedbackCapabilities declared=CodemastersF12026Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12025Manager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersF12025Manager GD_GetFeedbackCapabilities declared=CodemastersF12025Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12024Manager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersF12024Manager GD_GetFeedbackCapabilities declared=CodemastersF12024Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12023Manager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersF12023Manager GD_GetFeedbackCapabilities declared=CodemastersF12023Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12022Manager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersF12022Manager GD_GetFeedbackCapabilities declared=CodemastersF12022Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12021Manager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersF12021Manager GD_GetFeedbackCapabilities declared=CodemastersF12021Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12020Manager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersF12020Manager GD_GetFeedbackCapabilities declared=CodemastersF12020Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12019Manager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersF12019Manager GD_GetFeedbackCapabilities declared=CodemastersF12019Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12018Manager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersF12018Manager GD_GetFeedbackCapabilities declared=CodemastersF12018Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersGrid2019Manager : CodemastersManager
+
+==== CodemastersReader.CodemastersGrid2019Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersGrid2Manager : CodemastersExtradata1Manager
+
+==== CodemastersReader.CodemastersGrid2Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersGridAutosportManager : CodemastersManager
+
+==== CodemastersReader.CodemastersGridAutosportManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersGridLegendsManager : CodemastersManager
+
+==== CodemastersReader.CodemastersGridLegendsManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.GTA5ManualTransmissionManager : CodemastersManager
+
+==== CodemastersReader.GTA5ManualTransmissionManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersManager : GameManagerBase`2
+
+==== CodemastersReader.CodemastersManager GD_GetFeedbackCapabilities declared=CodemastersManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_SuspensionPosition
+  set_LandingEffect
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersRaceDriverGridManager : CodemastersExtradata1Manager
+
+==== CodemastersReader.CodemastersRaceDriverGridManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersDirt4Manager : CodemastersManager
+
+==== CodemastersReader.CodemastersDirt4Manager GD_GetFeedbackCapabilities declared=CodemastersDirt4Manager ====
+  set_RPM=False
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersDirtRally2Manager : CodemastersManager
+
+==== CodemastersReader.CodemastersDirtRally2Manager GD_GetFeedbackCapabilities declared=CodemastersDirtRally2Manager ====
+  set_RPM=False
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersDirtRallyManager : CodemastersManager
+
+==== CodemastersReader.CodemastersDirtRallyManager GD_GetFeedbackCapabilities declared=CodemastersDirtRallyManager ====
+  set_RPM=False
+mgr in CodemastersReader.dll: CodemastersReader.CodemastersF12016Manager : CodemastersManager
+
+==== CodemastersReader.CodemastersF12016Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.KTManager : CodemastersManager
+
+==== CodemastersReader.KTManager GD_GetFeedbackCapabilities declared=KTManager ====
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Heave
+  set_LocalVelocity
+  set_Sway
+  set_Surge
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=False
+mgr in CodemastersReader.dll: CodemastersReader.TDUSCManager : KTManager
+
+==== CodemastersReader.TDUSCManager GD_GetFeedbackCapabilities declared=TDUSCManager ====
+  set_RPM
+  set_RPM=True
+mgr in CodemastersReader.dll: CodemastersReader.WRCGenerationsManager : KTManager
+
+==== CodemastersReader.WRCGenerationsManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in CodemastersReader.dll: CodemastersReader.WRC23.CodemastersWRC23Manager : GameManagerBase`2
+
+==== CodemastersReader.WRC23.CodemastersWRC23Manager GD_GetFeedbackCapabilities declared=CodemastersWRC23Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_SuspensionPosition
+  set_LandingEffect
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_ABSActive
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in ETS2Reader.dll: ETS2Reader.ATSManagerV2 : ETS2ManagerV2
+
+==== ETS2Reader.ATSManagerV2 GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in ETS2Reader.dll: ETS2Reader.ETS2ManagerV2 : GameManagerBase`2
+
+==== ETS2Reader.ETS2ManagerV2 GD_GetFeedbackCapabilities declared=ETS2ManagerV2 ====
+  set_Brake
+  set_Gear
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_RPM
+  set_SuspensionVelocity
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Speed
+  set_WheelSlipUseSimpleBraking
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in GameReaderCommon.dll: GameReaderCommon.GameManagerBase`2 : GameManagerBase`3
+
+==== GameReaderCommon.GameManagerBase`2 GD_GetFeedbackCapabilities declared=GameManagerBase`3 ====
+  (no body / abstract)
+mgr in GameReaderCommon.dll: GameReaderCommon.GameManagerBase`3 : Object
+
+==== GameReaderCommon.GameManagerBase`3 GD_GetFeedbackCapabilities declared=GameManagerBase`3 ====
+  (no body / abstract)
+mgr in GameReaderCommon.dll: GameReaderCommon.IUDPGame : 
+
+==== GameReaderCommon.IUDPGame GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GameReaderCommon.dll: GameReaderCommon.ITargetIPGame : 
+
+==== GameReaderCommon.ITargetIPGame GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GameReaderCommon.dll: GameReaderCommon.SimpleGameManagerBase`2 : GameManagerBase`2
+
+==== GameReaderCommon.SimpleGameManagerBase`2 GD_GetFeedbackCapabilities declared=GameManagerBase`3 ====
+  (no body / abstract)
+mgr in GRallyReader.dll: GRallyReader.GRallyManager : GameManagerBase`2
+
+==== GRallyReader.GRallyManager GD_GetFeedbackCapabilities declared=GRallyManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.Wreckfest2.Wreckfest2Manager : GameManagerBase`2
+
+==== GSIReader.Wreckfest2.Wreckfest2Manager GD_GetFeedbackCapabilities declared=Wreckfest2Manager ====
+  set_Brake
+  set_Throttle
+  set_RPM
+  set_Speed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_WheelsSlip
+  set_SuspensionVelocity
+  set_Sway
+  set_Surge
+  set_Heave
+  set_Gear
+  set_LocalVelocity
+  set_TCActive
+  set_ABSActive
+  set_Coordinates
+  set_HasTrackProgression
+  set_HasTrackLength
+  set_GroundSpeed
+  set_WheelsRumble
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.WRC.WRCManager : SimpleGameManagerBase`2
+
+==== GSIReader.WRC.WRCManager GD_GetFeedbackCapabilities declared=WRCManager ====
+  set_Gear
+  set_RPM
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsRPS
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.WRC.WRC10Manager : WRCManager
+
+==== GSIReader.WRC.WRC10Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.TrainSimulator.TrainSimulatorManager : SimpleGameManagerBase`2
+
+==== GSIReader.TrainSimulator.TrainSimulatorManager GD_GetFeedbackCapabilities declared=TrainSimulatorManager ====
+  set_Brake
+  set_Gear
+  set_RPM
+  set_Speed
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.Rennsport.Models.RennsportManager : GameManagerBase`2
+
+==== GSIReader.Rennsport.Models.RennsportManager GD_GetFeedbackCapabilities declared=RennsportManager ====
+  set_Brake
+  set_Throttle
+  set_Gear
+  set_RPM
+  set_Speed
+  set_GroundSpeed
+  set_LocalVelocity
+  set_ABSActive
+  set_TCActive
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_YawChangeVelocity
+  set_PitchChangeVelocity
+  set_RollChangeVelocity
+  set_Sway
+  set_Surge
+  set_Heave
+  set_SuspensionVelocity
+  set_SuspensionPosition
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_DetectLockFromWheelsSpeed
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.NR2003.NR2003Manager : SimpleGameManagerBase`2
+
+==== GSIReader.NR2003.NR2003Manager GD_GetFeedbackCapabilities declared=NR2003Manager ====
+  set_Speed
+  set_Brake
+  set_Throttle
+  set_Gear
+  set_RPM
+  set_WheelsRPS
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.NascarHeat.NascarHeat4Manager : SimpleGameManagerBase`2
+
+==== GSIReader.NascarHeat.NascarHeat4Manager GD_GetFeedbackCapabilities declared=NascarHeat4Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Sway
+  set_Surge
+  set_Heave
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.NascarHeat.NascarHeat5Manager : NascarHeat4Manager
+
+==== GSIReader.NascarHeat.NascarHeat5Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.NascarHeat.SRXTheGame : NascarHeat4Manager
+
+==== GSIReader.NascarHeat.SRXTheGame GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.NascarHeat.TonyStewartsAllAmericanRacingManager : NascarHeat4Manager
+
+==== GSIReader.NascarHeat.TonyStewartsAllAmericanRacingManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.NascarHeat.TonyStewartsSprintCarRacingManager : NascarHeat4Manager
+
+==== GSIReader.NascarHeat.TonyStewartsSprintCarRacingManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.MotoGP18.MotoGP18Manager : GameManagerBase`2
+
+==== GSIReader.MotoGP18.MotoGP18Manager GD_GetFeedbackCapabilities declared=MotoGP18Manager ====
+  set_Brake
+  set_RPM
+  set_Speed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_WheelsSlip
+  set_SuspensionVelocity
+  set_Sway
+  set_Surge
+  set_Heave
+  set_Gear
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.KartCraft.KartKraft.KartKraftManager : SimpleGameManagerBase`2
+
+==== GSIReader.KartCraft.KartKraft.KartKraftManager GD_GetFeedbackCapabilities declared=KartKraftManager ====
+  set_Brake
+  set_Gear
+  set_RPM
+  set_Speed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Coordinates
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Sway
+  set_Surge
+  set_Heave
+  set_LocalVelocity
+  set_GroundSpeed
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.HydroSim.HydroSimManager : GameManagerBase`2
+
+==== GSIReader.HydroSim.HydroSimManager GD_GetFeedbackCapabilities declared=HydroSimManager ====
+  set_Brake
+  set_Throttle
+  set_RPM
+  set_Speed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_WheelsSlip
+  set_SuspensionVelocity
+  set_Sway
+  set_Surge
+  set_Heave
+  set_Gear
+  set_LocalVelocity
+  set_DirectSuspensionFeedback
+  set_DirectSuspensionFeedbackMotors
+  set_WheelsOnKerbs
+  set_WheelsRumble
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.Furidashi.RDSTheOfficialDriftVideoGame : FuridashiManager
+
+==== GSIReader.Furidashi.RDSTheOfficialDriftVideoGame GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.Furidashi.FuridashiManager : SimpleGameManagerBase`2
+
+==== GSIReader.Furidashi.FuridashiManager GD_GetFeedbackCapabilities declared=FuridashiManager ====
+  set_Brake
+  set_Throttle
+  set_RPM
+  set_Speed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_WheelsSlip
+  set_SuspensionVelocity
+  set_Sway
+  set_Surge
+  set_Heave
+  set_Gear
+  set_LocalVelocity
+  set_AllowWheelsSlipInMotion
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.ForzaMotorsport7.FH4Manager : ForzaManager`1
+
+==== GSIReader.ForzaMotorsport7.FH4Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.ForzaMotorsport7.FH5Manager : ForzaManager`1
+
+==== GSIReader.ForzaMotorsport7.FH5Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.ForzaMotorsport7.FM7Manager : ForzaManager`1
+
+==== GSIReader.ForzaMotorsport7.FM7Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.ForzaMotorsport7.FH6Manager : ForzaManager`1
+
+==== GSIReader.ForzaMotorsport7.FH6Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.ForzaMotorsport7.FM8Manager : SimpleGameManagerBase`2
+
+==== GSIReader.ForzaMotorsport7.FM8Manager GD_GetFeedbackCapabilities declared=FM8Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.ForzaMotorsport7.ForzaManager`1 : SimpleGameManagerBase`2
+
+==== GSIReader.ForzaMotorsport7.ForzaManager`1 GD_GetFeedbackCapabilities declared=ForzaManager`1 ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.Fernbus.FernbusManager : SimpleGameManagerBase`2
+
+==== GSIReader.Fernbus.FernbusManager GD_GetFeedbackCapabilities declared=FernbusManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.FarmingSimulator.FarmingSimulatorManager19Manager : FarmingSimulatorManager
+
+==== GSIReader.FarmingSimulator.FarmingSimulatorManager19Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.FarmingSimulator.FarmingSimulatorManager : SimpleGameManagerBase`2
+
+==== GSIReader.FarmingSimulator.FarmingSimulatorManager GD_GetFeedbackCapabilities declared=FarmingSimulatorManager ====
+  set_Speed
+  set_RPM
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.FarmingSimulator.FarmingSimulatorManager22Manager : FarmingSimulatorManager25Manager
+
+==== GSIReader.FarmingSimulator.FarmingSimulatorManager22Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.FarmingSimulator.FarmingSimulatorManager25Manager : SimpleGameManagerBase`2
+
+==== GSIReader.FarmingSimulator.FarmingSimulatorManager25Manager GD_GetFeedbackCapabilities declared=FarmingSimulatorManager25Manager ====
+  set_Speed
+  set_RPM
+  set_Gear
+  set_LocalVelocity
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Surge
+  set_Sway
+  set_Heave
+  set_GroundSpeed
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.eXpanSIM.eXpanSIMManager : SimpleGameManagerBase`2
+
+==== GSIReader.eXpanSIM.eXpanSIMManager GD_GetFeedbackCapabilities declared=eXpanSIMManager ====
+  set_ABSActive
+  set_TCActive
+  set_Throttle
+  set_Brake
+  set_Gear
+  set_RPM
+  set_Speed
+  set_Sway
+  set_Surge
+  set_Heave
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_WheelsSlip
+  set_GearGrinding
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.Drift21.Drift21Manager : SimpleGameManagerBase`2
+
+==== GSIReader.Drift21.Drift21Manager GD_GetFeedbackCapabilities declared=Drift21Manager ====
+  set_Speed
+  set_Gear
+  set_Brake
+  set_Throttle
+  set_RPM
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.Dota2.Dota2Manager : SimpleGameManagerBase`2
+
+==== GSIReader.Dota2.Dota2Manager GD_GetFeedbackCapabilities declared=Dota2Manager ====
+  set_Brake
+  set_Throttle
+  set_RPM=False
+mgr in GSIReader.dll: GSIReader.FlightSimulator.DCSManager : SimpleGameManagerBase`2
+
+==== GSIReader.FlightSimulator.DCSManager GD_GetFeedbackCapabilities declared=DCSManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_LocalVelocity
+  set_PitchChangeVelocity
+  set_RollChangeVelocity
+  set_YawChangeVelocity
+  set_FlightGroundContactsCount
+  set_FlightIsOnGround
+  set_UseGimbleLockSanitizer
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.FlightSimulator.FlightSimulatorManager24 : FlightSimulatorManager
+
+==== GSIReader.FlightSimulator.FlightSimulatorManager24 GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.FlightSimulator.FlightSimulatorManager : SimpleGameManagerBase`2
+
+==== GSIReader.FlightSimulator.FlightSimulatorManager GD_GetFeedbackCapabilities declared=FlightSimulatorManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_LocalVelocity
+  set_PitchChangeVelocity
+  set_RollChangeVelocity
+  set_YawChangeVelocity
+  set_FlightGroundContactsCount
+  set_FlightIsOnGround
+  set_UseGimbleLockSanitizer
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.CSGO.CSGOManager : SimpleGameManagerBase`2
+
+==== GSIReader.CSGO.CSGOManager GD_GetFeedbackCapabilities declared=CSGOManager ====
+  set_AmmoShot
+  set_Brake
+  set_Throttle
+  set_RPM=False
+mgr in GSIReader.dll: GSIReader.Condor.Condor3Manager : CondorManager
+
+==== GSIReader.Condor.Condor3Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.Condor.Condor2Manager : CondorManager
+
+==== GSIReader.Condor.Condor2Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.Condor.CondorManager : SimpleGameManagerBase`2
+
+==== GSIReader.Condor.CondorManager GD_GetFeedbackCapabilities declared=CondorManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_LocalVelocity
+  set_PitchChangeVelocity
+  set_RollChangeVelocity
+  set_YawChangeVelocity
+  set_FlightGroundContactsCount
+  set_FlightIsOnGround
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.EpicRollerCoasters.EpicRollerCoastersManager : SimpleGameManagerBase`2
+
+==== GSIReader.EpicRollerCoasters.EpicRollerCoastersManager GD_GetFeedbackCapabilities declared=EpicRollerCoastersManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_LocalVelocity
+  set_PitchChangeVelocity
+  set_RollChangeVelocity
+  set_YawChangeVelocity
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.ProjectRC.ProjectRCManager : SimpleGameManagerBase`2
+
+==== GSIReader.ProjectRC.ProjectRCManager GD_GetFeedbackCapabilities declared=ProjectRCManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_LocalVelocity
+  set_PitchChangeVelocity
+  set_RollChangeVelocity
+  set_YawChangeVelocity
+  set_FlightGroundContactsCount
+  set_FlightIsOnGround
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.ProjectMotorRacing.ProjectMotorRacingManager : SimpleGameManagerBase`2
+
+==== GSIReader.ProjectMotorRacing.ProjectMotorRacingManager GD_GetFeedbackCapabilities declared=ProjectMotorRacingManager ====
+  set_ABSActive
+  set_TCActive
+  set_Brake
+  set_Throttle
+  set_Gear
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Coordinates
+  set_GroundSpeed
+  set_Heave
+  set_Sway
+  set_Surge
+  set_RPM
+  set_Speed
+  set_LocalVelocity
+  set_RollChangeVelocity
+  set_PitchChangeVelocity
+  set_YawChangeVelocity
+  set_WheelsSlip
+  set_SuspensionVelocity
+  set_WheelsOnKerbs
+  set_WheelsRumble
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_WheelSlipCalibrationProvider
+  set_DetectLockFromWheelsSpeed
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.KayakVR.KayakVRManager : SimpleGameManagerBase`2
+
+==== GSIReader.KayakVR.KayakVRManager GD_GetFeedbackCapabilities declared=KayakVRManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_LocalVelocity
+  set_PitchChangeVelocity
+  set_RollChangeVelocity
+  set_YawChangeVelocity
+  set_FlightGroundContactsCount
+  set_FlightIsOnGround
+  set_MotionNotes
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.IL2.IL2SeriesManager : IL2Manager
+
+==== GSIReader.IL2.IL2SeriesManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in GSIReader.dll: GSIReader.IL2.IL2Manager : SimpleGameManagerBase`2
+
+==== GSIReader.IL2.IL2Manager GD_GetFeedbackCapabilities declared=IL2Manager ====
+  set_Brake
+  set_RPM
+  set_Speed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_WheelsSlip
+  set_SuspensionVelocity
+  set_Sway
+  set_Surge
+  set_Heave
+  set_Gear
+  set_LocalVelocity
+  set_PitchChangeVelocity
+  set_YawChangeVelocity
+  set_RollChangeVelocity
+  set_FlightIsOnGround
+  set_FlightGroundContactsCount
+  set_UseGimbleLockSanitizer
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.FalconBMS.FalconBMSManager : SimpleGameManagerBase`2
+
+==== GSIReader.FalconBMS.FalconBMSManager GD_GetFeedbackCapabilities declared=FalconBMSManager ====
+  set_RPM
+  set_Speed
+  set_LocalVelocity
+  set_Pitch
+  set_Roll
+  set_Yaw
+  set_Heave
+  set_Sway
+  set_Surge
+  set_MotionNotes
+  set_RPM=True
+mgr in GSIReader.dll: GSIReader.EliteDangerous.EliteDangerousManager : SimpleGameManagerBase`2
+
+==== GSIReader.EliteDangerous.EliteDangerousManager GD_GetFeedbackCapabilities declared=EliteDangerousManager ====
+  set_Heave
+  set_Sway
+  set_Surge
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_YawChangeVelocity
+  set_RollChangeVelocity
+  set_PitchChangeVelocity
+  set_MotionNotes
+  set_RPM=False
+mgr in GSIReader.dll: GSIReader.BusBound.BusGameManager : SimpleGameManagerBase`2
+
+==== GSIReader.BusBound.BusGameManager GD_GetFeedbackCapabilities declared=BusGameManager ====
+  set_Brake
+  set_Gear
+  set_GroundSpeed
+  set_Heave
+  set_Sway
+  set_LocalVelocity
+  set_Pitch
+  set_Roll
+  set_Yaw
+  set_Speed
+  set_RPM
+  set_Surge
+  set_SuspensionVelocity
+  set_WheelSlipUseSimpleBraking
+  set_RPM=True
+mgr in GTReader.dll: GTReader.GT7LatestManagerLegacy : GT7LatestManager
+
+==== GTReader.GT7LatestManagerLegacy GD_GetFeedbackCapabilities declared=GT7LatestManagerLegacy ====
+  set_WheelsOnKerbs
+  set_WheelsRumble
+  set_RPM=False
+mgr in GTReader.dll: GTReader.GT7LatestManager : SimpleGameManagerBase`2
+
+==== GTReader.GT7LatestManager GD_GetFeedbackCapabilities declared=GT7LatestManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_SuspensionPosition
+  set_Sway
+  set_Surge
+  set_Heave
+  set_TCActive
+  set_GroundSpeed
+  set_LocalVelocity
+  set_WheelsOnKerbs
+  set_WheelsRumble
+  set_ABSActive
+  set_RPM=True
+mgr in GTReader.dll: GTReader.GT7Manager : SimpleGameManagerBase`2
+
+==== GTReader.GT7Manager GD_GetFeedbackCapabilities declared=GT7Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_SuspensionPosition
+  set_Sway
+  set_Surge
+  set_Heave
+  set_TCActive
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in GTReader.dll: GTReader.GTSportManager : GT7Manager
+
+==== GTReader.GTSportManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in ICarsReader.dll: IRacingReader.IRacingManager : GameManagerBase`3
+
+==== IRacingReader.IRacingManager GD_GetFeedbackCapabilities declared=IRacingManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_ABSActive
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in LFSReader.dll: LFSReader.BeamNgManagerExtra : SimpleGameManagerBase`2
+
+==== LFSReader.BeamNgManagerExtra GD_GetFeedbackCapabilities declared=BeamNgManagerExtra ====
+  set_ABSActive
+  set_TCActive
+  set_Brake
+  set_Throttle
+  set_Gear
+  set_Speed
+  set_SuspensionVelocity
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_WheelsRumble
+  set_WheelsSpeed
+  set_WheelsSlip
+  set_RPM
+  set_WheelsRPS
+  set_GroundSpeed
+  set_LocalVelocity
+  set_GearGrinding
+  set_Surge
+  set_Heave
+  set_Sway
+  set_RPM=True
+mgr in LFSReader.dll: LFSReader.RBRNGPManager : RBRManager
+
+==== LFSReader.RBRNGPManager GD_GetFeedbackCapabilities declared=RBRNGPManager ====
+  set_Sway
+  set_Surge
+  set_Heave
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_SuspensionVelocity
+  set_RPM=False
+mgr in LFSReader.dll: LFSReader.BeamNgManager : GameManagerBase`2
+
+==== LFSReader.BeamNgManager GD_GetFeedbackCapabilities declared=BeamNgManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Coordinates
+  set_LocalVelocity
+  set_Heave
+  set_Sway
+  set_Surge
+  set_GroundSpeed
+  set_RPM=True
+mgr in LFSReader.dll: LFSReader.RBRManager : SimpleGameManagerBase`2
+
+==== LFSReader.RBRManager GD_GetFeedbackCapabilities declared=RBRManager ====
+  set_Speed
+  set_Brake
+  set_Gear
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_RPM
+  set_GroundSpeed
+  set_WheelsSpeed
+  set_LocalVelocity
+  set_Heave
+  set_Surge
+  set_Sway
+  set_RPM=True
+mgr in LFSReader.dll: LFSReader.LFSManager : GameManagerBase`2
+
+==== LFSReader.LFSManager GD_GetFeedbackCapabilities declared=LFSManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Coordinates
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in NoLimits2Reader.dll: NoLimits2Reader.NoLimits2Manager : SimpleGameManagerBase`2
+
+==== NoLimits2Reader.NoLimits2Manager GD_GetFeedbackCapabilities declared=NoLimits2Manager ====
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Speed
+  set_DirectSuspensionFeedback
+  set_Sway
+  set_Surge
+  set_Heave
+  set_LocalVelocity
+  set_UseGimbleLockSanitizer
+  set_RPM=False
+mgr in OmsiReader.dll: OmsiReader.OMSI2Manager : SimpleGameManagerBase`2
+
+==== OmsiReader.OMSI2Manager GD_GetFeedbackCapabilities declared=OMSI2Manager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_Speed
+  set_LocalVelocity
+  set_RPM=True
+mgr in PibosoReader.dll: PibosoReader.Models.MXBikes.MXBikesManager : GameManagerBase`2
+
+==== PibosoReader.Models.MXBikes.MXBikesManager GD_GetFeedbackCapabilities declared=MXBikesManager ====
+  set_Brake
+  set_Gear
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_RPM
+  set_Speed
+  set_Coordinates
+  set_SuspensionVelocity
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in PibosoReader.dll: PibosoReader.Models.KRP.KRPManager : GameManagerBase`2
+
+==== PibosoReader.Models.KRP.KRPManager GD_GetFeedbackCapabilities declared=KRPManager ====
+  set_Brake
+  set_Gear
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_RPM
+  set_Speed
+  set_Coordinates
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in PibosoReader.dll: PibosoReader.Models.GPBikes.GPBikesManager : GameManagerBase`2
+
+==== PibosoReader.Models.GPBikes.GPBikesManager GD_GetFeedbackCapabilities declared=GPBikesManager ====
+  set_Brake
+  set_Gear
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_RPM
+  set_Speed
+  set_Coordinates
+  set_SuspensionVelocity
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_RPM=True
+mgr in RfactorReader.dll: RfactorReader.AutomobilistaManager : GameManagerBase`2
+
+==== RfactorReader.AutomobilistaManager GD_GetFeedbackCapabilities declared=AutomobilistaManager ====
+  set_Brake
+  set_Gear
+  set_RPM
+  set_Speed
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_WheelsSlip
+  set_WheelsRPS
+  set_SuspensionVelocity
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in RfactorReader.dll: RfactorReader.LMUManager : RF2ManagerBase`1
+
+==== RfactorReader.LMUManager GD_GetFeedbackCapabilities declared=LMUManager ====
+  set_Brake
+  set_Gear
+  set_RPM
+  set_Speed
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_SuspensionVelocity
+  set_SuspensionVelocityPartial
+  set_WheelsRPS
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_TCActive
+  set_ABSActive
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in RfactorReader.dll: RfactorReader.RF2SpectatorManager : RF2Manager
+
+==== RfactorReader.RF2SpectatorManager GD_GetFeedbackCapabilities declared=RF2SpectatorManager ====
+  set_RPM=False
+mgr in RfactorReader.dll: RfactorReader.RF2Manager : RF2ManagerBase`1
+
+==== RfactorReader.RF2Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in RfactorReader.dll: RfactorReader.RF2ManagerBase`1 : GameManagerBase`2
+
+==== RfactorReader.RF2ManagerBase`1 GD_GetFeedbackCapabilities declared=RF2ManagerBase`1 ====
+  set_Brake
+  set_Gear
+  set_RPM
+  set_Speed
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_SuspensionVelocity
+  set_SuspensionVelocityPartial
+  set_WheelsRPS
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_TCActive
+  set_ABSActive
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in RfactorReader.dll: RfactorReader.StockCarExtremeManager : RFManager
+
+==== RfactorReader.StockCarExtremeManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in RfactorReader.dll: RfactorReader.FormulaTruck2013Manager : RFManager
+
+==== RfactorReader.FormulaTruck2013Manager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in RfactorReader.dll: RfactorReader.CopaPetrobrasDeMarcasManager : RFManager
+
+==== RfactorReader.CopaPetrobrasDeMarcasManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in RfactorReader.dll: RfactorReader.RFManager : GameManagerBase`2
+
+==== RfactorReader.RFManager GD_GetFeedbackCapabilities declared=RFManager ====
+  set_Brake
+  set_Gear
+  set_RPM
+  set_Speed
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_WheelsSlip
+  set_WheelsSpeed
+  set_SuspensionVelocity
+  set_WheelsRPS
+  set_Sway
+  set_Surge
+  set_Heave
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_RPM=True
+mgr in RREReader.dll: R3EReader.RREManager : GameManagerBase`2
+
+==== R3EReader.RREManager GD_GetFeedbackCapabilities declared=RREManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_RPM
+  set_WheelsRumble
+  set_WheelsOnKerbs
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Coordinates
+  set_SuspensionVelocityCalibrationRate
+  set_Sway
+  set_Surge
+  set_Heave
+  set_TCActive
+  set_ABSActive
+  set_GroundSpeed
+  set_LocalVelocity
+  set_HasTrackLength
+  set_HasTrackProgression
+  set_PitchChangeVelocity
+  set_RollChangeVelocity
+  set_YawChangeVelocity
+  set_RPM=True
+mgr in TrackmaniaReader.dll: Trackmania.TrackmaniaManager : GameManagerBase`2
+
+==== Trackmania.TrackmaniaManager GD_GetFeedbackCapabilities declared=TrackmaniaManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsSlipDirectMode
+  set_WheelsSpeed
+  set_WheelsRPS
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_LocalVelocity
+  set_RPM=True
+mgr in TrackmaniaReader.dll: Trackmania.TrackmaniaTurboManager : TrackmaniaManager
+
+==== Trackmania.TrackmaniaTurboManager GD_GetFeedbackCapabilities declared= ====
+  (no body / abstract)
+mgr in XPlaneReader.dll: XPlaneReader.XPlaneManager : SimpleGameManagerBase`2
+
+==== XPlaneReader.XPlaneManager GD_GetFeedbackCapabilities declared=XPlaneManager ====
+  set_Brake
+  set_Gear
+  set_GearGrinding
+  set_RPM
+  set_WheelsRumble
+  set_Speed
+  set_SuspensionVelocity
+  set_WheelsSlip
+  set_WheelsRPS
+  set_WheelsSpeed
+  set_Yaw
+  set_Pitch
+  set_Roll
+  set_Sway
+  set_Surge
+  set_Heave
+  set_LocalVelocity
+  set_PitchChangeVelocity
+  set_RollChangeVelocity
+  set_YawChangeVelocity
+  set_FlightGroundContactsCount
+  set_FlightIsOnGround
+  set_UseGimbleLockSanitizer
+  set_RPM=True
+
+==== GameReaderCommon.GameManagerBase`3 GD_GetFeedbackCapabilities declared=GameManagerBase`3 ====
+  (no body / abstract)
+
+SimpleGameManagerBase.GD_Rpms declaring=Double GD_Rpms()
+contains 'NoLimits2': False
+contains 'NoLimits 2': False
+contains 'GRally': False
+contains 'Trackmania': False
+contains 'GameManagers': False
+contains 'IGameManager': True
+contains 'AddGame': False
+contains 'RegisterGame': False
+cat SimHub.Plugins.CustomGames.ControllerGameManager
+cat SimHub.Plugins.CustomGames.CustomGamesManager
+cat SimHub.Plugins.CustomGames.CustomSupportedGameManager
+cat SimHub.Plugins.CustomGames.CustomSupportedGameManagerSettings
+cat SimHub.Plugins.CustomGames.JoystickGameManagerJoystickState
+cat SimHub.Plugins.CustomGames.UI.CustomGameManagerDialog
+cat SimHub.Plugins.CustomGames.UI.CustomSupportedGameManagerConfigurationUI
+cat SimHub.Plugins.DataPlugins.DataCore.DataCorePlugin
+cat SimHub.Plugins.SupportedGameList
+cat SimHub.Plugins.SupportedGameManager
+cat SimHub.Plugins.SupportedGameManagerExtensions
+cat SimHub.Plugins.SupportedGameManagerGameReader
+cat SimHubWPF.Controls.GameConfigurationManager
+cat SimHubWPF.Controls.GameConfigurationManagerItemModel

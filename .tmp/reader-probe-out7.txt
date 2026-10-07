@@ -1,0 +1,110 @@
+
+==== SimHub.Plugins.DataPlugins.ShakeItV3.Settings.ShakeItSettings ====
+ M get_GameCapabilities() pub
+ M set_GameCapabilities(FeedbackCapabilities) pub
+ M SetGameCapabilities(FeedbackCapabilities,String) pub
+ M Init() pub
+ P SettingsStore : AbstractSettingsStore
+ P HasGlobalOutputSettings : Boolean
+ P RestartInterfacesAtGameStateChange : Boolean
+ P IncludeOutputSettingsInProfile : Boolean
+ P GameCapabilities : FeedbackCapabilities
+ P FilterByGameFamily : Boolean
+ P ProfileSwitchingMode : ProfileSwitchingMode
+ P ProfileHandler : IProfileHandler
+ P ProfilesCycleMode : ProfilesCycleMode
+ P CycleForCurrentGame : Boolean
+ P EnablePerGameProfile : Boolean
+ P CurrentGameManager : SupportedGameManager
+ P CurrentProfileGame : ActiveProfileGame
+ P CurrentGame : String
+ P CurrentGameFamily : GameFamily
+ P CurrentGameFamilyIsFlight : Boolean
+ P CurrentProfile : ShakeItProfile
+ P SortedProfiles : IEnumerable`1
+ P Profiles : ObservableCollection`1
+ P BuiltInProfiles : ObservableCollection`1
+ P BuiltInProfilesPath : String
+ P HasBuiltInProfiles : Boolean
+ P UseBuiltInProfiles : Boolean
+ P UseBuiltInProfilesEx : Boolean
+ P AvailableProfiles : ObservableCollection`1
+
+==== SimHub.Plugins.DataPlugins.ShakeItV3.Settings.ShakeItSettings`1 ====
+ M get_GameCapabilities() pub
+ M set_GameCapabilities(FeedbackCapabilities) pub
+ M SetGameCapabilities(FeedbackCapabilities,String) pub
+ M Init() pub
+ P SettingsStore : AbstractSettingsStore
+ P HasGlobalOutputSettings : Boolean
+ P RestartInterfacesAtGameStateChange : Boolean
+ P IncludeOutputSettingsInProfile : Boolean
+ P GameCapabilities : FeedbackCapabilities
+ P FilterByGameFamily : Boolean
+ P ProfileSwitchingMode : ProfileSwitchingMode
+ P ProfileHandler : IProfileHandler
+ P ProfilesCycleMode : ProfilesCycleMode
+ P CycleForCurrentGame : Boolean
+ P EnablePerGameProfile : Boolean
+ P CurrentGameManager : SupportedGameManager
+ P CurrentProfileGame : ActiveProfileGame
+ P CurrentGame : String
+ P CurrentGameFamily : GameFamily
+ P CurrentGameFamilyIsFlight : Boolean
+ P CurrentProfile : ShakeItProfile
+ P SortedProfiles : IEnumerable`1
+ P Profiles : ObservableCollection`1
+ P BuiltInProfiles : ObservableCollection`1
+ P BuiltInProfilesPath : String
+ P HasBuiltInProfiles : Boolean
+ P UseBuiltInProfiles : Boolean
+ P UseBuiltInProfilesEx : Boolean
+ P AvailableProfiles : ObservableCollection`1
+
+==== SimHub.Plugins.DataPlugins.ShakeItV3.ShakeITMotorsV3Plugin ====
+ M Init(PluginManager) pub
+ M Init(PluginManager,JToken) pub
+ P Settings : ShakeItSettings
+ P SettingsPrefix : String
+ P SettingsControlIsVisible : Boolean
+
+==== SimHub.Plugins.DataPlugins.ShakeItV3.ShakeITBSV3Plugin ====
+ M Init(PluginManager) pub
+ M Init(PluginManager,JToken) pub
+ P Settings : ShakeItSettings
+ P SettingsPrefix : String
+ P SettingsControlIsVisible : Boolean
+
+==== SimHub.Plugins.DataPlugins.ShakeItV3.ShakeITV3PluginBase`2 ====
+ M Init(PluginManager) pub
+ M Init(PluginManager,JToken) pub
+ P Settings : ShakeItSettings
+ P SettingsPrefix : String
+ P SettingsControlIsVisible : Boolean
+
+ShakeItSettings.SetGameCapabilities:
+  ShakeItSettings.set_GameCapabilities
+  ProfileSettingsBase`2.get_CurrentProfile
+  ProfileSettingsBase`2.get_CurrentProfile
+  ShakeItProfile.get_EffectsContainers
+  Collection`1.GetEnumerator
+  IEnumerator`1.get_Current
+  EffectsContainerBase.SetFeedbackCapabilities
+  IEnumerator.MoveNext
+  IDisposable.Dispose
+
+GameData props:
+ FrameTime : DateTime
+ FrameTimeUTC : DateTime
+ RunningGameProcessDetected : Boolean
+ GameRunning : Boolean
+ SessionId : Guid
+ LapId : Guid
+ SessionStartDate : DateTime
+ GamePath : String
+ GamePaused : Boolean
+ GameInMenu : Boolean
+ Spectating : Boolean
+ GameName : String
+ GameReaderVariant : String
+ GameReplay : Boolean

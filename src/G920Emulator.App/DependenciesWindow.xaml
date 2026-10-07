@@ -102,7 +102,7 @@
           <WrapPanel Margin="0,14,0,-8">
             <Button Style="{StaticResource PrimaryWrapButton}" Click="ConfigureHidHide_Click"
                     Content="Configure HidHide"
-                    ToolTip="Optional helper: whitelist this app, inverse off, cloak on, hide pads/wheels. Not run automatically — only when you click. Does not remove your existing HidHide entries. Or use Open HidHide Client."/>
+                    ToolTip="Optional helper: whitelist this app, inverse off, cloak on, hide Gaming-list devices (virtual G920 stays visible). Same as Settings → Apply HidHide on Start. Pair with Restore my HidHide on Stop to put your prior config back."/>
             <Button Style="{StaticResource AccentWrapButton}" Content="Download HidHide…"
                     Click="DownloadHidHide_Click"/>
             <Button Style="{StaticResource WrapButton}" Content="Open HidHide Client" Click="OpenHidHideClient_Click"/>

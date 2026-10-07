@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
+using G920Emulator.Core.Setup;
 
 namespace G920Emulator.App;
 
@@ -17,6 +18,9 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // Explorer launches with CWD = install folder; leave immediately so helpers cannot pin it.
+        InstallFolderGuard.LeaveInstallFolder();
+
         if (!TryOwnSingleInstance())
         {
             SignalExistingInstance();
@@ -24,8 +28,7 @@ public partial class App : Application
             return;
         }
 
-        // HidHide is never auto-configured at launch — users set it up in Dependencies
-        // or HidHide Client so existing whitelist / hide lists are left alone.
+        // HidHide auto-apply / unload-on-stop are Settings toggles; otherwise use Dependencies / HidHide Client.
         base.OnStartup(e);
         new MainWindow().Show();
         StartWakeListener();
@@ -36,6 +39,9 @@ public partial class App : Application
         _wakeCts?.Cancel();
         try { _wake?.Dispose(); } catch { /* ignore */ }
         _wake = null;
+        InstallFolderGuard.LeaveInstallFolder();
+        try { DependencyChecker.KillOrphanHidHideHelpers(); }
+        catch { /* ignore */ }
         if (_mutex is not null)
         {
             try { _mutex.ReleaseMutex(); } catch { /* ignore */ }

@@ -1,0 +1,32 @@
+<UserControl x:Class="G920Emulator.App.Controls.DualRangeSlider"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Height="28" MinWidth="80"
+             SnapsToDevicePixels="True">
+  <Grid Margin="7,0">
+    <Border Height="4" VerticalAlignment="Center"
+            Background="{DynamicResource BorderSubtle}" CornerRadius="2"/>
+    <Canvas x:Name="ThumbCanvas" ClipToBounds="False">
+      <Border x:Name="TrackSelected" Height="4" Canvas.Top="12"
+              Background="{DynamicResource AccentPrimary}" CornerRadius="2"/>
+      <Thumb x:Name="LowerThumb" Width="14" Height="14" Cursor="Hand"
+             DragDelta="LowerThumb_DragDelta" DragStarted="Thumb_DragStarted" DragCompleted="Thumb_DragCompleted">
+        <Thumb.Template>
+          <ControlTemplate TargetType="Thumb">
+            <Ellipse Fill="{DynamicResource TextPrimary}" Stroke="{DynamicResource AccentPrimary}"
+                     StrokeThickness="1.5" Width="14" Height="14"/>
+          </ControlTemplate>
+        </Thumb.Template>
+      </Thumb>
+      <Thumb x:Name="UpperThumb" Width="14" Height="14" Cursor="Hand"
+             DragDelta="UpperThumb_DragDelta" DragStarted="Thumb_DragStarted" DragCompleted="Thumb_DragCompleted">
+        <Thumb.Template>
+          <ControlTemplate TargetType="Thumb">
+            <Ellipse Fill="{DynamicResource TextPrimary}" Stroke="{DynamicResource AccentPrimary}"
+                     StrokeThickness="1.5" Width="14" Height="14"/>
+          </ControlTemplate>
+        </Thumb.Template>
+      </Thumb>
+    </Canvas>
+  </Grid>
+</UserControl>

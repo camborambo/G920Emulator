@@ -1,0 +1,67 @@
+{
+  "TelemetryBehaviour": {
+    "GameFamily": 1,
+    "DefaultMaxSpeed": 40.0,
+    "HasRumbleStripsContactSurface": true,
+    "AllowGimbleLockSanitizer": false
+  },
+  "TelemetryDefinition": {
+    "LayoutMajorVersion": 1,
+    "LayoutMinorVersion": 0,
+    "ProtocolVersion": 1,
+    "Fields": [
+      {
+        "FieldType": "LocalSurgeMs2",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "LocalSwayMs2",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "LocalHeaveMs2",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "LocalVelocityForwardMps",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "LocalVelocityLateralMps",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "LocalVelocityUpMps",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "SuspensionVelocityFrontLeftMps",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "SuspensionVelocityFrontRightMps",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "SuspensionVelocityRearLeftMps",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "SuspensionVelocityRearRightMps",
+        "TypeName": "StandardField"
+      }
+    ]
+  },
+  "ManagerVersion": 2,
+  "GameSignature": 4222237519,
+  "TelemetrySignature": 3497393532,
+  "Name": null,
+  "UniqueId": "618e642b-a39d-40b1-ba0a-59bbd8c985b9",
+  "DefaultUDPPort": 30777,
+  "DetectionProcesses": [],
+  "SimStartCommand": null,
+  "SimStartArguments": null,
+  "UseExtractorProcess": false,
+  "ExtractorProcessCommand": null,
+  "IconPath": null
+}

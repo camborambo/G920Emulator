@@ -273,7 +273,7 @@ public static class OemFfbSharedMemory
         typeId < (uint)TypeNames.Length ? TypeNames[typeId] : $"T{typeId}";
 
     /// <summary>
-    /// Live per-type table for FFB debug / Debug Overlay (fixed-width Consolas).
+    /// Live per-type table for FFB debug / FFB Debug Overlay (fixed-width Consolas).
     /// Torque values are DI units scaled to −1..+1.
     /// </summary>
     public static string FormatOemEffects(uint seen, uint playing, ReadOnlySpan<int> torqueDi, uint lastEffectType)

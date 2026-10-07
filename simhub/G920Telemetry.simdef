@@ -1,0 +1,176 @@
+{
+  "TelemetryBehaviour": {
+    "GameFamily": 1,
+    "DefaultMaxSpeed": 350.0,
+    "HasRumbleStripsContactSurface": true,
+    "AllowGimbleLockSanitizer": false
+  },
+  "TelemetryDefinition": {
+    "LayoutMajorVersion": 1,
+    "LayoutMinorVersion": 0,
+    "ProtocolVersion": 1,
+    "Fields": [
+      {
+        "FieldType": "SpeedKmh",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "EngineRpm",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "EngineMaxRpm",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "EngineShiftRpm",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "EngineIgnitionOn",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "EngineStarted",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "Throttle",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "Brake",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "Clutch",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "Gear",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "LocalSurgeMs2",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "LocalSwayMs2",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "LocalHeaveMs2",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "SuspensionVelocityFrontLeftMps",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "SuspensionVelocityFrontRightMps",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "SuspensionVelocityRearLeftMps",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "SuspensionVelocityRearRightMps",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "TyreContactSurfaceFrontLeft",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "TyreContactSurfaceFrontRight",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "TyreContactSurfaceRearLeft",
+        "TypeName": "StandardField"
+      },
+      {
+        "FieldType": "TyreContactSurfaceRearRight",
+        "TypeName": "StandardField"
+      },
+      {
+        "Name": "Steering",
+        "DisplayName": "Steering",
+        "Comment": "Virtual G920 steering -1..1",
+        "BinaryType": 8,
+        "TypeName": "CustomTelemetryField"
+      },
+      {
+        "Name": "FfbConstant",
+        "DisplayName": "FFB Constant",
+        "Comment": "DI constant force mix -1..1",
+        "BinaryType": 8,
+        "TypeName": "CustomTelemetryField"
+      },
+      {
+        "Name": "FfbSpring",
+        "DisplayName": "FFB Spring",
+        "Comment": "DI spring mix -1..1",
+        "BinaryType": 8,
+        "TypeName": "CustomTelemetryField"
+      },
+      {
+        "Name": "FfbDamper",
+        "DisplayName": "FFB Damper",
+        "Comment": "DI damper mix -1..1",
+        "BinaryType": 8,
+        "TypeName": "CustomTelemetryField"
+      },
+      {
+        "Name": "FfbPeriodic",
+        "DisplayName": "FFB Periodic",
+        "Comment": "Sine/triangle/square/saw mix -1..1",
+        "BinaryType": 8,
+        "TypeName": "CustomTelemetryField"
+      },
+      {
+        "Name": "SurfaceRumble",
+        "DisplayName": "Surface rumble",
+        "Comment": "Vibration magnitude 0..1 (abs periodic types + custom force)",
+        "BinaryType": 8,
+        "TypeName": "CustomTelemetryField"
+      },
+      {
+        "Name": "Impact",
+        "DisplayName": "Impact",
+        "Comment": "Wall/hit pulse 0..1 from FFB spikes",
+        "BinaryType": 8,
+        "TypeName": "CustomTelemetryField"
+      },
+      {
+        "Name": "RoadLoad",
+        "DisplayName": "Road load",
+        "Comment": "Abs constant force + friction 0..1",
+        "BinaryType": 8,
+        "TypeName": "CustomTelemetryField"
+      }
+    ]
+  },
+  "ManagerVersion": 2,
+  "GameSignature": 2863604573,
+  "TelemetrySignature": 1228639197,
+  "Name": "G920 Emulator (estimated)",
+  "UniqueId": "8c4e2b1a-9f70-4d3e-b6a1-2d5c8e0f1734",
+  "DefaultUDPPort": 20778,
+  "DetectionProcesses": [
+    {
+      "ProcessName": "NeedForSpeedHeat",
+      "FileChecks": []
+    },
+    {
+      "ProcessName": "NeedForSpeedUnbound",
+      "FileChecks": []
+    }
+  ],
+  "SimStartCommand": null,
+  "SimStartArguments": null,
+  "UseExtractorProcess": false,
+  "ExtractorProcessCommand": null,
+  "IconPath": "logo.png"
+}

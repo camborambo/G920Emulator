@@ -80,7 +80,7 @@ All of these are **user optional**. On **Raw**, everything below is at the “of
 
 ### Effect gains
 
-Scale each DirectInput effect type **in the mixer** before summing (0% mutes that type; up to **200%**). On the Force Feedback tab, **Bind** on any slider (Master, effect gains including Custom, output feel, torque shaping, centering, advanced mix) opens a dialog to assign hardware buttons for lower / raise while you drive (stored on the **input** profile; not virtual G920 controls). A filled green **Bind** button means that slider already has a − or + bind; **Clear** on each row removes it. Gain sliders step 1% per tap and 5% if you hold; other sliders use a matching small / faster step in their own units.
+Scale each DirectInput effect type **in the mixer** before summing (0% mutes that type; up to **200%**). On the Force Feedback tab, **Bind** on any slider (Master, effect gains including Custom, output feel, torque shaping, centering, advanced mix) opens a dialog to assign hardware buttons for **Lower (−)**, **Raise (+)**, and **Set as Default** while you drive (stored on the **input** profile; not virtual G920 controls). Set as Default includes a slider for the snap value; pressing that bind jumps the control back to it. A filled green **Bind** button means that slider already has a −, +, or default bind; **Clear** on each row removes it. Gain sliders step 1% per tap and 5% if you hold; other sliders use a matching small / faster step in their own units.
 
 | Slider | Typical use |
 |--------|-------------|
@@ -152,7 +152,7 @@ Off by default so everyday use stays uncluttered. File logging (OEM effects + HI
 
 **Leave Debug off for normal racing.** It enables `%TEMP%\g920ffb-effects.log` (and HID++ ingress logging) from inside the game process. Titles that re-download effects every frame (Forza Horizon, some Steam Input paths) can generate hundreds of lines per second; older builds opened/closed the file on every write and could freeze game input while the emulator UI stayed live. Current `g920ffb.dll` rate-limits stream lines, keeps the file open, and rotates at 4 MB — still use Debug only for short diagnostic captures, then **Stop debug**. Emulator CPU/RAM is sampled every 10 seconds into `%TEMP%\g920emulator-perf.log` (and once in `summary.txt` at export), including the OEM game process when `g920ffb.dll` is loaded. That file is not written from the game. High game CPU/GPU is expected; the `hint=` line is about **emulator** load. GPU is not sampled.
 
-**FFB debug** (the expander) is separate: live counters and test pulses with no file I/O on the game thread. **Settings → Debug Overlay** shows the same live G920 inputs and FFB diagnostics in a topmost window you can drag over the game.
+**FFB debug** (the expander) is separate: live counters and test pulses with no file I/O on the game thread. **Settings → FFB Debug Overlay** shows the same live G920 inputs and FFB diagnostics in a topmost window you can drag over the game.
 
 ## Probing which effects a game uses
 
@@ -186,7 +186,7 @@ Heat / Unbound pull the wheel back to center like an arcade cabinet. In DirectIn
 1. Select your **physical FFB base** under Force feedback (not DualSense). Spring uses that rim angle.
 2. Keep **Spring** (and other) effect gains above 0% unless you intend to mute a type.
 3. Do **not** rely on hardware `DIPROP_AUTOCENTER` during gameplay — it is left off so it cannot fight the OEM mix. FFB debug **Center** is a manual software return-to-center test only.
-4. OEM log (`%TEMP%\g920ffb-effects.log`) should list Spring / Damper / CF / periodic while driving. FFB debug and Debug Overlay show **Rim (spring)** plus the same MIX groups and per-type seen/playing list.
+4. OEM log (`%TEMP%\g920ffb-effects.log`) should list Spring / Damper / CF / periodic while driving. FFB debug and FFB Debug Overlay show **Rim (spring)** plus the same MIX groups and per-type seen/playing list.
 
 ### Reading the OEM log
 
@@ -196,7 +196,7 @@ Heat / Unbound pull the wheel back to center like an arcade cabinet. In DirectIn
 - **Target device is always the virtual G920.** HidHide must hide every other FFB joystick from the game (physical base, vJoy, pads). The emulator stays whitelisted so it can still read those devices for binding and for applying torque to the base you pick.
 - Shared memory `Local\G920Emulator.FfbTorque.v7`: the **game** publishes `Torque`; Steam/overlay may only layer `AuxTorque` (logged `SESSION HOST` / `AUX PUBLISH`). The bridge applies the sum.
 - **NFS Unbound:** Accessibility → Controls → **Controller Vibration = On**. Confirmed root cause when Vibration is Off: race still creates Triangle/CF/Damper, but all streamed magnitudes stay 0 (spring-only `MIX`). In-race with Vibration On: `GetEffectStatus` → `DestroyEffect` (boot Sine) → Triangle → non-zero `cf` / `periodic` / damper on `MIX`.
-- **vJoy may stay installed** (Joystick Gremlin / remappers). Keep feeder apps on the HidHide whitelist. The vJoy device itself must be **hidden from the game** when it advertises FFB, or Unbound can send forces there instead of the virtual G920. Seeing vJoy in the emulator device list does **not** mean the game sees it (this app is whitelisted). Check `hidhide.txt` for `VID_1234&PID_BEAD`, or use **Dependencies → Configure HidHide** (now also picks up vJoy from `--dev-all`).
+- **vJoy may stay installed** (Joystick Gremlin / remappers). Keep feeder apps on the HidHide whitelist. The vJoy device itself must be **hidden from the game** when it advertises FFB, or Unbound can send forces there instead of the virtual G920. Seeing vJoy in the emulator device list does **not** mean the game sees it (this app is whitelisted). Auto-apply only hides devices on HidHide’s **Gaming devices only** list (`--dev-gaming`); if vJoy is missing there, hide it manually in HidHide Client.
 - If `MIX` only shows `spring` and there are no non-zero CF/periodic samples while driving, the **game** is not streaming those effects to the virtual G920. Confirm HidHide hides the physical FFB base and any competing FFB devices from the game; keep in-game FFB on. **SimHub can stay running** — mixed rigs (Simucube base + Fanatec shifter + SimHub) are supported.
 
 ## Launch soft-start

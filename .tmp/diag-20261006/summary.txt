@@ -1,0 +1,108 @@
+﻿G920 Emulator diagnostics
+Generated (local): 2026-10-06T22:31:34.0906716-05:00
+Machine: OB-RACING
+User: OB Racing Rig
+App version: 0.2.6
+OS: Microsoft Windows NT 10.0.26200.0
+64-bit OS: True
+64-bit process: True
+User interactive: True
+App directory: C:\Users\OB Racing Rig\Desktop\G920Emulator\
+
+Process load (snapshot, no extra wait; GPU not sampled)
+  emulator: G920Emulator pid=26140 cpu1=n/a cpu1-life=26.5% ws=255.6MB priv=140.6MB threads=30 handles=1613
+    uptime 00:24:24  gc=22.8MB  gc0/1/2=763/232/9  cores=16
+  game (OEM Torque host)=NeedForSpeedUnbound pid=12144 cpu1=n/a ws=8050.1MB
+  aux (Steam/overlay)=none (OEM host not publishing yet)
+  hint=emulator interval CPU n/a until the next snapshot
+  Racing games peg CPU/GPU by design. Compare emulator cpu1 here — not the game’s.
+  GPU is not sampled (counters are heavy and game GPU high is normal).
+
+g920ffb.dll: 31744 bytes, written 2026-10-06T22:06:53.7011152-05:00
+WinUHid.dll: 115200 bytes, written 2026-10-06T22:06:56.0572163-05:00
+
+WinUHid setup
+  Test signing: OFF
+  Secure Boot: Off
+  WinUHid.dll: present
+  Elevated (this process): yes
+
+Dependencies
+  Windows test signing: Off (OK)
+    
+  WinUHid: Installed
+    WinUHid.dll present · device node present · WinUHid driver interface v1
+  HidHide: Installed
+    HidHide service registered
+  Ready for games: True
+
+Profiles storage
+  Portable: False
+  Directory: C:\Users\OB Racing Rig\AppData\Roaming\G920Emulator\profiles
+  FFB directory: C:\Users\OB Racing Rig\AppData\Roaming\G920Emulator\ffb-profiles
+  Settings: C:\Users\OB Racing Rig\AppData\Roaming\G920Emulator\settings.json
+  Input profiles (3): Default, N4S Heat, N4S Unbound
+  FFB profiles (2): Need For Speed Unbound / Heat, Raw
+  Last input profile: N4S Unbound
+  Last FFB profile: Raw
+  Hidden devices (UI list): 0
+  Telemetry enabled: True
+  Telemetry UDP: 127.0.0.1:20778 @ 60 Hz
+  Telemetry tuning: max speed 265 km/h, rpm idle 800 redline 9000 max 10200, bounce×0.06 @4Hz, accel 40/s brake 41/s coast 28/s settle 40/s aero×1.00 gear×1.20 crash×0.50, engine×1.00 rumble×1.00 impact×1.00 load×1.00
+  Telemetry gear max km/h: 1:51.7 · 2:100 · 3:150 · 4:184 · 5:225 · 6:263
+
+Bridge / FFB (at export)
+  Bridge running: False
+  Link status: OK
+  Virtual preview: False
+  Virtual Col01 present: False
+  Virtual error: (none)
+  Host path hint: Microsoft HID path · virtual Col01 present · G HUB guard: OK (Col01 present)
+  Input profile: N4S Unbound
+  FFB profile: Raw
+  FFB source id: a0a9f0d0-8bb4-11ee-8001-444553540000
+  FFB source name: FANATEC Podium Wheel Base DD2
+  Telemetry: Telemetry: 58 pkt/s → 127.0.0.1:20778
+  Telemetry frame: gear=N speed=0 rpm=800 surge=-0.0 sway=-0.0 heave=0.0 rumble=0.00 impact=0.00 load=0.01
+  Master gain: 1  Invert: False
+  FFB attached: False
+  FFB vendor: Generic
+  FFB device: (none)
+  FFB coop: Background|Exclusive (shared input handle)
+  FFB status: FFB: not attached.
+  OEM playing: True  torque=-0.01  dl=202420
+  OEM types seen: ConstantForce,Sine,Triangle,Spring,Damper
+  OEM types playing: ConstantForce,Sine,Triangle,Spring,Damper
+MIX
+  cf                0.01
+  periodic          0.00
+  spring           -0.01
+  damper            0.00
+  other             0.00
+  last           Triangle
+
+  Type            State     Torque
+  ConstantForce   playing     0.01
+  RampForce       idle        0.00
+  Square          idle        0.00
+  Sine            playing     0.00
+  Triangle        playing     0.00
+  SawtoothUp      idle        0.00
+  SawtoothDown    idle        0.00
+  Spring          playing    -0.01
+  Damper          playing     0.00
+  Inertia         idle        0.00
+  Friction        idle        0.00
+  CustomForce     idle        0.00
+  OEM status: OEM FFB: playing seq=420184 dl=202420 rim=+0.01
+  Rim (spring): +0.01
+  Apply count: 190663  last mag: 0
+  Host writes: 0  last: 
+
+Environment
+  Relevant processes running: HidHideWatchdog, NeedForSpeedUnbound, SimHub.Subprocess.X86, SimHubWPF, steam, steamservice, steamwebhelper
+  Logitech G HUB: not found
+  Logitech Gaming Software: not found
+  Simucube True Drive: not found
+  Fanatec driver: installed (C:\Program Files\Fanatec)
+  SimHub: installed (C:\Program Files (x86)\SimHub)

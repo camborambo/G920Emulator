@@ -26,6 +26,16 @@ if (Test-Path $g920ffbScript) {
     }
 }
 
+Write-Host "Building SimHub RPM plugin (net48)..." -ForegroundColor Cyan
+dotnet build ".\src\G920Emulator.SimHubPlugin\G920Emulator.SimHubPlugin.csproj" -c Release
+if ($LASTEXITCODE -ne 0) {
+    throw "G920Emulator.SimHubPlugin build failed (exit $LASTEXITCODE). Is SimHub installed under Program Files (x86)\SimHub?"
+}
+$pluginDll = Join-Path $root "src\G920Emulator.SimHubPlugin\bin\Release\G920Emulator.SimHubPlugin.dll"
+if (-not (Test-Path $pluginDll)) {
+    throw "SimHub plugin DLL missing after build: $pluginDll"
+}
+
 Write-Host "Publishing G920 Emulator (self-contained win-x64)..." -ForegroundColor Cyan
 dotnet publish ".\src\G920Emulator.App\G920Emulator.App.csproj" `
     -c Release `
@@ -34,6 +44,12 @@ dotnet publish ".\src\G920Emulator.App\G920Emulator.App.csproj" `
     -p:PublishSingleFile=false `
     -p:PublishReadyToRun=true `
     -o $outDir
+
+# Ensure plugin is next to the External Sim definition for Register-with-SimHub install.
+$simhubOut = Join-Path $outDir "simhub"
+New-Item -ItemType Directory -Force -Path $simhubOut | Out-Null
+Copy-Item $pluginDll $simhubOut -Force
+Write-Host "Bundled G920Emulator.SimHubPlugin.dll for SimHub Engine vibrations." -ForegroundColor Green
 
 # Remove legacy SessionWatch leftovers from older publishes (no longer shipped).
 $legacyWatchPaths = @(
@@ -128,6 +144,13 @@ foreach ($doc in @("CHANGELOG.md", "README.md")) {
     if (Test-Path $srcDoc) {
         Copy-Item $srcDoc $outDir -Force
     }
+}
+
+$simhubSrc = Join-Path $root "simhub"
+if (Test-Path $simhubSrc) {
+    $simhubOut = Join-Path $outDir "simhub"
+    New-Item -ItemType Directory -Force -Path $simhubOut | Out-Null
+    Copy-Item (Join-Path $simhubSrc "*") $simhubOut -Force
 }
 
 # Zip with a single top-level folder: G920Emulator-win-x64.zip → G920Emulator\...

@@ -1,0 +1,410 @@
+{
+  "name": "N4S Heat",
+  "ffbSourceDeviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+  "ffbSourceProductId": "00070eb7-0000-0000-0000-504944564944",
+  "shifterMode": "exclusiveHPattern",
+  "ffbProfileName": "Raw",
+  "ffbGain": 1,
+  "ffbInvert": false,
+  "ffbEffectGains": {
+    "constantForce": 1,
+    "rampForce": 1,
+    "periodic": 1,
+    "springForce": 1,
+    "damperForce": 1,
+    "inertiaForce": 1,
+    "frictionForce": 1,
+    "customForce": 1
+  },
+  "ffbOutputFeel": {
+    "smoothingMs": 0,
+    "peakSoftStart": 1,
+    "softStartMs": 0,
+    "deadband": 0,
+    "maxSlewPerSecond": 0,
+    "maxSpikeStep": 1,
+    "magnitudeEpsilon": 0,
+    "forceCenterSpring": false,
+    "centerSpringStrength": 0.3,
+    "centerSpringRange": 0.25,
+    "centerSpringDeadzone": 0,
+    "invertConstantForce": false,
+    "damperVelocityScale": 1,
+    "damperDeadbandScale": 1,
+    "hasTorqueShaping": false
+  },
+  "gearReverseOutputButton": 12,
+  "bindings": [
+    {
+      "target": "steering",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "axis": "X",
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "throttle",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "axis": "Z",
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": true,
+      "scale": 1
+    },
+    {
+      "target": "brake",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "axis": "Rz",
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": true,
+      "scale": 1
+    },
+    {
+      "target": "clutch",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "axis": "Y",
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": true,
+      "scale": 1
+    },
+    {
+      "target": "hat",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "isHat": true,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonA",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "button": 1,
+          "isHat": false,
+          "axisFromCenter": false
+        },
+        {
+          "deviceId": "ff8c2c40-115a-11ef-8001-444553540000",
+          "productId": "68732341-0000-0000-0000-504944564944",
+          "button": 9,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonB",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "button": 2,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonX",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "button": 6,
+          "isHat": false,
+          "axisFromCenter": false
+        },
+        {
+          "deviceId": "0ae99250-83a7-11ed-8001-444553540000",
+          "productId": "100230b7-0000-0000-0000-504944564944",
+          "axis": "Rx",
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0.19833050428654309,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonY",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "button": 3,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonLb",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "button": 5,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonRb",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "button": 4,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonView",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "button": 8,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonMenu",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "button": 9,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonLs",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "button": 24,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "buttonRs",
+      "sources": [
+        {
+          "deviceId": "a0a9f0d0-8bb4-11ee-8001-444553540000",
+          "productId": "00070eb7-0000-0000-0000-504944564944",
+          "button": 25,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gearR",
+      "sources": [
+        {
+          "deviceId": "ff8c2c40-115a-11ef-8001-444553540000",
+          "productId": "68732341-0000-0000-0000-504944564944",
+          "button": 6,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear1",
+      "sources": [
+        {
+          "deviceId": "ff8c2c40-115a-11ef-8001-444553540000",
+          "productId": "68732341-0000-0000-0000-504944564944",
+          "button": 0,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear2",
+      "sources": [
+        {
+          "deviceId": "ff8c2c40-115a-11ef-8001-444553540000",
+          "productId": "68732341-0000-0000-0000-504944564944",
+          "button": 1,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear3",
+      "sources": [
+        {
+          "deviceId": "ff8c2c40-115a-11ef-8001-444553540000",
+          "productId": "68732341-0000-0000-0000-504944564944",
+          "button": 2,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear4",
+      "sources": [
+        {
+          "deviceId": "ff8c2c40-115a-11ef-8001-444553540000",
+          "productId": "68732341-0000-0000-0000-504944564944",
+          "button": 3,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear5",
+      "sources": [
+        {
+          "deviceId": "ff8c2c40-115a-11ef-8001-444553540000",
+          "productId": "68732341-0000-0000-0000-504944564944",
+          "button": 4,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "gear6",
+      "sources": [
+        {
+          "deviceId": "ff8c2c40-115a-11ef-8001-444553540000",
+          "productId": "68732341-0000-0000-0000-504944564944",
+          "button": 5,
+          "isHat": false,
+          "axisFromCenter": false
+        }
+      ],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "hatUp",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "hatDown",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "hatLeft",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    },
+    {
+      "target": "hatRight",
+      "sources": [],
+      "deadzone": 0,
+      "invert": false,
+      "scale": 1
+    }
+  ]
+}
