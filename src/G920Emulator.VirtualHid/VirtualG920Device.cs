@@ -259,10 +259,20 @@ public sealed class VirtualG920Device : IVirtualG920Device
         lock (_gate)
         {
             _lastReport = report;
-            if (!_running || _previewMode)
+            // Preview has no OS device - always "ok". A dead real device must return false
+            // so BridgeService can surface failure / recover (never fake success when !_running).
+            if (_previewMode)
                 return true;
-            if (_device == IntPtr.Zero)
+            if (!_running)
+            {
+                LastError ??= "Virtual G920 is not running.";
                 return false;
+            }
+            if (_device == IntPtr.Zero)
+            {
+                LastError = "Virtual G920 device handle is null.";
+                return false;
+            }
 
             if (WinUHidNative.WinUHidSubmitInputReport(_device, report, (uint)report.Length))
                 return true;

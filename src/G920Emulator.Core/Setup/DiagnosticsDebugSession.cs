@@ -17,6 +17,7 @@ public sealed class DiagnosticsDebugSession : IDisposable
         "g920ffb-effects.log",
         "g920ffb-effects.log.old",
         "g920-hidpp-ingress.log",
+        "g920emulator-bridge-health.log",
     ];
 
     private EventWaitHandle? _nativeGate;
@@ -35,6 +36,7 @@ public sealed class DiagnosticsDebugSession : IDisposable
 
         ClearSessionLogs();
         ProcessResourceProbe.StartSparseLog();
+        BridgeHealthLog.Start();
         _nativeGate = new EventWaitHandle(true, EventResetMode.ManualReset, NativeLogEventName);
         IsActive = true;
         ExportReady = false;
@@ -47,6 +49,7 @@ public sealed class DiagnosticsDebugSession : IDisposable
             return;
 
         AppendManagedMarker("DEBUG SESSION STOP (emulator)");
+        try { BridgeHealthLog.Stop(); } catch { /* ignore */ }
         try { ProcessResourceProbe.StopSparseLog(); } catch { /* ignore */ }
         try { _nativeGate?.Dispose(); } catch { /* ignore */ }
         _nativeGate = null;
@@ -61,6 +64,7 @@ public sealed class DiagnosticsDebugSession : IDisposable
         if (IsActive)
         {
             try { AppendManagedMarker("DEBUG SESSION STOP (emulator dispose)"); } catch { /* ignore */ }
+            try { BridgeHealthLog.Stop(); } catch { /* ignore */ }
             try { ProcessResourceProbe.StopSparseLog(); } catch { /* ignore */ }
         }
         try { _nativeGate?.Dispose(); } catch { /* ignore */ }

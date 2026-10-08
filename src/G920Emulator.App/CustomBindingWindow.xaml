@@ -65,7 +65,7 @@
         <Button Grid.Row="0" Grid.Column="0" Style="{StaticResource AppButton}" Content="Bind FN"
                 Click="BindFn_Click" Padding="10,8"
                 ToolTip="Optional. Capture the hold key for this combo."/>
-        <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource PrimaryButton}" Content="Bind Button"
+        <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource AppButton}" Content="Bind Button"
                 Click="BindButton_Click" Margin="0" Padding="10,8"
                 ToolTip="Capture the input that drives the G920 target."/>
 

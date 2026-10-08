@@ -9,11 +9,11 @@ public partial class DualRangeSlider : UserControl
 {
     public static readonly DependencyProperty MinimumProperty =
         DependencyProperty.Register(nameof(Minimum), typeof(double), typeof(DualRangeSlider),
-            new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnRangeChanged));
+            new FrameworkPropertyMetadata(0.0, OnRangeChanged));
 
     public static readonly DependencyProperty MaximumProperty =
         DependencyProperty.Register(nameof(Maximum), typeof(double), typeof(DualRangeSlider),
-            new FrameworkPropertyMetadata(100.0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnRangeChanged));
+            new FrameworkPropertyMetadata(1.0, OnRangeChanged));
 
     public static readonly DependencyProperty LowerValueProperty =
         DependencyProperty.Register(nameof(LowerValue), typeof(double), typeof(DualRangeSlider),
@@ -21,7 +21,7 @@ public partial class DualRangeSlider : UserControl
 
     public static readonly DependencyProperty UpperValueProperty =
         DependencyProperty.Register(nameof(UpperValue), typeof(double), typeof(DualRangeSlider),
-            new FrameworkPropertyMetadata(100.0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnValueChanged));
+            new FrameworkPropertyMetadata(1.0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnValueChanged));
 
     public static readonly DependencyProperty TickFrequencyProperty =
         DependencyProperty.Register(nameof(TickFrequency), typeof(double), typeof(DualRangeSlider),
@@ -43,6 +43,10 @@ public partial class DualRangeSlider : UserControl
         InitializeComponent();
         SizeChanged += (_, _) => LayoutThumbs();
         Loaded += (_, _) => LayoutThumbs();
+        // Swallow mouse-up so the parent ListBox does not treat this as "open Assign".
+        // Do not mark PreviewMouseLeftButtonDown handled — that blocks Thumb drag.
+        PreviewMouseLeftButtonUp += (_, e) => e.Handled = true;
+        MouseLeftButtonUp += (_, e) => e.Handled = true;
     }
 
     public double Minimum
@@ -114,10 +118,21 @@ public partial class DualRangeSlider : UserControl
     private void UpperThumb_DragDelta(object sender, DragDeltaEventArgs e) =>
         MoveThumb(isLower: false, e.HorizontalChange);
 
+    /// <summary>Track width from the control (Canvas.ActualWidth is often 0 in list DataTemplates).</summary>
+    private double TrackWidth
+    {
+        get
+        {
+            var w = ActualWidth - 14; // Grid Margin 7+7
+            return w > 1 ? w : 0;
+        }
+    }
+
     private void MoveThumb(bool isLower, double dx)
     {
+        var width = TrackWidth;
+        if (width <= 1) return;
         var span = Math.Max(1e-9, Maximum - Minimum);
-        var width = Math.Max(1.0, ThumbCanvas.ActualWidth);
         var delta = dx / width * span;
         if (isLower)
             LowerValue = Snap(Math.Clamp(LowerValue + delta, Minimum, UpperValue));
@@ -159,29 +174,36 @@ public partial class DualRangeSlider : UserControl
 
     private void LayoutThumbs()
     {
-        if (!IsLoaded)
+        if (!IsLoaded || ThumbCanvas is null || TrackSelected is null || LowerThumb is null || UpperThumb is null)
             return;
 
-        var width = ThumbCanvas.ActualWidth;
-        if (width <= 0)
-            width = Math.Max(0, ActualWidth - 14);
-        if (width <= 0)
+        var width = TrackWidth;
+        if (width <= 1)
             return;
+
+        // Keep canvas sized to the track so SetLeft coordinates match the visible bar.
+        if (Math.Abs(ThumbCanvas.Width - width) > 0.5)
+            ThumbCanvas.Width = width;
+        var height = Math.Max(1, ActualHeight);
+        if (Math.Abs(ThumbCanvas.Height - height) > 0.5)
+            ThumbCanvas.Height = height;
 
         var span = Math.Max(1e-9, Maximum - Minimum);
         var lowerX = (LowerValue - Minimum) / span * width;
         var upperX = (UpperValue - Minimum) / span * width;
-        const double thumb = 14;
-        const double half = thumb / 2;
+        // Thumb control is wider than the visual circle; center the hit box on the value.
+        var thumbW = LowerThumb.Width > 0 ? LowerThumb.Width : 22;
+        var thumbH = LowerThumb.Height > 0 ? LowerThumb.Height : 28;
+        var halfW = thumbW / 2;
 
-        var trackY = Math.Max(0, (ActualHeight - 4) / 2);
+        var trackY = Math.Max(0, (height - 4) / 2);
         Canvas.SetTop(TrackSelected, trackY);
         Canvas.SetLeft(TrackSelected, Math.Min(lowerX, upperX));
         TrackSelected.Width = Math.Max(0, Math.Abs(upperX - lowerX));
 
-        Canvas.SetLeft(LowerThumb, lowerX - half);
-        Canvas.SetTop(LowerThumb, (ActualHeight - thumb) / 2);
-        Canvas.SetLeft(UpperThumb, upperX - half);
-        Canvas.SetTop(UpperThumb, (ActualHeight - thumb) / 2);
+        Canvas.SetLeft(LowerThumb, lowerX - halfW);
+        Canvas.SetTop(LowerThumb, (height - thumbH) / 2);
+        Canvas.SetLeft(UpperThumb, upperX - halfW);
+        Canvas.SetTop(UpperThumb, (height - thumbH) / 2);
     }
 }

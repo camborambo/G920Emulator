@@ -55,7 +55,7 @@ If test signing was left on: **Dependencies → Disable test signing** (or Unins
 
 Games may read both your real pad/wheel and the virtual G920. HidHide is **required** so the game only sees the emulated G920.
 
-**G920 Emulator does not change HidHide on launch or Start bridge.** You configure it.
+By default (**Settings → HidHide → Off**), **Start** leaves HidHide alone — configure it yourself. Optional apply modes can whitelist the emulator and hide gaming devices (or only profile-bound devices) when you start the bridge; **Save & restore on Stop** puts your prior config back on Stop/Exit.
 
 1. Install HidHide ([releases](https://github.com/nefarius/HidHide/releases/latest)), reboot if prompted
 2. Open **HidHide Client** (or Dependencies → **Open HidHide Client** / optional **Configure HidHide** helper) and set up what you want, typically:
@@ -63,7 +63,8 @@ Games may read both your real pad/wheel and the virtual G920. HidHide is **requi
    - **Cloak** on
    - Whitelist `G920Emulator.exe` so this app can still see your pad for binding/FFB
    - Hide your physical pad / wheel from games; keep the virtual G920 visible
-3. Recheck in Dependencies if you use that window
+3. Or use **Settings → HidHide** apply modes if you want the app to do that on **Start**
+4. Recheck in Dependencies if you use that window
 
 ## Logitech Steering Wheel SDK + OEM FFB (session-scoped)
 
@@ -97,7 +98,7 @@ G HUB's installer rewrites the DirectInput OEM entry for `VID_046D` / `PID_C262`
 
 1. Quit G HUB completely (if present)
 2. Dependencies → **Repair G HUB leftovers** (does not leave OEM/SDK pins while idle)
-3. Check **HidHide** yourself if games still see your pad (app does not change it automatically)
+3. Check **HidHide** (Client or **Settings → HidHide** apply mode) if games still see your pad
 4. **Start bridge**, confirm device name looks like a G920 / wheel in `joy.cpl`, then launch the game
 5. Reboot once if Device Manager still shows Logitech-bound G920 nodes
 

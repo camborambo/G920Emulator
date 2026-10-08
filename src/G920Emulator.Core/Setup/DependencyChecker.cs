@@ -324,7 +324,16 @@ public static class DependencyChecker
     /// apps or devices already configured in HidHide.
     /// </summary>
     public static HidHideEnsureResult ConfigureHidHideFully(params string[] extraAppPaths) =>
-        EnsureHidHideForEmulator(extraAppPaths, hidePhysicalControllers: true);
+        EnsureHidHideForEmulator(extraAppPaths, hidePhysicalControllers: true, boundDeviceIds: null);
+
+    /// <summary>
+    /// Whitelist emulator + cloak, hide only HidHide paths that match <paramref name="boundDeviceIds"/>
+    /// (DirectInput instance GUIDs from the active profile). Unmatched IDs are skipped.
+    /// </summary>
+    public static HidHideEnsureResult ConfigureHidHideBoundDevices(
+        IEnumerable<string> boundDeviceIds,
+        params string[] extraAppPaths) =>
+        EnsureHidHideForEmulator(extraAppPaths, hidePhysicalControllers: false, boundDeviceIds);
 
     /// <summary>Full HidHide cloak / inverse / app / device list for session restore.</summary>
     public sealed class HidHideSnapshot
@@ -864,7 +873,7 @@ public static class DependencyChecker
         }
 
         // Whitelist/cloak only - full device hide is RefreshHidHideSessionDevices after the virtual G920 exists.
-        var result = EnsureHidHideForEmulator(extraAppPaths, hidePhysicalControllers: false);
+        var result = EnsureHidHideForEmulator(extraAppPaths, hidePhysicalControllers: false, boundDeviceIds: null);
         if (!result.CliAvailable)
         {
             if (saveRevertSnapshot)
@@ -899,7 +908,7 @@ public static class DependencyChecker
         else
             ClearHidHideSnapshot();
 
-        var result = EnsureHidHideForEmulator(extraAppPaths, hidePhysicalControllers: false);
+        var result = EnsureHidHideForEmulator(extraAppPaths, hidePhysicalControllers: false, boundDeviceIds: null);
         if (!result.CliAvailable)
         {
             if (revertSnapshot is not null)
@@ -918,11 +927,16 @@ public static class DependencyChecker
 
     /// <summary>
     /// Re-apply hide/unhide after the virtual G920 enumerates (no new snapshot).
+    /// Pass <paramref name="boundDeviceIds"/> for HideBound mode; null = hide all gaming devices.
     /// </summary>
-    public static (bool Ok, string Message) RefreshHidHideSessionDevices(params string[] extraAppPaths)
+    public static (bool Ok, string Message) RefreshHidHideSessionDevices(
+        IReadOnlyCollection<string>? boundDeviceIds = null,
+        params string[] extraAppPaths)
     {
         BeginHidHideOps();
-        var result = ConfigureHidHideFully(extraAppPaths);
+        var result = boundDeviceIds is null
+            ? ConfigureHidHideFully(extraAppPaths)
+            : ConfigureHidHideBoundDevices(boundDeviceIds, extraAppPaths);
         if (!result.CliAvailable)
             return (false, result.Message);
         if (!string.IsNullOrWhiteSpace(result.Message) &&
@@ -1089,9 +1103,12 @@ public static class DependencyChecker
     /// HidHide only applies the whitelist to processes that start after they are registered.
     /// </summary>
     public static HidHideEnsureResult EnsureHidHideForEmulator(params string[] extraAppPaths) =>
-        EnsureHidHideForEmulator(extraAppPaths, hidePhysicalControllers: false);
+        EnsureHidHideForEmulator(extraAppPaths, hidePhysicalControllers: false, boundDeviceIds: null);
 
-    private static HidHideEnsureResult EnsureHidHideForEmulator(IEnumerable<string> extraAppPaths, bool hidePhysicalControllers)
+    private static HidHideEnsureResult EnsureHidHideForEmulator(
+        IEnumerable<string> extraAppPaths,
+        bool hidePhysicalControllers,
+        IEnumerable<string>? boundDeviceIds)
     {
         var cli = FindHidHideCli();
         if (cli is null)
@@ -1125,7 +1142,28 @@ public static class DependencyChecker
         foreach (var path in DiscoverNonGamingPathsToUnhide(cli))
             commands.Add($"--dev-unhide \"{path}\"");
 
-        var hidePaths = hidePhysicalControllers ? DiscoverPhysicalGamingDevicesToHide(cli) : [];
+        List<string> hidePaths;
+        string hideScopeNote;
+        if (boundDeviceIds is not null)
+        {
+            hidePaths = ResolveBoundDevicesToHide(cli, boundDeviceIds);
+            hideScopeNote = hidePaths.Count == 0
+                ? " No bound gaming devices matched to hide; virtual G920 left visible."
+                : $" HidHide: {hidePaths.Count} bound device path(s) hidden; virtual G920 left visible.";
+        }
+        else if (hidePhysicalControllers)
+        {
+            hidePaths = DiscoverPhysicalGamingDevicesToHide(cli);
+            hideScopeNote = hidePaths.Count == 0
+                ? " All other controllers already hidden (or none found); virtual G920 left visible."
+                : $" HidHide: {hidePaths.Count} device path(s) hidden; virtual G920 left visible.";
+        }
+        else
+        {
+            hidePaths = [];
+            hideScopeNote = "";
+        }
+
         foreach (var path in hidePaths)
             commands.Add($"--dev-hide \"{path}\"");
 
@@ -1144,24 +1182,18 @@ public static class DependencyChecker
         var confirmed = IsCurrentProcessWhitelisted(cli, emulatorPaths);
         var needsRelaunch = !alreadyWhitelisted && confirmed && emulatorPaths.Count > 0;
 
-        var hideNote = hidePaths.Count == 0
-            ? (hidePhysicalControllers
-                ? " All other controllers already hidden (or none found); virtual G920 left visible."
-                : "")
-            : $" HidHide: {hidePaths.Count} device path(s) hidden; virtual G920 left visible.";
-
         return new HidHideEnsureResult
         {
             CliAvailable = true,
             NeedsRelaunch = needsRelaunch,
             DevicesHidden = hidePaths.Count,
             Message = emulatorPaths.Count == 0
-                ? "HidHide inverse off (could not find G920Emulator.exe to whitelist)." + hideNote
+                ? "HidHide inverse off (could not find G920Emulator.exe to whitelist)." + hideScopeNote
                 : needsRelaunch
-                    ? $"HidHide updated - emulator whitelisted; relaunch so devices stay visible.{hideNote}"
+                    ? $"HidHide updated - emulator whitelisted; relaunch so devices stay visible.{hideScopeNote}"
                     : confirmed
-                        ? $"HidHide updated - inverse off, cloak on, emulator whitelisted.{hideNote}"
-                        : "Could not confirm whitelist. Click Configure again and accept UAC, or add G920Emulator.exe in HidHide Client." + hideNote,
+                        ? $"HidHide updated - inverse off, cloak on, emulator whitelisted.{hideScopeNote}"
+                        : "Could not confirm whitelist. Click Configure again and accept UAC, or add G920Emulator.exe in HidHide Client." + hideScopeNote,
         };
     }
 
@@ -1181,6 +1213,55 @@ public static class DependencyChecker
         paths.RemoveWhere(p =>
             alreadyHidden.Contains(p) || IsVirtualG920KeepVisible(p, p));
         return paths.ToList();
+    }
+
+    /// <summary>
+    /// Match profile DirectInput instance GUIDs to HidHide <c>--dev-gaming</c> paths.
+    /// Unmatched IDs are skipped (never falls back to hide-all).
+    /// </summary>
+    private static List<string> ResolveBoundDevicesToHide(string cli, IEnumerable<string> boundDeviceIds)
+    {
+        var needles = boundDeviceIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(NormalizeDeviceIdNeedle)
+            .Where(n => n.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (needles.Count == 0)
+            return [];
+
+        var outputs = RunHidHideMultiCapture(cli, ["--dev-list", "--dev-gaming"], timeoutMs: 10_000);
+        var alreadyHidden = ParseAlreadyHiddenDevicePaths(outputs.GetValueOrDefault("--dev-list") ?? "");
+        var gaming = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        CollectHidHideGamingListPaths(outputs.GetValueOrDefault("--dev-gaming"), gaming);
+
+        var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var path in gaming)
+        {
+            if (alreadyHidden.Contains(path) || IsVirtualG920KeepVisible(path, path))
+                continue;
+            var pathNorm = path.Replace("{", "", StringComparison.Ordinal)
+                .Replace("}", "", StringComparison.Ordinal);
+            foreach (var needle in needles)
+            {
+                if (path.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
+                    pathNorm.Contains(needle, StringComparison.OrdinalIgnoreCase))
+                {
+                    matched.Add(path);
+                    break;
+                }
+            }
+        }
+
+        return matched.ToList();
+    }
+
+    private static string NormalizeDeviceIdNeedle(string deviceId)
+    {
+        var s = deviceId.Trim();
+        if (s.StartsWith('{') && s.EndsWith('}') && s.Length > 2)
+            s = s[1..^1];
+        return s;
     }
 
     /// <summary>
@@ -1368,7 +1449,7 @@ public static class DependencyChecker
                 return true;
         }
 
-        return false;
+            return false;
     }
 
     /// <summary>
@@ -1484,11 +1565,11 @@ public static class DependencyChecker
             if (elevated)
             {
                 var elevatedPsi = new ProcessStartInfo
-                {
-                    FileName = script,
-                    UseShellExecute = true,
-                    Verb = "runas",
-                    WindowStyle = ProcessWindowStyle.Hidden,
+            {
+                FileName = script,
+                UseShellExecute = true,
+                Verb = "runas",
+                WindowStyle = ProcessWindowStyle.Hidden,
                 };
                 InstallFolderGuard.ApplySafeWorkingDirectory(elevatedPsi);
                 proc = Process.Start(elevatedPsi);

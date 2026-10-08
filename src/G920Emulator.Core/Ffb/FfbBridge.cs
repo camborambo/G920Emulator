@@ -108,9 +108,20 @@ public sealed class FfbBridge : IDisposable
     }
 
     public bool TryAttach(string? deviceId, out string error) =>
-        TryAttach(deviceId, _hwnd, out error);
+        TryAttach(deviceId, _hwnd, preferSharedInput: false, out error);
 
-    public bool TryAttach(string? deviceId, IntPtr hwnd, out string error)
+    public bool TryAttach(string? deviceId, bool preferSharedInput, out string error) =>
+        TryAttach(deviceId, _hwnd, preferSharedInput, out error);
+
+    public bool TryAttach(string? deviceId, IntPtr hwnd, out string error) =>
+        TryAttach(deviceId, hwnd, preferSharedInput: false, out error);
+
+    /// <param name="preferSharedInput">
+    /// True when the same joystick is also a binding source (steer/pedals/buttons).
+    /// Prefers NonExclusive so GetCurrentState keeps updating under FFB (Fanatec and
+    /// Simucube both hit this when pedals live on the FFB base).
+    /// </param>
+    public bool TryAttach(string? deviceId, IntPtr hwnd, bool preferSharedInput, out string error)
     {
         error = "";
         DetachEffectsOnly();
@@ -169,15 +180,34 @@ public sealed class FfbBridge : IDisposable
             {
                 try { joy.Unacquire(); } catch { /* ignore */ }
 
-                try
+                // preferSharedInput comes from Settings (FfbCooperativeMode.NonExclusive).
+                // Exclusive = strongest FFB claim; NonExclusive = keep GetCurrentState live
+                // when Exclusive freezes pedals/steer (often with Fanatec app / True Drive open).
+                if (preferSharedInput)
                 {
-                    joy.SetCooperativeLevel(hwnd, CooperativeLevel.Background | CooperativeLevel.Exclusive);
-                    coop = "Background|Exclusive";
+                    try
+                    {
+                        joy.SetCooperativeLevel(hwnd, CooperativeLevel.Background | CooperativeLevel.NonExclusive);
+                        coop = "Background|NonExclusive";
+                    }
+                    catch
+                    {
+                        joy.SetCooperativeLevel(hwnd, CooperativeLevel.Background | CooperativeLevel.Exclusive);
+                        coop = "Background|Exclusive (nonexclusive failed)";
+                    }
                 }
-                catch
+                else
                 {
-                    joy.SetCooperativeLevel(hwnd, CooperativeLevel.Background | CooperativeLevel.NonExclusive);
-                    coop = "Background|NonExclusive (exclusive failed)";
+                    try
+                    {
+                        joy.SetCooperativeLevel(hwnd, CooperativeLevel.Background | CooperativeLevel.Exclusive);
+                        coop = "Background|Exclusive";
+                    }
+                    catch
+                    {
+                        joy.SetCooperativeLevel(hwnd, CooperativeLevel.Background | CooperativeLevel.NonExclusive);
+                        coop = "Background|NonExclusive (exclusive failed)";
+                    }
                 }
 
                 // Normalize steering axis to 0..65535 so spring auto-center sees a real rim angle.
@@ -287,14 +317,84 @@ public sealed class FfbBridge : IDisposable
     /// <summary>
     /// Physical FFB axis position as -1..1 (center 0). Required for game spring/damper
     /// auto-center to track the real rim - not the virtual G920 / DualSense steer.
+    /// Non-blocking: uses the same cache path as bindings (never waits on SetParameters).
     /// </summary>
     public bool TryGetPhysicalSteering(out float steeringCentered)
     {
         steeringCentered = 0f;
-        if (!TryReadPhysicalJoystickState(out var state))
+        if (!TryGetPhysicalInput(out var axes, out _, out _))
             return false;
-        steeringCentered = NormalizeAxisToCentered(state.X);
+        if (!axes.TryGetValue("X", out var x01))
+            return false;
+        steeringCentered = Math.Clamp(x01 * 2f - 1f, -1f, 1f);
         return true;
+    }
+
+    /// <summary>Age of the exclusive-FFB input cache in ms, or -1 if never sampled.</summary>
+    public long PhysicalInputCacheAgeMs
+    {
+        get
+        {
+            lock (_gate)
+            {
+                if (_cachedAxesTick == 0 || _cachedAxes01 is null || _cachedAxes01.Count == 0)
+                    return -1;
+                return Math.Max(0, Environment.TickCount64 - _cachedAxesTick);
+            }
+        }
+    }
+
+    /// <summary>Cooperative level string from the last successful attach (for health logs).</summary>
+    public string CooperativeLevelLabel
+    {
+        get { lock (_gate) return string.IsNullOrEmpty(_coopLevel) ? "-" : _coopLevel; }
+    }
+
+    /// <summary>
+    /// Force Unacquire/Acquire + Poll when DI keeps returning the same axes (Fanatec
+    /// Exclusive input freeze). Safe to call from the bridge loop; no-ops if busy.
+    /// </summary>
+    public bool TryKickStaleInput()
+    {
+        if (!IsReady) return false;
+        if (!Monitor.TryEnter(_diGate, 15))
+            return false;
+
+        try
+        {
+            Joystick? joy;
+            lock (_gate) joy = _joystick;
+            if (joy is null) return false;
+
+            try
+            {
+                try { joy.Unacquire(); } catch { /* ignore */ }
+                joy.Acquire();
+                joy.Poll();
+                var state = joy.GetCurrentState();
+                CacheInputFromState(state);
+                return true;
+            }
+            catch
+            {
+                try
+                {
+                    joy.Acquire();
+                    joy.Poll();
+                    var state = joy.GetCurrentState();
+                    CacheInputFromState(state);
+                    return true;
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+        }
+        finally
+        {
+            Monitor.Exit(_diGate);
+        }
     }
 
     /// <summary>
@@ -322,17 +422,23 @@ public sealed class FfbBridge : IDisposable
         hat = -1;
 
         // Hot path: serve sub-frame cache so input submit is not serialized with FFB USB.
+        long cacheAge;
         lock (_gate)
         {
-            if (_cachedAxes01 is { Count: > 0 } &&
-                Environment.TickCount64 - _cachedAxesTick <= 4)
+            cacheAge = _cachedAxesTick == 0
+                ? long.MaxValue
+                : Environment.TickCount64 - _cachedAxesTick;
+            if (_cachedAxes01 is { Count: > 0 } && cacheAge <= 4)
             {
                 CopyCachedInputUnlocked(axes, out buttons, out hat);
                 return true;
             }
         }
 
-        if (!Monitor.TryEnter(_diGate, 0))
+        // Prefer a live Poll. Wait briefly when the cache is going stale so Fanatec
+        // SetParameters cannot pin every binding (steer/pedals/buttons) to last sample.
+        var waitMs = cacheAge > 24 ? 8 : 0;
+        if (!Monitor.TryEnter(_diGate, waitMs))
         {
             // Apply thread is busy - last sample is better than stalling the bridge.
             lock (_gate)
@@ -381,17 +487,6 @@ public sealed class FfbBridge : IDisposable
             ? (bool[])_cachedButtons.Clone()
             : [];
         hat = _cachedHat;
-    }
-
-    private bool TryReadPhysicalJoystickState(out JoystickState state)
-    {
-        state = default!;
-        Joystick? joy;
-        lock (_gate) joy = _joystick;
-        if (joy is null) return false;
-
-        lock (_diGate)
-            return TryReadPhysicalJoystickStateUnlocked(out state);
     }
 
     private bool TryReadPhysicalJoystickStateUnlocked(out JoystickState state)
@@ -483,15 +578,6 @@ public sealed class FfbBridge : IDisposable
                 // the software spring path.
             }
         }
-    }
-
-    private static float NormalizeAxisToCentered(int x)
-    {
-        // Prefer unsigned 0..65535. Signed -32768..32767 (center 0) is remapped.
-        if (x < 0)
-            return Math.Clamp(x / 32767f, -1f, 1f);
-        if (x > 65535) x = 65535;
-        return (x / 65535f) * 2f - 1f;
     }
 
     /// <summary>Match InputHub DeviceState axis scale (0..1).</summary>
@@ -656,40 +742,68 @@ public sealed class FfbBridge : IDisposable
             }
         }
 
-        lock (_diGate)
+        // Sample under _diGate, but never hold it across SetParameters. Fanatec USB
+        // updates can take tens/hundreds of ms; holding the gate froze every binding
+        // that rides the exclusive FFB joystick (steer + pedals + buttons).
+        if (joy is not null && Monitor.TryEnter(_diGate, 5))
         {
-            // Sample rim before the USB SetParameters round-trip so the input thread
-            // can keep serving a fresh axis cache while this apply runs.
-            if (joy is not null)
-                TryReadPhysicalJoystickStateUnlocked(out _);
+            try { TryReadPhysicalJoystickStateUnlocked(out _); }
+            finally { Monitor.Exit(_diGate); }
+        }
 
-            if (!TrySetMagnitude(effect, magnitude, out var setError))
+        string? setError = null;
+        var setOk = false;
+        try
+        {
+            setOk = TrySetMagnitude(effect, magnitude, out setError);
+        }
+        catch (Exception ex)
+        {
+            setError = ex.Message;
+        }
+
+        if (!setOk)
+        {
+            string? recreateError = null;
+            var recreatedOk = false;
+            if (joy is not null && Monitor.TryEnter(_diGate, 50))
             {
-                string? recreateError = null;
-                if (joy is not null && TryRecreateEffect(joy, magnitude, out var recreated, out recreateError))
+                try
                 {
-                    lock (_gate)
+                    // Recreate touches the joystick + effect objects - serialize with Poll.
+                    if (TryRecreateEffect(joy, magnitude, out var recreated, out recreateError))
                     {
-                        try { _constantEffect?.Dispose(); } catch { /* ignore */ }
-                        _constantEffect = recreated;
+                        lock (_gate)
+                        {
+                            try { _constantEffect?.Dispose(); } catch { /* ignore */ }
+                            _constantEffect = recreated;
+                        }
+                        _fastMagnitudeFlags = null;
+                        recreatedOk = true;
                     }
-                    _fastMagnitudeFlags = null;
                 }
-                else
+                finally
                 {
-                    lock (_gate)
-                    {
-                        _lastError = string.IsNullOrEmpty(recreateError)
-                            ? $"Apply failed: {setError}"
-                            : $"Apply failed: {setError} | recreate: {recreateError}";
-                    }
-                    return;
+                    Monitor.Exit(_diGate);
                 }
             }
 
-            // Refresh rim after USB returns so catch-up uses a current sample.
-            if (joy is not null)
-                TryReadPhysicalJoystickStateUnlocked(out _);
+            if (!recreatedOk)
+            {
+                lock (_gate)
+                {
+                    _lastError = string.IsNullOrEmpty(recreateError)
+                        ? $"Apply failed: {setError}"
+                        : $"Apply failed: {setError} | recreate: {recreateError}";
+                }
+                return;
+            }
+        }
+
+        if (joy is not null && Monitor.TryEnter(_diGate, 5))
+        {
+            try { TryReadPhysicalJoystickStateUnlocked(out _); }
+            finally { Monitor.Exit(_diGate); }
         }
 
         lock (_gate)

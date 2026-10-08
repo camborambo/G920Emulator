@@ -25,6 +25,7 @@ public static class DiagnosticsExporter
         "g920ffb-effects.log.old",
         "g920-hidpp-ingress.log",
         "g920emulator-perf.log",
+        "g920emulator-bridge-health.log",
     ];
 
     /// <summary>
@@ -90,6 +91,7 @@ public static class DiagnosticsExporter
         "  game-ffb-analysis.txt - OEM race signature (Triangle/CF vs spring-only / Vibration)\r\n" +
         "  logs\\g920ffb-effects.log - game OEM calls (SESSION / CALL / EFFECT / MIX)\r\n" +
         "  logs\\g920emulator-perf.log - emulator vs game CPU/RAM every 10s (hint= is our load, not the game GPU)\r\n" +
+        "  logs\\g920emulator-bridge-health.log - mid-race virt/submit health + steer/thr/brk + STALE_INPUT (frozen axes)\r\n" +
         "Repository: " + GitHubRepoUrl + "\r\n";
 
     private static void WriteSummary(

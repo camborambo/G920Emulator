@@ -217,14 +217,14 @@ public partial class MainWindow : Window
             VirtualG920Device.SuppressDeferredDeviceCleanup = true;
 
             await Task.Run(() =>
-            {
-                try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
+        {
+            try { GHubGuard.StopAppWatch(); } catch { /* ignore */ }
             }).ConfigureAwait(true);
 
             await Task.Run(() =>
             {
-                try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
-                try { OemRegistrationSession.KillLegacySessionWatchProcesses(); } catch { /* ignore */ }
+            try { OemRegistrationSession.EndSession(); } catch { /* ignore */ }
+            try { OemRegistrationSession.KillLegacySessionWatchProcesses(); } catch { /* ignore */ }
             }).ConfigureAwait(true);
 
             if (restoreHidHide || DependencyChecker.HasPendingHidHideSnapshot)
@@ -340,35 +340,26 @@ public partial class MainWindow : Window
     }
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e) =>
-        OpenSettingsMenu(fromTray: false);
+        OpenSettingsWindow_Click(sender, e);
 
-    private void OpenSettingsMenu(bool fromTray)
+    private void OpenSettingsWindow_Click(object sender, RoutedEventArgs e)
     {
-        if (SettingsMenu is null) return;
-        ApplyAppSettings(_profiles.LoadSettings());
-        var restore = fromTray ? Visibility.Visible : Visibility.Collapsed;
-        if (RestoreMenuItem is not null)
-            RestoreMenuItem.Visibility = restore;
-        if (RestoreMenuSeparator is not null)
-            RestoreMenuSeparator.Visibility = restore;
-
-        SettingsMenu.IsOpen = false;
-        if (fromTray)
+        var dlg = new SettingsWindow(
+            _profiles,
+            onApplied: ApplyAppSettings,
+            openDependencies: () => DependenciesButton_Click(this, new RoutedEventArgs()))
         {
-            SettingsMenu.PlacementTarget = this;
-            SettingsMenu.Placement = PlacementMode.MousePoint;
-            SettingsMenu.HorizontalOffset = 0;
-            SettingsMenu.VerticalOffset = 0;
-        }
-        else
-        {
-            SettingsMenu.PlacementTarget = SettingsButton;
-            SettingsMenu.Placement = PlacementMode.Bottom;
-            SettingsMenu.HorizontalOffset = 0;
-            SettingsMenu.VerticalOffset = 0;
-        }
+            Owner = this,
+        };
+        dlg.ShowDialog();
+    }
 
-        SettingsMenu.IsOpen = true;
+    private void OpenTraySettingsMenu()
+    {
+        if (TraySettingsMenu is null || TrayMenuHost is null) return;
+        TraySettingsMenu.PlacementTarget = TrayMenuHost;
+        TraySettingsMenu.Placement = PlacementMode.MousePoint;
+        TraySettingsMenu.IsOpen = true;
     }
 
     private void RestoreFromTrayMenu_Click(object sender, RoutedEventArgs e) =>
@@ -378,25 +369,15 @@ public partial class MainWindow : Window
 
     private void ApplyAppSettings(AppSettings settings)
     {
+        var wasTray = _minimizeToTray;
         _minimizeToTray = settings.MinimizeToSystemTray;
-        if (MinimizeToTrayMenuItem is not null)
-            MinimizeToTrayMenuItem.IsChecked = _minimizeToTray;
-        if (DebugOverlayMenuItem is not null)
-            DebugOverlayMenuItem.IsChecked = settings.DebugOverlay;
-        if (TelemetryDebugOverlayMenuItem is not null)
-            TelemetryDebugOverlayMenuItem.IsChecked = settings.TelemetryDebugOverlay;
+        if (_minimizeToTray && !wasTray && WindowState == WindowState.Minimized)
+            HideToTray();
+        else if (!_minimizeToTray && wasTray)
+            RestoreFromTray(keepMinimized: WindowState == WindowState.Minimized);
+
         _effectChangesOverlayEnabled = settings.EffectChangesOverlay;
-        if (EffectChangesOverlayMenuItem is not null)
-            EffectChangesOverlayMenuItem.IsChecked = _effectChangesOverlayEnabled;
-        if (CheckForUpdatesMenuItem is not null)
-            CheckForUpdatesMenuItem.IsChecked = settings.CheckForUpdates;
-        if (AutoApplyHidHideMenuItem is not null)
-            AutoApplyHidHideMenuItem.IsChecked = settings.AutoApplyHidHideConfigOnStart;
-        if (UnloadHidHideMenuItem is not null)
-            UnloadHidHideMenuItem.IsChecked = settings.UnloadHidHideConfigWhenStopped;
         _telemetryUseMph = !string.Equals(settings.TelemetrySpeedUnit, "kmh", StringComparison.OrdinalIgnoreCase);
-        if (TelemetryUnitKmhMenuItem is not null)
-            TelemetryUnitKmhMenuItem.IsChecked = !_telemetryUseMph;
         ApplyTelemetrySettingsToUi(settings);
         RefreshTelemetryProfilesCombo(settings.LastTelemetryProfileName);
         PushTelemetryToBridge(settings);
@@ -404,50 +385,13 @@ public partial class MainWindow : Window
             CloseEffectChangesOverlay();
         ApplyDebugOverlay(settings.DebugOverlay);
         ApplyTelemetryDebugOverlay(settings.TelemetryDebugOverlay);
-    }
-
-    private void TelemetryUnitKmhMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        // WPF toggles IsChecked before Click - checked means metric UI.
-        var useKmh = TelemetryUnitKmhMenuItem?.IsChecked == true;
-        _telemetryUseMph = !useKmh;
-        UpdateAppSettings(s => s.TelemetrySpeedUnit = useKmh ? "kmh" : "mph");
-        StatusText.Text = useKmh
-            ? "Telemetry unit: km/h / km/h/s."
-            : "Telemetry unit: MPH / MPH/s (default).";
-    }
-
-    private void AutoApplyHidHideMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var enabled = AutoApplyHidHideMenuItem?.IsChecked == true;
-        UpdateAppSettings(s => s.AutoApplyHidHideConfigOnStart = enabled);
-        StatusText.Text = enabled
-            ? "Apply HidHide on Start - Start will whitelist this app and hide Gaming-list devices."
-            : "Apply HidHide on Start off - Start will not change HidHide (manual).";
-    }
-
-    private void UnloadHidHideMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var enabled = UnloadHidHideMenuItem?.IsChecked == true;
-        UpdateAppSettings(s => s.UnloadHidHideConfigWhenStopped = enabled);
-        StatusText.Text = enabled
-            ? "Restore my HidHide on Stop - Start can save your setup and put it back on Stop."
-            : "Restore my HidHide on Stop off - Stop leaves HidHide as Start left it.";
-    }
-
-    private void CheckForUpdatesMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var enabled = CheckForUpdatesMenuItem?.IsChecked == true;
-        UpdateAppSettings(s => s.CheckForUpdates = enabled);
-        if (!enabled)
-        {
+        if (!settings.CheckForUpdates)
             HideUpdateBanner();
-            StatusText.Text = "GitHub update check off.";
-            return;
-        }
 
-        StatusText.Text = "Checking GitHub for a newer release…";
-        _ = CheckForGitHubUpdateAsync(force: true);
+        _bridge.SetFfbCooperativeMode(settings.FfbCooperativeMode);
+        // Re-acquire physical FFB so Exclusive ↔ NonExclusive takes effect without full Stop.
+        if (_bridge.IsRunning)
+            _ = Task.Run(() => _bridge.TryAttachFfb(out _));
     }
 
     private async Task CheckForGitHubUpdateAsync(bool force)
@@ -596,15 +540,6 @@ public partial class MainWindow : Window
             UpdateBanner.Visibility = Visibility.Collapsed;
     }
 
-    private void EffectChangesOverlayMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var enabled = EffectChangesOverlayMenuItem?.IsChecked == true;
-        UpdateAppSettings(s => s.EffectChangesOverlay = enabled);
-        StatusText.Text = enabled
-            ? "Effect Changes Overlay on - bind buttons flash the category, name, and value while you drive."
-            : "Effect Changes Overlay off.";
-    }
-
     private void ShowEffectChangeToast(string category, string effectName, string value)
     {
         if (!_effectChangesOverlayEnabled)
@@ -629,24 +564,6 @@ public partial class MainWindow : Window
             window.Close();
         }
         catch { /* ignore */ }
-    }
-
-    private void DebugOverlayMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var enabled = DebugOverlayMenuItem?.IsChecked == true;
-        UpdateAppSettings(s => s.DebugOverlay = enabled);
-        StatusText.Text = enabled
-            ? "FFB Debug Overlay on - live inputs and FFB stay on top of the game."
-            : "FFB Debug Overlay off.";
-    }
-
-    private void TelemetryDebugOverlayMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var enabled = TelemetryDebugOverlayMenuItem?.IsChecked == true;
-        UpdateAppSettings(s => s.TelemetryDebugOverlay = enabled);
-        StatusText.Text = enabled
-            ? "Telemetry Debug Overlay on - live SimHub packet stays on top of the game."
-            : "Telemetry Debug Overlay off.";
     }
 
     private void ApplyDebugOverlay(bool enabled)
@@ -1691,19 +1608,6 @@ public partial class MainWindow : Window
         Canvas.SetTop(TelemetryGForceBall, center - forwardG * pxPerG - ballR);
     }
 
-    private void MinimizeToTrayMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var enabled = MinimizeToTrayMenuItem?.IsChecked == true;
-        UpdateAppSettings(s => s.MinimizeToSystemTray = enabled);
-        if (enabled && WindowState == WindowState.Minimized)
-            HideToTray();
-        else if (!enabled)
-            RestoreFromTray(keepMinimized: WindowState == WindowState.Minimized);
-        StatusText.Text = enabled
-            ? "Minimize to system tray on."
-            : "Minimize to system tray off.";
-    }
-
     private void OnWindowStateChanged(object? sender, EventArgs e)
     {
         if (WindowState == WindowState.Minimized)
@@ -1763,7 +1667,7 @@ public partial class MainWindow : Window
 
     private void TrayIcon_Clicked() => RestoreFromTray(keepMinimized: false);
 
-    private void TrayIcon_RightClicked() => OpenSettingsMenu(fromTray: true);
+    private void TrayIcon_RightClicked() => OpenTraySettingsMenu();
 
     private void EnsureTrayIcon()
     {
@@ -2889,12 +2793,17 @@ public partial class MainWindow : Window
             StatusText.Text = "Starting bridge…";
             _bridgeBusy = true;
 
-            // Optional HidHide: auto-apply hide-all-except-emulator; optional restore point.
+            // Optional HidHide apply modes; optional restore point on Stop.
             // Do NOT run full GHubConflictRepair here - it previously removed WinUHid enumerators.
             var sessionStarted = false;
             var appSettings = _profiles.LoadSettings();
-            var autoApplyHidHide = appSettings.AutoApplyHidHideConfigOnStart;
+            appSettings.NormalizeHidHide();
+            var hidHideMode = appSettings.HidHideApplyMode;
+            var autoApplyHidHide = hidHideMode != HidHideApplyMode.Off;
             var unloadHidHide = appSettings.UnloadHidHideConfigWhenStopped;
+            // null = HideAll (gaming list); non-null = HideBound match list (may be empty).
+            IReadOnlyList<string>? hidHideBoundIds =
+                hidHideMode == HidHideApplyMode.HideBound ? CollectBoundDeviceIds(_profile) : null;
             DependencyChecker.HidHideSnapshot? hidHideRevert = null;
             var hidHideSaveRevert = false;
 
@@ -3023,7 +2932,7 @@ public partial class MainWindow : Window
                         var (hhOk, hhMsg) = unloadHidHide
                             ? DependencyChecker.BeginHidHideSessionWithSnapshot(
                                 hidHideSaveRevert ? hidHideRevert : null)
-                            : DependencyChecker.RefreshHidHideSessionDevices();
+                            : DependencyChecker.RefreshHidHideSessionDevices(hidHideBoundIds);
                         if (!hhOk)
                             throw new InvalidOperationException(hhMsg);
                     }
@@ -3037,7 +2946,7 @@ public partial class MainWindow : Window
 
                     // Virtual G920 now exists - re-hide pads/wheels and keep the emulator visible.
                     if (autoApplyHidHide)
-                        DependencyChecker.RefreshHidHideSessionDevices();
+                        DependencyChecker.RefreshHidHideSessionDevices(hidHideBoundIds);
                 }).ConfigureAwait(true);
             }
             catch
@@ -3084,18 +2993,20 @@ public partial class MainWindow : Window
             }
             else
             {
-                StatusText.Text = _virtual.IsPreviewMode
+            StatusText.Text = _virtual.IsPreviewMode
                     ? "Bridge running (preview - no virtual HID)."
-                    : col01Missing
+                : col01Missing
                         ? "Bridge running - virtual G920 not visible. Stop, then Start again."
-                        : _bridge.Ffb.IsReady
+                    : _bridge.Ffb.IsReady
                             ? "Bridge running - virtual G920 active, FFB attached."
                             : "Bridge running - virtual G920 active. Pick an FFB-capable device under Force Feedback for forces.";
             }
             if (autoApplyHidHide && hidHideSaveRevert)
                 StatusText.Text += " HidHide restore point saved (restores on Stop).";
             else if (autoApplyHidHide)
-                StatusText.Text += " HidHide session applied.";
+                StatusText.Text += hidHideMode == HidHideApplyMode.HideBound
+                    ? " HidHide: bound devices hidden."
+                    : " HidHide session applied.";
             if (col01Missing)
             {
                 MessageBox.Show(
@@ -3115,6 +3026,37 @@ public partial class MainWindow : Window
             MessageBox.Show(ex.Message, "G920 Emulator", MessageBoxButton.OK, MessageBoxImage.Warning);
             StatusText.Text = ex.Message;
         }
+    }
+
+    /// <summary>
+    /// Unique DirectInput instance IDs referenced by the active profile (standard + custom + FN + FFB source).
+    /// Used by HidHide HideBound mode.
+    /// </summary>
+    private static IReadOnlyList<string> CollectBoundDeviceIds(MappingProfile profile)
+    {
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        void Add(string? id)
+        {
+            if (!string.IsNullOrWhiteSpace(id))
+                ids.Add(id.Trim());
+        }
+
+        Add(profile.FfbSourceDeviceId);
+        foreach (var binding in profile.Bindings ?? [])
+        {
+            foreach (var source in binding.Sources ?? [])
+                Add(source.DeviceId);
+        }
+
+        foreach (var custom in profile.CustomBindings ?? [])
+        {
+            foreach (var source in custom.Sources ?? [])
+                Add(source.DeviceId);
+            foreach (var source in custom.FnSources ?? [])
+                Add(source.DeviceId);
+        }
+
+        return ids.ToList();
     }
 
     private async void StopButton_Click(object sender, RoutedEventArgs e)
@@ -3409,6 +3351,7 @@ public partial class MainWindow : Window
         if (e.OriginalSource is not DependencyObject source) return;
         if (FindAncestor<System.Windows.Controls.Primitives.Thumb>(source) is not null) return;
         if (FindAncestor<Slider>(source) is not null) return;
+        if (FindAncestor<Controls.DualRangeSlider>(source) is not null) return;
         if (FindAncestor<Button>(source) is not null) return;
 
         var item = FindAncestor<ListBoxItem>(source);
@@ -3431,15 +3374,14 @@ public partial class MainWindow : Window
 
     private void AxisRangeSlider_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        // Keep focus on the range control so dragging does not open the bind dialog.
-        e.Handled = false;
+        // Focus only — DualRangeSlider + BindingList_MouseLeftButtonUp guard stop Assign.
         if (sender is UIElement el)
             el.Focus();
     }
 
     private void ActivateOnAxisSlider_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        e.Handled = false;
+        // Focus only — FindAncestor<Slider> in BindingList_MouseLeftButtonUp skips Assign.
         if (sender is Slider slider)
             slider.Focus();
     }
@@ -3664,11 +3606,11 @@ public partial class MainWindow : Window
         }
         else
         {
-            var delta = G920ControlInfo.FfbNudgeDelta(target, coarse);
-            var step = Math.Abs(delta);
-            var decimals = step >= 1 ? 0 : step >= 0.01 ? 2 : 3;
-            var next = Math.Clamp(slider.Value + delta, slider.Minimum, slider.Maximum);
-            slider.Value = Math.Round(next, decimals, MidpointRounding.AwayFromZero);
+        var delta = G920ControlInfo.FfbNudgeDelta(target, coarse);
+        var step = Math.Abs(delta);
+        var decimals = step >= 1 ? 0 : step >= 0.01 ? 2 : 3;
+        var next = Math.Clamp(slider.Value + delta, slider.Minimum, slider.Maximum);
+        slider.Value = Math.Round(next, decimals, MidpointRounding.AwayFromZero);
         }
 
         var valueText = NudgeValueTextFor(target)?.Text;

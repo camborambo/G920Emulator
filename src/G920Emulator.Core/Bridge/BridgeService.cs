@@ -4,6 +4,7 @@ using G920Emulator.Core.Input;
 using G920Emulator.Core.Mapping;
 using G920Emulator.Core.Models;
 using G920Emulator.Core.Profiles;
+using G920Emulator.Core.Setup;
 using G920Emulator.Core.Telemetry;
 
 namespace G920Emulator.Core.Bridge;
@@ -91,7 +92,15 @@ public sealed class BridgeService : IDisposable
     private int _inputRefreshInFlight;
     private int _submitFailStreak;
     private int _recoverCount;
+    private long _lastVirtualHealthTick;
     private string _linkStatus = "";
+    private const int VirtualHealthIntervalMs = 3_000;
+    private byte[]? _healthLastReport;
+    private long _healthReportFrozenSinceTick;
+    private long _healthLastStaleNoteTick;
+    private long _healthLastStaleKickTick;
+    private int _healthFrozenNotes;
+    private FfbCooperativeMode _ffbCooperativeMode = FfbCooperativeMode.Exclusive;
     /// <summary>Last live axes from the exclusive FFB base (InputHub does not Poll it).</summary>
     private Dictionary<string, float>? _lastFfbAxes01;
     private bool[]? _lastFfbButtons;
@@ -349,8 +358,17 @@ public sealed class BridgeService : IDisposable
 
         ApplyEffectGains(_profile);
         _submitFailStreak = 0;
+        _recoverCount = 0;
         _lastInputRefreshTick = 0;
+        _lastVirtualHealthTick = 0;
+        _healthLastReport = null;
+        _healthReportFrozenSinceTick = 0;
+        _healthLastStaleNoteTick = 0;
+        _healthLastStaleKickTick = 0;
+        _healthFrozenNotes = 0;
         lock (_gate) _linkStatus = "";
+        if (BridgeHealthLog.IsEnabled)
+            BridgeHealthLog.Note($"BRIDGE start virtRunning={device.IsRunning} err={device.LastError ?? "-"}");
 
         _telemetrySynth.Reset();
         _telemetryUdp.ResetStats();
@@ -369,6 +387,8 @@ public sealed class BridgeService : IDisposable
 
     public void Stop()
     {
+        if (BridgeHealthLog.IsEnabled)
+            BridgeHealthLog.Note("BRIDGE stop");
         _cts?.Cancel();
         var loop = _loop;
         var ffbLoop = _ffbApplyLoop;
@@ -478,9 +498,12 @@ public sealed class BridgeService : IDisposable
         _inputHub.CapturePinnedBaseline(profile.FfbSourceDeviceId);
         _inputHub.PinFfbDevice(profile.FfbSourceDeviceId);
 
-        if (_ffb.TryAttach(profile.FfbSourceDeviceId, out var error))
+        var preferNonExclusive = _ffbCooperativeMode == FfbCooperativeMode.NonExclusive;
+        if (_ffb.TryAttach(profile.FfbSourceDeviceId, preferNonExclusive, out var error))
         {
-            LastFfbStatus = "FFB: attached to physical device.";
+            LastFfbStatus = preferNonExclusive
+                ? "FFB: attached (NonExclusive)."
+                : "FFB: attached (Exclusive).";
             if (_ffb.TryGetPhysicalInput(out var axes, out var buttons, out var hat))
             {
                 _lastFfbAxes01 = axes;
@@ -496,6 +519,14 @@ public sealed class BridgeService : IDisposable
             _lastFfbHat = -1;
             LastFfbStatus = string.IsNullOrWhiteSpace(error) ? "FFB: attach failed." : $"FFB: {error}";
         }
+    }
+
+    /// <summary>Settings → physical FFB DirectInput coop (Exclusive vs NonExclusive).</summary>
+    public void SetFfbCooperativeMode(FfbCooperativeMode mode)
+    {
+        _ffbCooperativeMode = mode is FfbCooperativeMode.NonExclusive
+            ? FfbCooperativeMode.NonExclusive
+            : FfbCooperativeMode.Exclusive;
     }
 
     private void OnFfb(FfbCommand cmd)
@@ -521,6 +552,8 @@ public sealed class BridgeService : IDisposable
 
         lock (_gate)
             _linkStatus = "Recovering virtual G920 (submit/Col01 lost)…";
+        if (BridgeHealthLog.IsEnabled)
+            BridgeHealthLog.Note($"RECOVER begin (failStreak={_submitFailStreak} err={device.LastError ?? "-"})");
 
         var ok = device.TryRecover(
             () =>
@@ -536,6 +569,13 @@ public sealed class BridgeService : IDisposable
             _linkStatus = ok
                 ? $"Virtual G920 recovered (#{_recoverCount})"
                 : $"Virtual G920 recover failed (#{_recoverCount}): {device.LastError}";
+        }
+
+        if (BridgeHealthLog.IsEnabled)
+        {
+            BridgeHealthLog.Note(ok
+                ? $"RECOVER ok #{_recoverCount} virtRunning={device.IsRunning}"
+                : $"RECOVER fail #{_recoverCount} err={device.LastError ?? "-"} virtRunning={device.IsRunning}");
         }
 
         if (ok)
@@ -612,7 +652,89 @@ public sealed class BridgeService : IDisposable
                 // Publish for ReadReport callbacks before Submit (interrupt IN path).
                 Volatile.Write(ref _callbackReport, report);
 
-                var submitted = _virtualDevice?.SubmitReport(report) ?? true;
+                // Mid-race: loops can stay alive while WinUHid/_running is already dead.
+                // Soft freeze: submits OK but mapped report stops changing (Fanatec DI
+                // GetCurrentState can flatline under Exclusive while CF still applies).
+                var frozenMs = 0L;
+                if (_healthLastReport is null || !ReportBytesEqual(_healthLastReport, report))
+                {
+                    _healthLastReport = (byte[])report.Clone();
+                    _healthReportFrozenSinceTick = now;
+                }
+                else if (_healthReportFrozenSinceTick != 0)
+                {
+                    frozenMs = now - _healthReportFrozenSinceTick;
+                }
+
+                // Always kick DI re-acquire when the virt report is stuck — not Debug-only.
+                // joy.cpl shows the device but axes never move until Poll starts changing again.
+                if (frozenMs >= 1000 &&
+                    now - _healthLastStaleKickTick >= 1500 &&
+                    _ffb.IsReady)
+                {
+                    _healthLastStaleKickTick = now;
+                    var kicked = _ffb.TryKickStaleInput();
+                    if (BridgeHealthLog.IsEnabled)
+                    {
+                        BridgeHealthLog.Note(
+                            $"STALE_KICK ok={kicked} ms={frozenMs} " +
+                            $"steer={mapped.Steering:0.00} thr={mapped.Throttle:0.00} " +
+                            $"brk={mapped.Brake:0.00} coop={_ffb.CooperativeLevelLabel}");
+                    }
+                }
+
+                if (BridgeHealthLog.IsEnabled)
+                {
+                    // Prefer logging when pedals/steer are non-idle (idle zeros are noisy).
+                    var active =
+                        mapped.Throttle > 0.05f || mapped.Brake > 0.05f ||
+                        Math.Abs(mapped.Steering) > 0.08f;
+                    if (frozenMs >= 750 &&
+                        (active || frozenMs >= 3000) &&
+                        now - _healthLastStaleNoteTick >= 750 &&
+                        _healthFrozenNotes < 40)
+                    {
+                        _healthFrozenNotes++;
+                        _healthLastStaleNoteTick = now;
+                        var btn =
+                            (mapped.ButtonA ? 1 : 0) | (mapped.ButtonB ? 2 : 0) |
+                            (mapped.ButtonX ? 4 : 0) | (mapped.ButtonY ? 8 : 0) |
+                            (mapped.PaddleLeft || mapped.ButtonLb ? 16 : 0) |
+                            (mapped.PaddleRight || mapped.ButtonRb ? 32 : 0);
+                        BridgeHealthLog.Note(
+                            $"STALE_INPUT ms={frozenMs} " +
+                            $"steer={mapped.Steering:0.00} thr={mapped.Throttle:0.00} " +
+                            $"brk={mapped.Brake:0.00} btn=0x{btn:X2} " +
+                            $"ffbCacheMs={_ffb.PhysicalInputCacheAgeMs} coop={_ffb.CooperativeLevelLabel}");
+                    }
+                }
+
+                if (now - _lastVirtualHealthTick >= VirtualHealthIntervalMs)
+                {
+                    _lastVirtualHealthTick = now;
+                    var virt = _virtualDevice;
+                    var running = virt?.IsRunning == true;
+                    if (!running && virt is not null)
+                    {
+                        lock (_gate)
+                            _linkStatus = "Virtual G920 stopped mid-session - Stop then Start bridge";
+                        BridgeHealthLog.Note("FAULT virtRunning=false (zombie bridge loop still alive)");
+                    }
+                    // File log only while status-bar Debug is on (no I/O / alloc when off).
+                    if (BridgeHealthLog.IsEnabled)
+                    {
+                        string link;
+                        lock (_gate) link = _linkStatus;
+                        BridgeHealthLog.Heartbeat(
+                            $"virtRunning={running} submitFail={_submitFailStreak} recover={_recoverCount} " +
+                            $"steer={mapped.Steering:0.00} thr={mapped.Throttle:0.00} brk={mapped.Brake:0.00} " +
+                            $"ffbCacheMs={_ffb.PhysicalInputCacheAgeMs} frozenMs={frozenMs} " +
+                            $"coop={_ffb.CooperativeLevelLabel} " +
+                            $"err={virt?.LastError ?? "-"} link={TruncateHealth(link)}");
+                    }
+                }
+
+                var submitted = _virtualDevice?.SubmitReport(report) ?? false;
                 if (!submitted)
                 {
                     _submitFailStreak++;
@@ -630,12 +752,23 @@ public sealed class BridgeService : IDisposable
                             _linkStatus = string.IsNullOrWhiteSpace(err)
                                 ? $"Virtual submit failing ({_submitFailStreak})"
                                 : $"Virtual submit failing ({_submitFailStreak}): {err}";
+                        if (BridgeHealthLog.IsEnabled)
+                            BridgeHealthLog.Note(
+                                $"SUBMIT_FAIL streak={_submitFailStreak} err={err ?? "-"}");
                     }
                 }
                 else if (_submitFailStreak > 0)
                 {
+                    if (BridgeHealthLog.IsEnabled)
+                        BridgeHealthLog.Note($"SUBMIT_OK after failStreak={_submitFailStreak}");
                     _submitFailStreak = 0;
-                    lock (_gate) _linkStatus = "";
+                    lock (_gate)
+                    {
+                        // Keep sticky fault text until a successful recover clears it.
+                        if (!_linkStatus.Contains("recover failed", StringComparison.OrdinalIgnoreCase) &&
+                            !_linkStatus.Contains("stopped mid-session", StringComparison.OrdinalIgnoreCase))
+                            _linkStatus = "";
+                    }
                 }
 
                 // Arcade auto-center (DI Spring) must use the physical rim angle.
@@ -1158,5 +1291,23 @@ public sealed class BridgeService : IDisposable
     {
         var g = Guid.NewGuid().ToByteArray();
         return BitConverter.ToUInt64(g, 0);
+    }
+
+    private static string TruncateHealth(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return "-";
+        text = text.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        return text.Length <= 120 ? text : text[..117] + "...";
+    }
+
+    private static bool ReportBytesEqual(byte[] a, byte[] b)
+    {
+        if (a.Length != b.Length) return false;
+        for (var i = 0; i < a.Length; i++)
+        {
+            if (a[i] != b[i]) return false;
+        }
+        return true;
     }
 }

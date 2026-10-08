@@ -33,10 +33,12 @@ The window title and status bar show the app version (for example **v0.2.7**). W
 
 1. Open **Dependencies** (header **Settings** → **Manage dependencies**, or the **Fix** banner if something is missing).
 2. **Install WinUHid** → Recheck until installed/ready.
-3. Install HidHide if missing → configure it yourself in **HidHide Client** (or optional **Configure HidHide** in Dependencies). Or use **Settings**:
-   - **Apply HidHide on Start** - each **Start** whitelists the emulator and hides devices from HidHide’s **Gaming devices only** list (virtual G920 stays visible).
-   - **Restore my HidHide on Stop** - with apply on, **Start** can save your current HidHide setup and put it back on **Stop**/**Exit** (status shows **Restoring HidHide…**; if it times out, the next launch finishes it).
-   Both off = fully manual (this app never changes HidHide). Close **HidHide Client** before Start (or let the app close it when prompted) - while that window is open the driver returns Access denied / 0x0005. Windows may also ask for admin permission.
+3. Install HidHide if missing → configure it yourself in **HidHide Client** (or optional **Configure HidHide** in Dependencies). Or open **Settings → HidHide** and pick an apply mode:
+   - **Off** (default) - **Start** never changes HidHide.
+   - **Hide all (except emulator)** - each **Start** whitelists the emulator and hides devices from HidHide’s **Gaming devices only** list (virtual G920 stays visible).
+   - **Hide bound devices only** - same whitelist/cloak, but hides only devices used in your current bindings (and FFB source). Unbound pads stay visible for in-game binding.
+   - **Save & restore on Stop** - with a mode other than Off, **Start** can save your current HidHide setup and put it back on **Stop**/**Exit** (status shows **Restoring HidHide…**; if it times out, the next launch finishes it).
+   Close **HidHide Client** before Start (or let the app close it when prompted) - while that window is open the driver returns Access denied / 0x0005. Windows may also ask for admin permission.
 4. Create a profile name → **Save** (stored in `%AppData%\G920Emulator\profiles`, so updates do not wipe binds).
 
 Details and troubleshooting: [driver-install.md](driver-install.md).
@@ -46,7 +48,7 @@ Details and troubleshooting: [driver-install.md](driver-install.md).
 - **Input** - detected devices, G920 bindings, shifter mode, and live virtual G920 preview (including buttons).
 - **Telemetry** - SimHub UDP for games with no native telemetry (simulated speed/RPM plus FFB-derived rumble).
 
-Shared chrome: Input / Force Feedback / Telemetry tabs, input profile, **Start** (toggles to **Stop** while running), and **Settings**. Settings (including **Minimize to system tray**, **FFB Debug Overlay**, **Telemetry Debug Overlay**, **Effect Changes Overlay**, **Check for GitHub updates**, **Telemetry km/h**, **Apply HidHide on Start**, and **Restore my HidHide on Stop**) save immediately in `settings.json`. Telemetry **simulation** presets are separate profiles under `%AppData%\G920Emulator\telemetry-profiles` (same Save / Save as / Default / Delete pattern as FFB profiles); host/port/rate stay in settings. Live meters sit on the Input tab. A warning strip appears if required pieces are missing. With update checks on, a banner appears when GitHub has a newer published release. **Update** saves the zip to Downloads (then opens that folder); unzip it over your G920 Emulator folder like a first install. **Later** skips that version.
+Shared chrome: Input / Force Feedback / Telemetry tabs, input profile, **Start** (toggles to **Stop** while running), and the gear **Settings** modal (tabs **General**, **Overlays**, **HidHide**). Settings save immediately in `settings.json` (minimize to tray, update checks, telemetry km/h, overlays, HidHide apply mode + save & restore). The tray icon menu is slim: **Restore**, **Settings…**, **Exit**. Telemetry **simulation** presets are separate profiles under `%AppData%\G920Emulator\telemetry-profiles` (same Save / Save as / Default / Delete pattern as FFB profiles); host/port/rate stay in settings. Live meters sit on the Input tab. A warning strip appears if required pieces are missing. With update checks on, a banner appears when GitHub has a newer published release. **Update** saves the zip to Downloads (then opens that folder); unzip it over your G920 Emulator folder like a first install. **Later** skips that version.
 
 ## Telemetry (SimHub)
 

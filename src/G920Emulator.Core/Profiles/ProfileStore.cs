@@ -1,9 +1,29 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using G920Emulator.Core.Ffb;
 using G920Emulator.Core.Models;
 using G920Emulator.Core.Telemetry;
 
 namespace G920Emulator.Core.Profiles;
+
+public enum HidHideApplyMode
+{
+    /// <summary>Start does not change HidHide.</summary>
+    Off = 0,
+    /// <summary>Hide all HidHide gaming-list devices except the virtual G920 / emulator.</summary>
+    HideAll = 1,
+    /// <summary>Hide only devices referenced by the active input profile bindings.</summary>
+    HideBound = 2,
+}
+
+/// <summary>DirectInput cooperative level for the physical FFB wheel base.</summary>
+public enum FfbCooperativeMode
+{
+    /// <summary>Exclusive FFB claim — strongest rim forces; close Fanatec / True Drive.</summary>
+    Exclusive = 0,
+    /// <summary>Shared acquire — better when Exclusive freezes pedals/steer on the same base.</summary>
+    NonExclusive = 1,
+}
 
 public sealed class ProfileStore
 {
@@ -11,6 +31,7 @@ public sealed class ProfileStore
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
     public string ProfilesDirectory { get; }
@@ -504,13 +525,10 @@ public sealed class ProfileStore
             var json = File.ReadAllText(SettingsPath);
             var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions)
                    ?? new AppSettings();
-            // Older builds only had Unload (= apply on Start + restore on Stop).
-            if (settings.UnloadHidHideConfigWhenStopped &&
-                !json.Contains("AutoApplyHidHideConfigOnStart", StringComparison.Ordinal))
-            {
-                settings.AutoApplyHidHideConfigOnStart = true;
+            if (MigrateHidHideSettings(settings, json))
                 SaveSettings(settings);
-            }
+            settings.NormalizeHidHide();
+            settings.NormalizeFfbCooperative();
             settings.NormalizeTelemetryTuning();
             return settings;
         }
@@ -522,8 +540,45 @@ public sealed class ProfileStore
 
     public void SaveSettings(AppSettings settings)
     {
+        settings.NormalizeHidHide();
+        settings.NormalizeFfbCooperative();
         settings.NormalizeTelemetryTuning();
         File.WriteAllText(SettingsPath, JsonSerializer.Serialize(settings, JsonOptions));
+    }
+
+    /// <summary>
+    /// Migrates legacy <c>autoApplyHidHideConfigOnStart</c> / unload-only settings into
+    /// <see cref="AppSettings.HidHideApplyMode"/>. Returns true when settings were changed.
+    /// </summary>
+    private static bool MigrateHidHideSettings(AppSettings settings, string json)
+    {
+        var hasMode =
+            json.Contains("HidHideApplyMode", StringComparison.OrdinalIgnoreCase) ||
+            json.Contains("hidHideApplyMode", StringComparison.OrdinalIgnoreCase);
+        if (hasMode)
+            return false;
+
+        var hasAutoKey = json.Contains("autoApplyHidHideConfigOnStart", StringComparison.OrdinalIgnoreCase);
+        var autoOn = hasAutoKey &&
+                     System.Text.RegularExpressions.Regex.IsMatch(
+                         json,
+                         "\"autoApplyHidHideConfigOnStart\"\\s*:\\s*true",
+                         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        // Older builds only had Unload (= apply on Start + restore on Stop).
+        if (settings.UnloadHidHideConfigWhenStopped && !hasAutoKey)
+        {
+            settings.HidHideApplyMode = HidHideApplyMode.HideAll;
+            return true;
+        }
+
+        if (autoOn)
+        {
+            settings.HidHideApplyMode = HidHideApplyMode.HideAll;
+            return true;
+        }
+
+        return false;
     }
 
     public MappingProfile LoadLastOrDefault()
@@ -583,15 +638,37 @@ public sealed class AppSettings
     public bool CheckForUpdates { get; set; } = true;
 
     /// <summary>
-    /// When true, Start whitelists the emulator and hides all other controllers/wheels
-    /// (virtual G920 stays visible). Off = leave the user's HidHide config alone.
+    /// How Start applies HidHide. Default <see cref="HidHideApplyMode.Off"/> = leave HidHide alone.
     /// </summary>
-    public bool AutoApplyHidHideConfigOnStart { get; set; }
+    public HidHideApplyMode HidHideApplyMode { get; set; } = HidHideApplyMode.Off;
 
     /// <summary>
-    /// When true (and auto-apply runs), Start snapshots HidHide first and Stop restores it.
+    /// When true (and apply mode is not Off), Start snapshots HidHide first and Stop restores it.
     /// </summary>
     public bool UnloadHidHideConfigWhenStopped { get; set; }
+
+    /// <summary>
+    /// Physical FFB base DirectInput coop level. Default Exclusive for strongest forces.
+    /// Use NonExclusive if pedals/steer on that base freeze while FFB is playing.
+    /// </summary>
+    public FfbCooperativeMode FfbCooperativeMode { get; set; } = FfbCooperativeMode.Exclusive;
+
+    [JsonIgnore]
+    public bool AppliesHidHideOnStart => HidHideApplyMode != HidHideApplyMode.Off;
+
+    public void NormalizeHidHide()
+    {
+        if (HidHideApplyMode is not (HidHideApplyMode.Off or HidHideApplyMode.HideAll or HidHideApplyMode.HideBound))
+            HidHideApplyMode = HidHideApplyMode.Off;
+        if (HidHideApplyMode == HidHideApplyMode.Off)
+            UnloadHidHideConfigWhenStopped = false;
+    }
+
+    public void NormalizeFfbCooperative()
+    {
+        if (FfbCooperativeMode is not (FfbCooperativeMode.Exclusive or FfbCooperativeMode.NonExclusive))
+            FfbCooperativeMode = FfbCooperativeMode.Exclusive;
+    }
 
     /// <summary>
     /// UI unit for telemetry speed tuning/display: <c>mph</c> (default) or <c>kmh</c>.

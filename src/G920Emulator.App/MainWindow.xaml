@@ -54,42 +54,18 @@
           <Button x:Name="SettingsButton" Style="{StaticResource IconButton}" Click="SettingsButton_Click"
                   ToolTip="Settings">
             <iconPacks:PackIconMaterial Kind="CogOutline" Width="14" Height="14" Foreground="#E8EAED"/>
-            <Button.ContextMenu>
-              <ContextMenu x:Name="SettingsMenu">
-                <MenuItem x:Name="RestoreMenuItem" Header="Restore" Click="RestoreFromTrayMenu_Click"
-                          Visibility="Collapsed"/>
-                <Separator x:Name="RestoreMenuSeparator" Visibility="Collapsed"/>
-                <MenuItem Header="Manage dependencies" Click="DependenciesButton_Click"
-                          ToolTip="Install, uninstall, or recheck WinUHid, HidHide, and test signing."/>
-                <MenuItem x:Name="MinimizeToTrayMenuItem" Header="Minimize to system tray"
-                          IsCheckable="True" Click="MinimizeToTrayMenuItem_Click"
-                          ToolTip="When on, minimizing hides the window in the notification area. The close button still quits."/>
-                <MenuItem x:Name="DebugOverlayMenuItem" Header="FFB Debug Overlay"
-                          IsCheckable="True" Click="DebugOverlayMenuItem_Click"
-                          ToolTip="Show a topmost overlay with live G920 inputs and FFB diagnostics while you drive."/>
-                <MenuItem x:Name="TelemetryDebugOverlayMenuItem" Header="Telemetry Debug Overlay"
-                          IsCheckable="True" Click="TelemetryDebugOverlayMenuItem_Click"
-                          ToolTip="Show a topmost overlay with the live SimHub telemetry packet being sent."/>
-                <MenuItem x:Name="EffectChangesOverlayMenuItem" Header="Effect Changes Overlay"
-                          IsCheckable="True" Click="EffectChangesOverlayMenuItem_Click"
-                          ToolTip="Flash the effect name and gain percent at the top of the screen when you press FFB bind buttons."/>
-                <MenuItem x:Name="CheckForUpdatesMenuItem" Header="Check for GitHub updates"
-                          IsCheckable="True" Click="CheckForUpdatesMenuItem_Click"
-                          ToolTip="At launch, ask GitHub if a newer release is published. Off means no network check."/>
-                <MenuItem x:Name="TelemetryUnitKmhMenuItem" Header="Telemetry km/h"
-                          IsCheckable="True" Click="TelemetryUnitKmhMenuItem_Click"
-                          ToolTip="Off (default): show MPH / MPH/s. On: show km/h / km/h/s. SimHub always receives km/h."/>
-                <MenuItem x:Name="AutoApplyHidHideMenuItem" Header="Apply HidHide on Start"
-                          IsCheckable="True" Click="AutoApplyHidHideMenuItem_Click"
-                          ToolTip="On: Start applies this app’s HidHide setup (whitelist emulator, hide Gaming-list devices; virtual G920 stays visible). Off: Start never touches HidHide - manage it yourself in HidHide Client."/>
-                <MenuItem x:Name="UnloadHidHideMenuItem" Header="Restore my HidHide on Stop"
-                          IsCheckable="True" Click="UnloadHidHideMenuItem_Click"
-                          ToolTip="On (with Apply HidHide on Start): Start can save your current HidHide setup and put it back on Stop/Exit. Off: leave whatever Start applied. Both off = fully manual."/>
-                <Separator/>
-                <MenuItem Header="Exit" Click="ExitApp_Click" ToolTip="Quit G920 Emulator."/>
-              </ContextMenu>
-            </Button.ContextMenu>
           </Button>
+          <!-- Tray-only context menu (Restore / Settings / Exit) -->
+          <FrameworkElement x:Name="TrayMenuHost" Width="0" Height="0" Visibility="Collapsed">
+            <FrameworkElement.ContextMenu>
+              <ContextMenu x:Name="TraySettingsMenu">
+                <MenuItem Header="Restore" Click="RestoreFromTrayMenu_Click"/>
+                <MenuItem Header="Settings…" Click="OpenSettingsWindow_Click"/>
+                <Separator/>
+                <MenuItem Header="Exit" Click="ExitApp_Click"/>
+              </ContextMenu>
+            </FrameworkElement.ContextMenu>
+          </FrameworkElement>
         </StackPanel>
         <Border Background="#0E1116" BorderBrush="{StaticResource BorderSubtle}" BorderThickness="1"
                 CornerRadius="10" Padding="4" VerticalAlignment="Center">
@@ -327,18 +303,22 @@
                               <TextBlock Text="{Binding TargetName}" FontWeight="SemiBold"/>
                               <TextBlock Grid.Column="1" Text="{Binding SourceText}" Opacity="0.85" TextTrimming="CharacterEllipsis"/>
                             </Grid>
-                            <DockPanel Margin="0,6,0,0" Visibility="{Binding AxisRangeVisibility}">
-                              <TextBlock Text="Axis range" Width="96" Opacity="0.7" VerticalAlignment="Center" FontSize="12"/>
-                              <TextBlock DockPanel.Dock="Right" Text="{Binding AxisRangeText}" Width="56"
+                            <!-- Same stacked layout as BindInputWindow (label row, then full-width slider). -->
+                            <StackPanel Margin="0,6,0,0" Visibility="{Binding AxisRangeVisibility}">
+                              <DockPanel>
+                                <TextBlock Text="Axis range" Opacity="0.7" VerticalAlignment="Center" FontSize="12"/>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding AxisRangeText}" MinWidth="64"
+                                           Margin="0,0,4,0"
                                          Opacity="0.85" VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="12"/>
+                              </DockPanel>
                               <controls:DualRangeSlider Minimum="0" Maximum="1"
                                       LowerValue="{Binding AxisStart, Mode=TwoWay}"
                                       UpperValue="{Binding AxisEnd, Mode=TwoWay}"
                                       TickFrequency="0.01" IsSnapToTickEnabled="True"
-                                      Height="18" Margin="8,0"
+                                      Height="28" Margin="0,4,0,2"
                                       ToolTip="{Binding AxisRangeToolTip}"
                                       PreviewMouseLeftButtonDown="AxisRangeSlider_PreviewMouseLeftButtonDown"/>
-                            </DockPanel>
+                            </StackPanel>
                             <DockPanel Margin="0,6,0,0" Visibility="{Binding ActivateOnAxisVisibility}">
                               <TextBlock Text="Activate on Axis" Width="96" Opacity="0.7" VerticalAlignment="Center" FontSize="12"/>
                               <TextBlock DockPanel.Dock="Right" Text="{Binding ActivateOnAxisText}" Width="36"
@@ -346,7 +326,7 @@
                               <Slider Minimum="0.05" Maximum="0.95"
                                       TickFrequency="0.01" IsSnapToTickEnabled="False"
                                       Value="{Binding ActivateOnAxis, Mode=TwoWay}"
-                                      Margin="8,0"
+                                      Height="28" Margin="8,0"
                                       ToolTip="{Binding ActivateOnAxisToolTip}"
                                       PreviewMouseLeftButtonDown="ActivateOnAxisSlider_PreviewMouseLeftButtonDown"/>
                             </DockPanel>

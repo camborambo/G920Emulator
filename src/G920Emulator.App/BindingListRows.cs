@@ -33,7 +33,7 @@ public sealed class StandardBindingRow : INotifyPropertyChanged
     private bool ShowsActivateOnAxis => !IsAxisTarget && HasAxisSource;
 
     public Visibility AxisRangeVisibility =>
-        IsAxisTarget ? Visibility.Visible : Visibility.Collapsed;
+        IsAxisTarget && HasAxisSource ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility ActivateOnAxisVisibility =>
         ShowsActivateOnAxis ? Visibility.Visible : Visibility.Collapsed;
@@ -97,7 +97,9 @@ public sealed class StandardBindingRow : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AxisStart)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AxisEnd)));
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AxisRangeText)));
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SourceText)));
+        // Only when a source is bound does SourceText embed the range string.
+        if (_binding.EffectiveSources.Count > 0)
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SourceText)));
     }
 
     public string SourceText

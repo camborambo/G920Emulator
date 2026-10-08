@@ -12,10 +12,19 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - **Custom bindings** after Gear 6: Binding Wizard with **Bind Button** + optional **Bind FN** popups, plus a **Toggle** checkbox (hold vs latch). If FN is bound, the button requires that key held. Remove with **X**.
 - Axis→button on standard Assign and custom Binding Wizard: capturing an axis for a button target converts automatically (**Activate on Axis** threshold + live meter). Checkbox label is **Invert**.
 - **Axis range** (start/end) for axis→axis bindings: dual-handle slider remaps the usable throw. Separate from **Activate on Axis** (single % for axis→button).
+- Tabbed **Settings** modal (General / Overlays / HidHide) from the gear button; tray menu is Restore / Settings… / Exit.
+- HidHide apply modes: **Off** (default), **Hide all (except emulator)**, **Hide bound devices only**, plus **Save & restore on Stop** (same snapshot behavior as before).
+
+### Changed
+
+- Replaced Settings checkboxes **Apply HidHide on Start** / **Restore my HidHide on Stop** with the HidHide tab radios + restore checkbox (`hidHideApplyMode` in `settings.json`; legacy `autoApplyHidHideConfigOnStart` migrates).
 
 ### Fixed
 
 - Telemetry synth, UDP send, and game-process probe run on a **side thread** (same idea as Simucube FFB apply). When Telemetry is off, the input loop skips that work entirely so SimHub I/O cannot stall virtual G920 reports.
+- Fanatec (and other exclusive-FFB bases used as bind sources): physical axis cache no longer freezes while `SetParameters` runs — DI gate is not held across the USB round-trip, and rim reads no longer block the input loop. Stops mid-race “last throttle/steer stuck” when the wheel is the only binding source.
+- Debug bridge-health log now records `steer`/`thr`/`brk`, FFB cache age, and `STALE_INPUT` when the virtual report stops changing.
+- Settings → General: **Physical FFB** cooperative mode — **Exclusive** (default, strongest forces) or **NonExclusive** (if Exclusive freezes pedals/steer on the same base). Re-attaches FFB when changed while the bridge is running. Auto `STALE_KICK` still re-acquires the DI handle if the mapped report stays identical for ≥1s.
 
 ## [0.2.7] - 2026-10-07
 
