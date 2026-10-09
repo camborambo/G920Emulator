@@ -34,6 +34,7 @@ public sealed class DiagnosticsLiveSnapshot
 
     public double MasterGain { get; init; } = 1;
     public bool FfbInvert { get; init; }
+    public bool SoftCatchUpSteer { get; init; }
     public FfbEffectGains? EffectGains { get; init; }
     public FfbOutputFeel? OutputFeel { get; init; }
 

@@ -38,7 +38,7 @@ If Windows says the install folder is **in use**, Steam often still has an old `
 3. Install HidHide if missing → configure it yourself in **HidHide Client** (or optional **Configure HidHide** in Dependencies). Or open **Settings → HidHide** and pick an apply mode:
    - **Off** (default) - **Start** never changes HidHide.
    - **Hide all (except emulator)** - each **Start** whitelists the emulator and hides devices from HidHide’s **Gaming devices only** list (virtual G920 stays visible).
-   - **Hide bound devices only** - same whitelist/cloak, but hides only devices used in your current bindings (and FFB source). Unbound pads stay visible for in-game binding.
+   - **Hide bound devices only** - same whitelist/cloak, but each **Start** hides only devices used in your current bindings (and FFB source) and **unhides** other gaming devices left hidden from a previous profile (e.g. pedals after switching from a full-rig bind to wheel-only). Unbound pads stay visible for in-game binding.
    - **Save & restore on Stop** - with a mode other than Off, **Start** can save your current HidHide setup and put it back on **Stop**/**Exit** (status shows **Restoring HidHide…**; if it times out, the next launch finishes it).
    Close **HidHide Client** before Start (or let the app close it when prompted) - while that window is open the driver returns Access denied / 0x0005. Windows may also ask for admin permission.
 4. Create a profile name → **Save** (stored in `%AppData%\G920Emulator\profiles`, so updates do not wipe binds).
@@ -76,7 +76,7 @@ Many arcade / console-port titles (Need for Speed Heat and Unbound included) hav
 5. Optional **Telemetry profile** tuning (Save / Save as / Default / Delete under `telemetry-profiles`):
 
    - **Gearing** - **Max gears** (1–10; UDP `MaxGears` → SimHub `CarSettings_MaxGears`; shows that many ratio rows), gear ratios, Diff / final drive, Tire diameter, and Redline (SimHub `EngineShiftRpm`).
-   - **Live / Accel / Brake / Coast** - MPH (and MPH/s) by default; enable **Settings → Telemetry km/h** for metric. Values are stored and sent to SimHub as **km/h** (rates as km/h/s).
+   - **Live / Accel / Brake / Coast / Downshift settle** - MPH (and MPH/s) by default; enable **Settings → Telemetry km/h** for metric. Values are stored and sent to SimHub as **km/h** (rates as km/h/s). **Downshift settle** is how fast speed bleeds to a shorter gear’s max after a downshift (not the same as Coast or Brake).
    - **RPM** - follows speed within the current gear (upshift drops RPM). **Rev-limiter** / **Limiter rate** hard-cut when a gear is pinned at top speed.
    - **Arcade buttons** - optional **Handbrake** and **NOS / Turbo** binds on the input profile, with strength / boost on the telemetry profile. Enable **Sequential shifter** when you use a sequential box or paddles that are not H-pattern gears: bind **Gear up**, **Gear down**, and **Gear reset** (R → 1 → Max gears; Reset → 1).
    - **Engine / ShakeIt scales** - Engine (0-200%) for SimHub Engine vibrations force; SurfaceRumble / Impact / RoadLoad as before.
@@ -158,12 +158,12 @@ On the **Force Feedback** tab:
 
 1. Select **FFB output device** (your physical base - not DualSense).
 2. Pick an **FFB profile** in the dropdown (default **Raw** = exact game mix, the only built-in). Use **Save As…** to make your own per-game presets.
-3. Adjust sliders as needed, then use the FFB profile icons (Save / Save As / Reset to Raw defaults / Delete):
-   - **Master** + **Invert FFB** - **Bind** on Master assigns hardware buttons that step overall gain while you drive (1% per tap, 5% if you hold; saved on the input profile). **Set as Default** in the bind dialog picks a snap value and a button that jumps Master back to it. Green fill means −, +, or default is already assigned; open it to **Clear**.
-   - **Effect gains** - Constant, Spring, Damper, Friction, Inertia, Periodic, Ramp, Custom (0% mutes that DI type). **Bind** on every FFB slider (gains, feel, shaping, centering, advanced mix) assigns hardware − / + (small tap / faster hold) and optional **Set as Default** (slider + value + button) while you drive; saved on the input profile, not sent to the virtual G920. With **Settings → Effect Changes Overlay** on, those binds flash the category (e.g. Effect gains), slider name, and value at the top of the screen for a moment.
-   - **Output feel** - Smoothing (ms), Peak soft, Soft start (all off on Raw)
-   - **Advanced mix** - Invert Constant Force, damper velocity / deadband scales (all off on Raw)
-   - **Torque shaping** - Deadband, Slew, Spike cap, DI epsilon (all off on Raw; optional ShapeGameTorque path)
+3. Adjust sliders as needed, then use the FFB profile icons (Save / Save As / Default = Raw / Delete). **Raw** is always exact game mix and cannot be overwritten — use **Save As…** for your own presets:
+   - **Master** - **Bind** assigns hardware buttons that step overall gain while you drive (1% per tap, 5% if you hold; saved on the input profile). **Set as Default** in the bind dialog picks a snap value and a button that jumps Master back to it. Green fill means −, +, or default is already assigned; open it to **Clear**. **Invert FFB**, **Soft steering catch-up**, and **Boot ease-in** are under **Advanced Settings**.
+   - **Effect gains** - Constant, Spring, Damper, Friction, Inertia, Periodic, Ramp, Custom (0% mutes that DI type). **Bind** on every FFB slider (gains, feel, shaping, centering, Advanced Settings) assigns hardware − / + (small tap / faster hold) and optional **Set as Default** (slider + value + button) while you drive; saved on the input profile, not sent to the virtual G920. With **Settings → Effect Changes Overlay** on, those binds flash the category (e.g. Effect gains), slider name, and value at the top of the screen for a moment.
+   - **Output feel** - Smoothing (ms), Peak soft (all off on Raw)
+   - **Advanced Settings** - Boot ease-in, Invert FFB, Soft steering catch-up, Invert Constant Force, Damper velocity / Damper deadzone (all off on Raw)
+   - **Torque shaping** - Force deadzone, Slew rate, Spike cap, DI chatter (all off on Raw; optional ShapeGameTorque path)
    - **Centering** - **Force center spring** checkbox plus Strength / Range / Deadzone, for games that never center the wheel (off on Raw)
    - Hover any FFB row (label, slider or value) for a tooltip explaining what it does and what 0% / off means.
 4. **Start bridge** attaches FFB automatically.
@@ -213,7 +213,7 @@ For USB-stick installs, create an empty `portable.txt` beside the exe to keep `p
 | Save (input) | Write bindings under AppData `profiles\` and quiet-save the linked FFB profile |
 | Save As… (input) | New input profile name in AppData `profiles\` (also quiet-saves linked FFB) |
 | Delete (input) | Remove that input profile JSON |
-| FFB Save / Save As… | Write master / effect gains / feel / torque shaping under AppData `ffb-profiles\` (Raw cannot be deleted) |
+| FFB Save / Save As… | Write master / effect gains / feel / torque shaping under AppData `ffb-profiles\` (Raw cannot be deleted or overwritten; Default switches to Raw) |
 | Export / Import | JSON file exchange for input profiles (Import also saves a copy under AppData `profiles\`) |
 | Saved dropdowns | Switch among input or FFB profiles in their folders |
 

@@ -61,7 +61,6 @@ public partial class SettingsWindow : Window
             FfbDualHandleInputCheck.IsChecked = s.FfbExperimentalDualHandleInput;
             FfbUnlockedSetParametersCheck.IsChecked = s.FfbExperimentalUnlockedSetParameters;
             FfbNonBlockingRimReadsCheck.IsChecked = s.FfbExperimentalNonBlockingRimReads;
-            FfbSoftCatchUpSteerCheck.IsChecked = s.FfbExperimentalSoftCatchUpSteer;
             UpdateFfbExperimentalOptionsVisible();
         }
         finally
@@ -128,7 +127,6 @@ public partial class SettingsWindow : Window
             FfbDualHandleInputCheck.IsChecked = false;
             FfbUnlockedSetParametersCheck.IsChecked = false;
             FfbNonBlockingRimReadsCheck.IsChecked = false;
-            FfbSoftCatchUpSteerCheck.IsChecked = true;
         }
         finally
         {
@@ -182,7 +180,6 @@ public partial class SettingsWindow : Window
         settings.FfbExperimentalDualHandleInput = FfbDualHandleInputCheck.IsChecked == true;
         settings.FfbExperimentalUnlockedSetParameters = FfbUnlockedSetParametersCheck.IsChecked == true;
         settings.FfbExperimentalNonBlockingRimReads = FfbNonBlockingRimReadsCheck.IsChecked == true;
-        settings.FfbExperimentalSoftCatchUpSteer = FfbSoftCatchUpSteerCheck.IsChecked == true;
         settings.FfbExperimentalOptionsMigrated = true;
         settings.FfbExperimentalOptionsVersion = AppSettings.CurrentFfbExperimentalOptionsVersion;
         settings.NormalizeHidHide();

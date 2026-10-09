@@ -12,6 +12,13 @@ public sealed class FfbProfile
     public string Name { get; set; } = "Raw";
     public double FfbGain { get; set; } = 1.0;
     public bool FfbInvert { get; set; }
+
+    /// <summary>
+    /// Limit per-frame virtual steering jumps (softens USB/DI catch-up spikes on the FFB base).
+    /// Off by default; part of the FFB profile, not Debug Test.
+    /// </summary>
+    public bool SoftCatchUpSteer { get; set; }
+
     public FfbEffectGains EffectGains { get; set; } = FfbEffectGains.CreateDefault();
     public FfbOutputFeel OutputFeel { get; set; } = FfbOutputFeel.CreateDefault();
 
@@ -28,9 +35,41 @@ public sealed class FfbProfile
         Name = "Raw",
         FfbGain = 1.0,
         FfbInvert = false,
+        SoftCatchUpSteer = false,
         EffectGains = FfbEffectGains.CreateDefault(),
         OutputFeel = FfbOutputFeel.CreateDefault(),
     };
+
+    /// <summary>True when this profile matches the immutable Raw (exact game mix) defaults.</summary>
+    public static bool IsExactRaw(FfbProfile? p)
+    {
+        if (p is null)
+            return false;
+        if (Math.Abs(p.FfbGain - 1.0) > 0.001 || p.FfbInvert || p.SoftCatchUpSteer)
+            return false;
+        var g = p.EffectGains ?? FfbEffectGains.CreateDefault();
+        var f = p.OutputFeel ?? FfbOutputFeel.CreateDefault();
+        return Math.Abs(g.ConstantForce - 1) < 0.001 &&
+               Math.Abs(g.SpringForce - 1) < 0.001 &&
+               Math.Abs(g.DamperForce - 1) < 0.001 &&
+               Math.Abs(g.FrictionForce - 1) < 0.001 &&
+               Math.Abs(g.InertiaForce - 1) < 0.001 &&
+               Math.Abs(g.Periodic - 1) < 0.001 &&
+               Math.Abs(g.RampForce - 1) < 0.001 &&
+               Math.Abs(g.CustomForce - 1) < 0.001 &&
+               f.SmoothingMs <= 0.001 &&
+               f.PeakSoftStart >= 0.999 &&
+               !f.BootEaseIn &&
+               f.SoftStartMs <= 0.001 &&
+               f.Deadband <= 0.0005 &&
+               f.MaxSlewPerSecond <= 0.5 &&
+               f.MaxSpikeStep <= 0.001 &&
+               f.MagnitudeEpsilon <= 0.5 &&
+               !f.ForceCenterSpring &&
+               !f.InvertConstantForce &&
+               Math.Abs(f.DamperVelocityScale - 1.0) < 0.001 &&
+               Math.Abs(f.DamperDeadbandScale - 1.0) < 0.001;
+    }
 
     public const string NfsUnboundHeatProfileName = "Need For Speed Unbound / Heat";
 
@@ -44,6 +83,7 @@ public sealed class FfbProfile
         Name = NfsUnboundHeatProfileName,
         FfbGain = 1.0,
         FfbInvert = false,
+        SoftCatchUpSteer = false,
         EffectGains = new FfbEffectGains
         {
             ConstantForce = 2.0,
@@ -57,7 +97,7 @@ public sealed class FfbProfile
             DamperDeadbandScale = 1.0 / 3.0,
             Deadband = 0.004,
             MaxSlewPerSecond = 40,
-            MaxSpikeStep = 1.0,
+            MaxSpikeStep = 0,
             MagnitudeEpsilon = 12,
         },
     };
@@ -95,12 +135,14 @@ public sealed class FfbProfile
         string name,
         double gain,
         bool invert,
+        bool softCatchUpSteer,
         FfbEffectGains? gains,
         FfbOutputFeel? feel) => new()
     {
         Name = name,
         FfbGain = gain,
         FfbInvert = invert,
+        SoftCatchUpSteer = softCatchUpSteer,
         EffectGains = gains ?? FfbEffectGains.CreateDefault(),
         OutputFeel = feel ?? FfbOutputFeel.CreateDefault(),
     };

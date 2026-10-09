@@ -120,12 +120,14 @@ public sealed class ProfileStore
         }
     }
 
+    /// <summary>
+    /// Always keep the built-in Raw file as exact game mix (100% gains, all feel/shaping off).
+    /// Users cannot permanently overwrite Raw; use Save As for tuned presets.
+    /// </summary>
     private void EnsureRawFfbProfile()
     {
         try
         {
-            if (FfbExists("Raw"))
-                return;
             FfbProfile.CreateRaw().Save(GetFfbPath("Raw"));
         }
         catch
@@ -339,10 +341,32 @@ public sealed class ProfileStore
 
     public bool FfbExists(string profileName) => File.Exists(GetFfbPath(profileName));
 
-    public FfbProfile LoadFfb(string profileName) => FfbProfile.Load(GetFfbPath(profileName));
+    public FfbProfile LoadFfb(string profileName)
+    {
+        if (profileName.Equals("Raw", StringComparison.OrdinalIgnoreCase))
+            return FfbProfile.CreateRaw();
+        return FfbProfile.Load(GetFfbPath(profileName));
+    }
 
     public void SaveFfb(FfbProfile profile, string profileName)
     {
+        // Raw is immutable exact-mix; never persist user tweaks into it.
+        if (profileName.Equals("Raw", StringComparison.OrdinalIgnoreCase))
+        {
+            var raw = FfbProfile.CreateRaw();
+            raw.Save(GetFfbPath("Raw"));
+            var settingsRaw = LoadSettings();
+            settingsRaw.LastFfbProfileName = "Raw";
+            SaveSettings(settingsRaw);
+            profile.Name = "Raw";
+            profile.FfbGain = raw.FfbGain;
+            profile.FfbInvert = raw.FfbInvert;
+            profile.SoftCatchUpSteer = raw.SoftCatchUpSteer;
+            profile.EffectGains = raw.EffectGains;
+            profile.OutputFeel = raw.OutputFeel;
+            return;
+        }
+
         profile.Name = profileName.Trim();
         profile.Save(GetFfbPath(profileName));
         var settings = LoadSettings();
@@ -472,7 +496,7 @@ public sealed class ProfileStore
                 if (!FfbExists(name))
                 {
                     var migrated = FfbProfile.FromMappingInline(
-                        name, mapping.FfbGain, mapping.FfbInvert,
+                        name, mapping.FfbGain, mapping.FfbInvert, mapping.SoftCatchUpSteer,
                         mapping.FfbEffectGains, mapping.FfbOutputFeel);
                     SaveFfb(migrated, name);
                 }
@@ -487,34 +511,15 @@ public sealed class ProfileStore
         mapping.ApplyFfbProfile(ffb);
     }
 
-    private static bool IsDefaultFfbInline(MappingProfile m)
-    {
-        if (Math.Abs(m.FfbGain - 1.0) > 0.001 || m.FfbInvert)
-            return false;
-        var g = m.FfbEffectGains ?? FfbEffectGains.CreateDefault();
-        var f = m.FfbOutputFeel ?? FfbOutputFeel.CreateDefault();
-        return Math.Abs(g.ConstantForce - 1) < 0.001 &&
-               Math.Abs(g.SpringForce - 1) < 0.001 &&
-               Math.Abs(g.DamperForce - 1) < 0.001 &&
-               Math.Abs(g.FrictionForce - 1) < 0.001 &&
-               Math.Abs(g.InertiaForce - 1) < 0.001 &&
-               Math.Abs(g.Periodic - 1) < 0.001 &&
-               Math.Abs(g.RampForce - 1) < 0.001 &&
-               f.SmoothingMs <= 0.001 &&
-               f.PeakSoftStart >= 0.999 &&
-               f.SoftStartMs <= 0.001 &&
-               f.Deadband <= 0.0005 &&
-               f.MaxSlewPerSecond <= 0.5 &&
-               f.MaxSpikeStep >= 0.999 &&
-               f.MagnitudeEpsilon <= 0.5 &&
-               !f.ForceCenterSpring;
-    }
+    private static bool IsDefaultFfbInline(MappingProfile m) =>
+        FfbProfile.IsExactRaw(FfbProfile.FromMappingInline(
+            "Raw", m.FfbGain, m.FfbInvert, m.SoftCatchUpSteer, m.FfbEffectGains, m.FfbOutputFeel));
 
     public FfbProfile CaptureFfbFromMapping(MappingProfile mapping)
     {
         var name = string.IsNullOrWhiteSpace(mapping.FfbProfileName) ? "Raw" : mapping.FfbProfileName;
         return FfbProfile.FromMappingInline(
-            name, mapping.FfbGain, mapping.FfbInvert,
+            name, mapping.FfbGain, mapping.FfbInvert, mapping.SoftCatchUpSteer,
             mapping.FfbEffectGains, mapping.FfbOutputFeel);
     }
 
@@ -686,8 +691,8 @@ public sealed class AppSettings
     public bool FfbExperimentalNonBlockingRimReads { get; set; }
 
     /// <summary>
-    /// When Debug Test is on: soft steering catch-up (matches previous releases when true).
-    /// When Debug Test is off, soft catch-up is always applied regardless of this flag.
+    /// Legacy Debug Test soft-catch-up flag (ignored). Soft catch-up lives on the FFB profile.
+    /// Kept so older settings.json still deserialize.
     /// </summary>
     public bool FfbExperimentalSoftCatchUpSteer { get; set; } = true;
 
@@ -702,11 +707,12 @@ public sealed class AppSettings
 
     /// <summary>
     /// Bump when Debug Test defaults/semantics change so we can re-apply release defaults once.
-    /// v2 = Enable only reveals; defaults = Exclusive / locked SP / blocking rim / soft catch-up on.
+    /// v2 = Enable only reveals; defaults = Exclusive / locked SP / blocking rim.
+    /// v3 = soft steering catch-up moved to Force Feedback profile (no longer a Debug Test knob).
     /// </summary>
     public int FfbExperimentalOptionsVersion { get; set; }
 
-    public const int CurrentFfbExperimentalOptionsVersion = 2;
+    public const int CurrentFfbExperimentalOptionsVersion = 3;
 
     [JsonIgnore]
     public bool AppliesHidHideOnStart => HidHideApplyMode != HidHideApplyMode.Off;
@@ -730,7 +736,7 @@ public sealed class AppSettings
 
     /// <summary>
     /// Known-good path from previous releases: Exclusive coop, locked SetParameters,
-    /// blocking rim reads (TryEnter 0), soft steering catch-up on.
+    /// blocking rim reads (TryEnter 0). Soft steering catch-up is an FFB profile option.
     /// </summary>
     public void ApplyFfbExperimentalReleaseDefaults(bool enableDebugTest = false)
     {

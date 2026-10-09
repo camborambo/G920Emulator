@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
+using SharpDX.DirectInput;
 
 namespace G920Emulator.Core.Setup;
 
@@ -327,8 +328,11 @@ public static class DependencyChecker
         EnsureHidHideForEmulator(extraAppPaths, hidePhysicalControllers: true, boundDeviceIds: null);
 
     /// <summary>
-    /// Whitelist emulator + cloak, hide only HidHide paths that match <paramref name="boundDeviceIds"/>
-    /// (DirectInput instance GUIDs from the active profile). Unmatched IDs are skipped.
+    /// Whitelist emulator + cloak, then sync the hide list to the active profile:
+    /// hide HidHide gaming paths that match <paramref name="boundDeviceIds"/> (DirectInput
+    /// instance/product GUIDs and/or VID/PID needles), and unhide other gaming devices that
+    /// were left hidden from a previous session or profile. Unmatched IDs are skipped for hide;
+    /// virtual G920 stays visible.
     /// </summary>
     public static HidHideEnsureResult ConfigureHidHideBoundDevices(
         IEnumerable<string> boundDeviceIds,
@@ -1123,7 +1127,8 @@ public static class DependencyChecker
         var emulatorPaths = EnumerateEmulatorExePaths(extraAppPaths).ToList();
         var alreadyWhitelisted = IsCurrentProcessWhitelisted(cli, emulatorPaths);
 
-        // Additive only: never --app-unreg / --dev-unhide. Keep the user's existing lists intact.
+        // Never --app-unreg. Device unhide is limited: virtual G920, mistaken non-gaming
+        // cloaks, and (HideBound only) gaming devices not in the current profile bind set.
         var commands = new List<string>
         {
             // Required mode for this app (does not clear whitelist/blacklist entries).
@@ -1143,13 +1148,19 @@ public static class DependencyChecker
             commands.Add($"--dev-unhide \"{path}\"");
 
         List<string> hidePaths;
+        List<string> unhideBoundExtras = [];
         string hideScopeNote;
         if (boundDeviceIds is not null)
         {
-            hidePaths = ResolveBoundDevicesToHide(cli, boundDeviceIds);
-            hideScopeNote = hidePaths.Count == 0
-                ? " No bound gaming devices matched to hide; virtual G920 left visible."
-                : $" HidHide: {hidePaths.Count} bound device path(s) hidden; virtual G920 left visible.";
+            (hidePaths, unhideBoundExtras) = ResolveBoundDeviceHideUnhide(cli, boundDeviceIds);
+            var parts = new List<string>();
+            if (hidePaths.Count > 0)
+                parts.Add($"{hidePaths.Count} bound path(s) hidden");
+            if (unhideBoundExtras.Count > 0)
+                parts.Add($"{unhideBoundExtras.Count} unbound path(s) unhidden");
+            hideScopeNote = parts.Count == 0
+                ? " No bound gaming devices matched; unbound gaming devices left visible."
+                : $" HidHide: {string.Join(", ", parts)}; virtual G920 left visible.";
         }
         else if (hidePhysicalControllers)
         {
@@ -1163,6 +1174,9 @@ public static class DependencyChecker
             hidePaths = [];
             hideScopeNote = "";
         }
+
+        foreach (var path in unhideBoundExtras)
+            commands.Add($"--dev-unhide \"{path}\"");
 
         foreach (var path in hidePaths)
             commands.Add($"--dev-hide \"{path}\"");
@@ -1216,44 +1230,126 @@ public static class DependencyChecker
     }
 
     /// <summary>
-    /// Match profile DirectInput instance GUIDs to HidHide <c>--dev-gaming</c> paths.
+    /// Match profile DirectInput instance/product GUIDs (and VID/PID) to HidHide
+    /// <c>--dev-gaming</c> paths. Returns new hides plus unbound gaming paths to unhide
+    /// so a wheel-only profile does not keep pedals hidden from a previous full bind / Hide all.
     /// Unmatched IDs are skipped (never falls back to hide-all).
     /// </summary>
-    private static List<string> ResolveBoundDevicesToHide(string cli, IEnumerable<string> boundDeviceIds)
+    private static (List<string> Hide, List<string> Unhide) ResolveBoundDeviceHideUnhide(
+        string cli,
+        IEnumerable<string> boundDeviceIds)
     {
-        var needles = boundDeviceIds
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Select(NormalizeDeviceIdNeedle)
-            .Where(n => n.Length > 0)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        if (needles.Count == 0)
-            return [];
-
+        var needles = ExpandHidHideMatchNeedles(boundDeviceIds);
         var outputs = RunHidHideMultiCapture(cli, ["--dev-list", "--dev-gaming"], timeoutMs: 10_000);
         var alreadyHidden = ParseAlreadyHiddenDevicePaths(outputs.GetValueOrDefault("--dev-list") ?? "");
         var gaming = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         CollectHidHideGamingListPaths(outputs.GetValueOrDefault("--dev-gaming"), gaming);
 
         var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var path in gaming)
+        if (needles.Count > 0)
         {
-            if (alreadyHidden.Contains(path) || IsVirtualG920KeepVisible(path, path))
-                continue;
-            var pathNorm = path.Replace("{", "", StringComparison.Ordinal)
-                .Replace("}", "", StringComparison.Ordinal);
-            foreach (var needle in needles)
+            foreach (var path in gaming)
             {
-                if (path.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
-                    pathNorm.Contains(needle, StringComparison.OrdinalIgnoreCase))
-                {
+                if (IsVirtualG920KeepVisible(path, path))
+                    continue;
+                if (PathMatchesHidHideNeedle(path, needles))
                     matched.Add(path);
-                    break;
-                }
             }
         }
 
-        return matched.ToList();
+        var hide = matched
+            .Where(p => !alreadyHidden.Contains(p))
+            .ToList();
+        var unhide = gaming
+            .Where(p =>
+                alreadyHidden.Contains(p) &&
+                !matched.Contains(p) &&
+                !IsVirtualG920KeepVisible(p, p))
+            .ToList();
+
+        return (hide, unhide);
+    }
+
+    /// <summary>
+    /// Build match needles: normalized GUIDs, ProductGuid → <c>VID_xxxx&amp;PID_yyyy</c>,
+    /// and live DirectInput lookup so instance GUIDs resolve to HID paths.
+    /// </summary>
+    private static List<string> ExpandHidHideMatchNeedles(IEnumerable<string> boundDeviceIds)
+    {
+        var needles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var raw in boundDeviceIds)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                continue;
+            var n = NormalizeDeviceIdNeedle(raw);
+            if (n.Length == 0)
+                continue;
+            needles.Add(n);
+            if (TryVidPidNeedleFromGuidString(n, out var vidPid))
+                needles.Add(vidPid);
+        }
+
+        if (needles.Count == 0)
+            return [];
+
+        try
+        {
+            using var di = new DirectInput();
+            foreach (var instance in di.GetDevices(DeviceClass.GameControl, DeviceEnumerationFlags.AttachedOnly))
+            {
+                var instanceNeedle = NormalizeDeviceIdNeedle(instance.InstanceGuid.ToString("D"));
+                if (!needles.Contains(instanceNeedle))
+                    continue;
+                if (TryVidPidNeedleFromGuid(instance.ProductGuid, out var vidPid))
+                    needles.Add(vidPid);
+                var productNeedle = NormalizeDeviceIdNeedle(instance.ProductGuid.ToString("D"));
+                if (productNeedle.Length > 0)
+                    needles.Add(productNeedle);
+            }
+        }
+        catch
+        {
+            // Matching still works for any VID/PID / product GUIDs already in the profile.
+        }
+
+        return needles.ToList();
+    }
+
+    private static bool PathMatchesHidHideNeedle(string path, IReadOnlyList<string> needles)
+    {
+        var pathNorm = path.Replace("{", "", StringComparison.Ordinal)
+            .Replace("}", "", StringComparison.Ordinal);
+        foreach (var needle in needles)
+        {
+            if (needle.Length == 0)
+                continue;
+            if (path.Contains(needle, StringComparison.OrdinalIgnoreCase) ||
+                pathNorm.Contains(needle, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryVidPidNeedleFromGuidString(string guidText, out string needle)
+    {
+        needle = "";
+        return Guid.TryParse(guidText, out var g) && TryVidPidNeedleFromGuid(g, out needle);
+    }
+
+    private static bool TryVidPidNeedleFromGuid(Guid productGuid, out string needle)
+    {
+        var data1 = BitConverter.ToInt32(productGuid.ToByteArray(), 0);
+        var vid = data1 & 0xFFFF;
+        var pid = (data1 >> 16) & 0xFFFF;
+        if (vid == 0 && pid == 0)
+        {
+            needle = "";
+            return false;
+        }
+
+        needle = $"VID_{vid:X4}&PID_{pid:X4}";
+        return true;
     }
 
     private static string NormalizeDeviceIdNeedle(string deviceId)

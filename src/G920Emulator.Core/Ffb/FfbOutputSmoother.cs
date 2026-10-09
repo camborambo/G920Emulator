@@ -2,18 +2,21 @@ namespace G920Emulator.Core.Ffb;
 
 /// <summary>
 /// Applies optional user feel settings after the OEM DI mix.
-/// Defaults (smoothing 0, peak soft 1, soft-start 0, shaping off) pass game torque through unchanged.
+/// Defaults (smoothing 0, peak soft 1, boot ease-in off, shaping off) pass game torque through unchanged.
 /// </summary>
 public sealed class FfbOutputSmoother
 {
-    public int SoftStartMs { get; set; }
+    /// <summary>Mute window after FFB first arms when boot ease-in is on.</summary>
+    public const int BootMuteMs = 5000;
+
+    public bool BootEaseIn { get; set; }
     public float ArmThreshold { get; set; } = 0.04f;
     public float SmoothingMs { get; set; }
     public float SoftClipStart { get; set; } = 1f;
 
     public float Deadband { get; set; }
     public float MaxSlewPerSecond { get; set; }
-    public float MaxSpikeStep { get; set; } = 1f;
+    public float MaxSpikeStep { get; set; }
     public int MagnitudeEpsilon { get; set; }
 
     private float _output;
@@ -40,7 +43,7 @@ public sealed class FfbOutputSmoother
     {
         feel ??= FfbOutputFeel.CreateDefault();
         feel.Clamp();
-        SoftStartMs = (int)Math.Round(feel.SoftStartMs);
+        BootEaseIn = feel.BootEaseIn;
         SmoothingMs = (float)feel.SmoothingMs;
         SoftClipStart = (float)feel.PeakSoftStart;
         Deadband = (float)feel.Deadband;
@@ -61,8 +64,8 @@ public sealed class FfbOutputSmoother
 
         if (!_armed)
         {
-            // Soft-start disabled: arm immediately and pass through.
-            if (SoftStartMs <= 0)
+            // Boot ease-in off: arm immediately and pass through.
+            if (!BootEaseIn)
             {
                 _armed = true;
                 _fadeComplete = true;
@@ -79,25 +82,26 @@ public sealed class FfbOutputSmoother
                 return 0f;
             }
 
+            // First meaningful force: mute for BootMuteMs so the base does not kick.
             _armed = true;
-            _softStartEndTick = now + Math.Max(50, SoftStartMs);
+            _softStartEndTick = now + BootMuteMs;
             _output = 0f;
             _lastTick = now;
+            return 0f;
         }
 
         if (!_fadeComplete)
         {
-            if (now >= _softStartEndTick || SoftStartMs <= 0)
+            if (now >= _softStartEndTick)
             {
                 _fadeComplete = true;
             }
             else
             {
-                var total = (float)Math.Max(50, SoftStartMs);
-                var elapsed = total - (_softStartEndTick - now);
-                var t = Math.Clamp(elapsed / total, 0f, 1f);
-                var envelope = t * t * (3f - 2f * t);
-                target *= envelope;
+                // Hold at zero for the whole boot window (no effects felt).
+                _output = 0f;
+                _lastTick = now;
+                return 0f;
             }
         }
 
@@ -113,7 +117,7 @@ public sealed class FfbOutputSmoother
         var shaping =
             Deadband > 0.0005f ||
             MaxSlewPerSecond > 0.5f ||
-            MaxSpikeStep < 0.999f;
+            MaxSpikeStep > 0.001f;
 
         if (!shaping)
         {
@@ -129,9 +133,16 @@ public sealed class FfbOutputSmoother
         _lastShapeTick = now;
 
         var delta = target - _shapedTorque;
-        var spike = Math.Clamp(MaxSpikeStep, 0.05f, 1f);
-        if (Math.Abs(delta) > spike)
-            delta = Math.Sign(delta) * spike;
+
+        // Spike cap: max |Δtorque| per second (same idea as Slew). 0 = off;
+        // 0.05 → 5/s (strong), 0.50 → 50/s. Older per-call clamp staircased at ~500 Hz.
+        if (MaxSpikeStep > 0.001f)
+        {
+            var maxPerSec = Math.Clamp(MaxSpikeStep, 0.01f, 1f) * 100f;
+            var spike = Math.Clamp(maxPerSec * dtSec, 1e-4f, 1f);
+            if (Math.Abs(delta) > spike)
+                delta = Math.Sign(delta) * spike;
+        }
 
         if (MaxSlewPerSecond > 0.5f)
         {

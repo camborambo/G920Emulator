@@ -23,8 +23,7 @@
         <Setter Property="CaretBrush" Value="#E8EAED"/>
         <Setter Property="Padding" Value="8,6"/>
       </Style>
-      <Style TargetType="CheckBox">
-        <Setter Property="Foreground" Value="#E8EAED"/>
+      <Style TargetType="CheckBox" BasedOn="{StaticResource ToggleSwitchCheckBox}">
         <Setter Property="Margin" Value="0,10,0,0"/>
       </Style>
     </ResourceDictionary>
@@ -39,7 +38,7 @@
     <StackPanel>
       <TextBlock Text="Custom binding" FontSize="20" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
       <TextBlock Opacity="0.7" Margin="0,6,0,14" TextWrapping="Wrap"
-                 Text="Pick a G920 target, Bind Button, and optionally Bind FN. Use the Toggle checkbox if you want press-to-latch instead of hold."/>
+                 Text="Pick a G920 target, Bind Button, and optionally Bind FN. Use Toggle if you want press-to-latch instead of hold."/>
 
       <TextBlock Text="Name" FontWeight="SemiBold" Margin="0,0,0,4"/>
       <TextBox x:Name="NameBox" MaxLength="64"/>

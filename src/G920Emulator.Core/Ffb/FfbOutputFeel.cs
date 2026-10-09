@@ -14,11 +14,18 @@ public sealed class FfbOutputFeel
 
     /// <summary>
     /// Soft-knee starts at this |torque| (0.50-1.00). 1.00 = off (no peak compression).
+    /// UI shows inverted strength: 0 = off, 100% = knee at 0.50 (strongest).
     /// </summary>
     public double PeakSoftStart { get; set; } = 1.0;
 
     /// <summary>
-    /// One-shot ease-in when FFB first appears (ms). 0 = off (default).
+    /// When true, mute game torque for a short window when FFB first comes online
+    /// so the base does not kick/shake. Off by default.
+    /// </summary>
+    public bool BootEaseIn { get; set; }
+
+    /// <summary>
+    /// Legacy fade duration (ms). On load, any value &gt; 0 migrates to <see cref="BootEaseIn"/> = true.
     /// </summary>
     public double SoftStartMs { get; set; }
 
@@ -35,9 +42,11 @@ public sealed class FfbOutputFeel
     public double MaxSlewPerSecond { get; set; }
 
     /// <summary>
-    /// Cap on a single-frame step toward the target (0.05-1.00). 1.00 = allow full steps (off).
+    /// Cap on |Δtorque| per second toward the target (0 = off; 0.05-1.00 maps to ~5-100 /s).
+    /// Lower non-zero = softer chase. Independent of game/display Hz.
+    /// Legacy profiles stored 1.0 as off — <see cref="Clamp"/> migrates that to 0.
     /// </summary>
-    public double MaxSpikeStep { get; set; } = 1.0;
+    public double MaxSpikeStep { get; set; }
 
     /// <summary>
     /// Skip physical DI updates when |Δmagnitude| is below this (0 = off). Fork used 12
@@ -72,7 +81,7 @@ public sealed class FfbOutputFeel
 
     /// <summary>
     /// Scale applied to rim velocity before damper/inertia condition eval (1.0 = off).
-    /// Desktop classic used 2.0.
+    /// Range matches effect gains (25%–200%). Desktop classic / NFS Unbound used 2.0.
     /// </summary>
     public double DamperVelocityScale { get; set; } = 1.0;
 
@@ -86,14 +95,22 @@ public sealed class FfbOutputFeel
         SmoothingMs = Math.Clamp(SmoothingMs, 0, 40);
         PeakSoftStart = Math.Clamp(PeakSoftStart, 0.5, 1.0);
         SoftStartMs = Math.Clamp(SoftStartMs, 0, 2000);
+        if (SoftStartMs > 0.001)
+        {
+            BootEaseIn = true;
+            SoftStartMs = 0;
+        }
         Deadband = Math.Clamp(Deadband, 0, 0.05);
         MaxSlewPerSecond = Math.Clamp(MaxSlewPerSecond, 0, 200);
-        MaxSpikeStep = Math.Clamp(MaxSpikeStep, 0.05, 1.0);
+        MaxSpikeStep = Math.Clamp(MaxSpikeStep, 0, 1.0);
+        // Legacy: 100% meant off (slider could not reach 0). Treat as off.
+        if (MaxSpikeStep >= 0.999)
+            MaxSpikeStep = 0;
         MagnitudeEpsilon = Math.Clamp(MagnitudeEpsilon, 0, 64);
         CenterSpringStrength = Math.Clamp(CenterSpringStrength, 0.05, 1.0);
         CenterSpringRange = Math.Clamp(CenterSpringRange, 0.05, 0.5);
         CenterSpringDeadzone = Math.Clamp(CenterSpringDeadzone, 0, 0.05);
-        DamperVelocityScale = Math.Clamp(DamperVelocityScale, 0.25, 4.0);
+        DamperVelocityScale = Math.Clamp(DamperVelocityScale, 0.25, 2.0);
         DamperDeadbandScale = Math.Clamp(DamperDeadbandScale, 0.1, 1.0);
     }
 
@@ -122,7 +139,7 @@ public sealed class FfbOutputFeel
     public bool HasTorqueShaping =>
         Deadband > 0.0005 ||
         MaxSlewPerSecond > 0.5 ||
-        MaxSpikeStep < 0.999 ||
+        MaxSpikeStep > 0.001 ||
         MagnitudeEpsilon > 0.5;
 
     public static FfbOutputFeel CreateDefault() => new();

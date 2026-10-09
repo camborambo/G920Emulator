@@ -10,9 +10,9 @@ Force-feedback presets live in `%AppData%\G920Emulator\ffb-profiles\` (not in th
 
 | Preset | Meaning |
 |--------|---------|
-| **Raw** (default) | Exact game mix - master/effect gains 100%, all feel / torque shaping / advanced mix options off. Cannot be deleted. |
-| **Need For Speed Unbound / Heat** | Desktop-era known-good mix for Heat/Unbound: CF 200%, Spring 40%, Damper 150%, damper vel ×2 / deadband ×⅓, light torque shaping (deadband 0.004, slew 40, DI ε 12). Seeded once; editable/deletable. |
-| Your Save / Save As… | Capture current master gain, invert, per-effect gains, output feel, advanced mix options, and torque shaping into a named JSON |
+| **Raw** (default) | Exact game mix - master/effect gains 100%, all feel / torque shaping / Advanced Settings options off. Cannot be deleted or overwritten; **Default** always switches here. Use Save As… for tuned presets. |
+| **Need For Speed Unbound / Heat** | Desktop-era known-good mix for Heat/Unbound: CF 200%, Spring 40%, Damper 150%, Damper velocity ×2 / Damper deadzone ×⅓, light torque shaping (Force deadzone 0.004, Slew rate 40, DI chatter 12). Seeded once; editable/deletable. |
+| Your Save / Save As… | Capture current master gain, invert, per-effect gains, output feel, Advanced Settings options, and torque shaping into a named JSON |
 
 **UI:** under Force feedback, pick the profile in the dropdown (its own row), then use **Save** / **Save As…** / **Delete** on the row below. Click any **% / value** label beside a slider to type an exact number (Enter to apply, Esc to cancel).
 
@@ -43,8 +43,8 @@ Game → DirectInput → g920ffb.dll (IDirectInputEffectDriver)
 | Registration | Session-scoped: `OemRegistrationSession.BeginSession()` on Start bridge; restored on Stop/Close (`EndSession`), or next launch after a crash (`RecoverIfDirty`) |
 | Shared memory | Magic `G9FF`, version 7 (`…FfbTorque.v7`): game `Torque` + optional `AuxTorque` (Steam/overlay), playing, steering in/out, type bitmasks, per-type mix torque, per-type gains, OEM mix flags/scales. Each process mixes its own OEM instances; bridge sums game + aux. |
 | Effect gains | Per-type sliders applied in `g920ffb.dll` before mix; master gain applies on the physical base |
-| Advanced mix options | Optional inside `g920ffb.dll`: Invert Constant Force, damper velocity scale, damper deadband scale (see below). Defaults = pass-through |
-| Output feel / torque shaping | Optional, after the advanced mix, in the emulator (see below). Defaults = pass-through |
+| Advanced Settings options | Optional inside `g920ffb.dll`: Invert Constant Force, damper velocity scale, damper deadband scale (see below). Defaults = pass-through |
+| Output feel / torque shaping | Optional, after Advanced Settings mix scales, in the emulator (see below). Defaults = pass-through |
 
 ### Effect types mixed natively
 
@@ -71,16 +71,15 @@ Timing and shaping follow DirectInput semantics:
 
 All of these are **user optional**. On **Raw**, everything below is at the “off / 100%” defaults so the game mix is unchanged.
 
-### Master + Invert
+### Master
 
 | Control | Default | Notes |
 |---------|---------|--------|
 | **Master** | 100% (0-200%) | Multiplier on the physical constant-force apply |
-| **Invert FFB** | off | Flips torque direction for bases with opposite sense |
 
 ### Effect gains
 
-Scale each DirectInput effect type **in the mixer** before summing (0% mutes that type; up to **200%**). On the Force Feedback tab, **Bind** on any slider (Master, effect gains including Custom, output feel, torque shaping, centering, advanced mix) opens a dialog to assign hardware buttons for **Lower (−)**, **Raise (+)**, and **Set as Default** while you drive (stored on the **input** profile; not virtual G920 controls). Set as Default includes a slider for the snap value; pressing that bind jumps the control back to it. A filled green **Bind** button means that slider already has a −, +, or default bind; **Clear** on each row removes it. Gain sliders step 1% per tap and 5% if you hold; other sliders use a matching small / faster step in their own units.
+Scale each DirectInput effect type **in the mixer** before summing (0% mutes that type; up to **200%**). On the Force Feedback tab, **Bind** on any slider (Master, effect gains including Custom, output feel, torque shaping, centering, Advanced Settings) opens a dialog to assign hardware buttons for **Lower (−)**, **Raise (+)**, and **Set as Default** while you drive (stored on the **input** profile; not virtual G920 controls). Set as Default includes a slider for the snap value; pressing that bind jumps the control back to it. A filled green **Bind** button means that slider already has a −, +, or default bind; **Clear** on each row removes it. Gain sliders step 1% per tap and 5% if you hold; other sliders use a matching small / faster step in their own units.
 
 | Slider | Typical use |
 |--------|-------------|
@@ -93,38 +92,40 @@ Scale each DirectInput effect type **in the mixer** before summing (0% mutes tha
 | **Ramp** | Ramp force |
 | **Custom** | Downloaded custom-force effects |
 
-### Advanced mix (inside `g920ffb.dll`)
+### Advanced Settings
 
-Applied while evaluating effects, before the shared-memory torque is published. Independent of **Invert FFB** (which flips the whole final torque on the base).
+UI: Force Feedback → **Advanced Settings**. Boot ease-in / Invert FFB / soft steering catch-up apply on the emulator side; the CF/damper rows below are applied inside `g920ffb.dll` while evaluating effects (before shared-memory torque is published).
 
 | Control | Default | NFS Unbound / Heat | Notes |
 |---------|---------|--------------------|--------|
-| **Invert Constant Force** | off | off | Extra CF flip only - driver already converts DI CF → app polarity (`+` = right) |
-| **Damp vel** | 100% | **200%** | Scales rim velocity before damper/inertia condition eval |
-| **Damp dead** | 100% | **~33%** | Scales damper deadband before eval |
+| **Boot ease-in** | off | off | When on, mute game torque for ~5 s after FFB first comes online so the base does not kick/shake |
+| **Invert FFB** | off | off | Flips whole final torque on the base (not steering input) |
+| **Soft steering catch-up** | off | off | Limits per-frame virtual steering jumps after a brief DI/USB stall |
+| **Invert Constant Force** | off | off | Extra CF flip only - driver already converts DI CF → app polarity (`+` = right). Independent of Invert FFB |
+| **Damper velocity** | 100% (25–200%) | **200%** | Scales rim velocity before damper/inertia condition eval (not Fanatec NDP/DPR) |
+| **Damper deadzone** | 100% | **~33%** | Scales damper deadband before eval |
 
 ### Output feel
 
-Applied **after** the advanced mix (emulator side):
+Applied **after** Advanced Settings mix scales (emulator side):
 
 | Slider | Range | Off | Notes |
 |--------|-------|-----|--------|
 | **Smoothing** | 0-40 ms | **0** | Low-pass time constant. Try ~8-15 on some DD bases if FFB feels harsh |
-| **Peak soft** | 50-100% | **100%** | Soft-knee for strong peaks; 100% = no compression |
-| **Soft start** | 0-2000 ms | **0** | One-shot ease-in when FFB first appears (does not re-arm every frame) |
+| **Peak soft** | 0-100% | **0** (off) | Soft-knee for strong peaks. 0 = off; slide up for more compression (maps to knee at 100%→50% \|torque\|) |
 
 FFB debug Left / Right / Center / Pulse skip this path.
 
 ### Torque shaping (ShapeGameTorque)
 
-Optional deadband / slew / spike / DI chatter controls (same idea as the Desktop fork’s always-on shaper, but **user-tunable and off by default**):
+Optional Force deadzone / Slew rate / Spike cap / DI chatter controls (same idea as the Desktop fork’s always-on shaper, but **user-tunable and off by default**):
 
 | Slider | Range | Off | Notes |
 |--------|-------|-----|--------|
-| **Deadband** | 0-0.05 | **0** | Ignore \|torque\| below this. Try ~0.004 for chatter |
-| **Slew** | 0-200 /s | **0** (unlimited) | Max \|torque\| change per second; zero target ramps down 2.5× faster. Heavy slew can mute crash rumble - keep low or off for Raw |
-| **Spike cap** | 5-100% | **100%** | Max single-frame step toward target; 100% = allow full steps |
-| **DI epsilon** | 0-64 | **0** | Skip physical DI updates when \|Δmagnitude\| is below this (0…10000 scale). Helps Fanatec grind from ±1 chatter; try ~12 |
+| **Force deadzone** | 0-0.05 | **0** | Ignore \|torque\| below this (not a steering-angle deadzone like Fanatec DEA). Try ~0.004 for chatter |
+| **Slew rate** | 0-200 /s | **0** (unlimited) | Max \|torque\| change per second (same idea as Simucube Slew Rate Limit); zero target ramps down 2.5× faster. Heavy slew can mute crash rumble - keep low or off for Raw |
+| **Spike cap** | 0-100% | **0** (off) | Max \|Δtorque\| per second toward target (~5-100 /s when on). Lower = softer; **0 = off**. Independent of game Hz. (Legacy 100% = off migrates to 0; was a raw per-call clamp that felt more rugged when lowered on the 500 Hz path.) |
+| **DI chatter** | 0-64 | **0** | Skip physical DI updates when \|Δmagnitude\| is below this (0…10000 scale). Helps Fanatec grind from ±1 chatter; try ~12 |
 
 ### Centering (Force center spring)
 
@@ -204,11 +205,11 @@ Heat / Unbound pull the wheel back to center like an arcade cabinet. In DirectIn
 Games often **download** effects at full magnitude (Sine/Square rumble, CF) during boot.
 
 1. **Driver:** **Constant Force**, **Ramp** and **Periodics** (Sine/Triangle/…) do **not** arm on the initial full create (`0x3FF`). Unbound creates CF at ~5000 and Sine at 10000 as placeholders; arming them would hold a constant pull or full rumble. They arm on `DIEP_START`, `StartEffect`, or a later parameter-only stream (`0x100`) with a non-zero magnitude. Conditions (Spring/Damper) arm on create so arcade auto-center works.
-2. **Emulator feel sliders (optional):** Soft start / Smoothing / Peak soft / torque shaping default to **off** on **Raw**. Raise them and Save / Save As an FFB profile if a direct-drive base feels too raw or boot hits are harsh.
+2. **Emulator feel (optional):** **Advanced Settings → Boot ease-in**, plus Output feel (Smoothing / Peak soft) and torque shaping, default to **off** on **Raw**. Turn them on and Save / Save As an FFB profile if a direct-drive base feels too raw or boot hits are harsh.
 
 ## Latency notes
 
-Input path targets ~500 Hz with adaptive pacing; physical DI torque apply runs on a **side thread** so a slow base `SetParameters` (common on Simucube) cannot stall virtual G920 axis submits. Extra latency only appears if you raise **Smoothing** or heavy **Slew**. Physical USB/driver latency usually dominates feel in-race.
+Input path targets ~500 Hz with adaptive pacing; physical DI torque apply runs on a **side thread** so a slow base `SetParameters` (common on Simucube) cannot stall virtual G920 axis submits. Extra latency only appears if you raise **Smoothing** or heavy **Slew rate**. Physical USB/driver latency usually dominates feel in-race.
 
 ## Scope / non-goals
 

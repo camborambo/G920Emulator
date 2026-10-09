@@ -214,8 +214,6 @@ public sealed class TelemetrySynthesizer
                 }
             }
 
-            if (inGear && gearCap > 1f)
-                _speedKmh = Math.Min(_speedKmh, gearCap);
         }
 
         _impactDumpCooldown = Math.Max(0f, _impactDumpCooldown - (float)dtSec);
@@ -235,10 +233,18 @@ public sealed class TelemetrySynthesizer
             _impactDumpCooldown = ImpactDumpCooldownSec;
         }
 
-        // In gear you cannot exceed that gear's max speed (Blocklayer chart ceiling).
-        // No separate Gear-settle slider - downshift above the new cap just pins to the cap.
+        // Downshift settle: after shifting to a shorter gear, speed is often above that gear's
+        // Blocklayer cap. Bleed toward the cap (separate from Coast / Brake) instead of snapping.
+        // 0 = off (overspeed remains until coast/brake/aero bring it down). RPM stays pegged at redline while overspeed.
         if (inGear && gearCap > 1f && _speedKmh > gearCap)
-            _speedKmh = gearCap;
+        {
+            var settle = _tuning.GearSettleKmhPerSec;
+            if (settle > 0.5f)
+            {
+                var drop = settle * speedScale * (float)dtSec;
+                _speedKmh = Math.Max(gearCap, _speedKmh - drop);
+            }
+        }
 
         if (_speedKmh < 0.5f) _speedKmh = 0f;
         _speedKmh = Math.Clamp(_speedKmh, 0f, speedMax);

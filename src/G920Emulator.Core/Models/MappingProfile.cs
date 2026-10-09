@@ -62,6 +62,9 @@ public sealed class MappingProfile
     public double FfbGain { get; set; } = 1.0;
     public bool FfbInvert { get; set; }
 
+    /// <summary>Soft steering catch-up for the virtual G920 (see <see cref="FfbProfile.SoftCatchUpSteer"/>).</summary>
+    public bool SoftCatchUpSteer { get; set; }
+
     /// <summary>Per DirectInput effect-type gains (Constant, Spring, Damper, …).</summary>
     public FfbEffectGains FfbEffectGains { get; set; } = FfbEffectGains.CreateDefault();
 
@@ -74,6 +77,7 @@ public sealed class MappingProfile
         FfbProfileName = ffb.Name;
         FfbGain = ffb.FfbGain;
         FfbInvert = ffb.FfbInvert;
+        SoftCatchUpSteer = ffb.SoftCatchUpSteer;
         FfbEffectGains = ffb.EffectGains;
         FfbOutputFeel = ffb.OutputFeel;
     }

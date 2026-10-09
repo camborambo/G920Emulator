@@ -354,8 +354,9 @@
                 </Border>
               </Grid>
 
-      <ScrollViewer x:Name="FfbPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <Grid ToolTipService.ShowDuration="30000" ToolTipService.InitialShowDelay="400">
+      <Grid x:Name="FfbPanel" Visibility="Collapsed"
+            SizeChanged="FfbPanel_SizeChanged"
+            ToolTipService.ShowDuration="30000" ToolTipService.InitialShowDelay="400">
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="12"/>
@@ -363,7 +364,9 @@
                   </Grid.ColumnDefinitions>
 
                   <!-- Left: profile, device, master, effect gains -->
-                  <StackPanel Grid.Column="0">
+                  <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto"
+                                HorizontalScrollBarVisibility="Disabled">
+                  <StackPanel>
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
                       <StackPanel>
                         <DockPanel Margin="0,0,0,8">
@@ -379,7 +382,7 @@
                               <iconPacks:PackIconMaterial Kind="ContentSavePlus" Width="14" Height="14" Foreground="#E8EAED"/>
                             </Button>
                             <Button Style="{StaticResource IconButton}" Margin="0,0,4,0" Click="DefaultFfbButton_Click"
-                                    ToolTip="Reset sliders to Raw defaults. Save to keep the change.">
+                                    ToolTip="Switch to Raw: 100% gains, no feel/shaping. Raw cannot be overwritten — use Save As for your own presets.">
                               <iconPacks:PackIconMaterial Kind="Refresh" Width="14" Height="14" Foreground="#E8EAED"/>
                             </Button>
                             <Button Style="{StaticResource IconButton}" Margin="0" Click="DeleteFfbButton_Click"
@@ -407,9 +410,6 @@
                           </StackPanel>
                           <Slider x:Name="GainSlider" Minimum="0" Maximum="2" Value="1" TickFrequency="0.1" IsSnapToTickEnabled="False" ValueChanged="GainSlider_ValueChanged"/>
                         </DockPanel>
-                        <CheckBox x:Name="InvertFfbCheck" Content="Invert FFB" Margin="0,10,0,0"
-                                  ToolTip="Reverses force direction."
-                                  Checked="InvertFfbCheck_Changed" Unchecked="InvertFfbCheck_Changed"/>
                       </StackPanel>
                     </Border>
 
@@ -524,9 +524,18 @@
                       </StackPanel>
                     </Border>
                   </StackPanel>
+                  </ScrollViewer>
 
-                  <!-- Right: feel, shaping, centering, advanced -->
-                  <StackPanel Grid.Column="2">
+                  <!-- Right: feel / shaping / centering / advanced (auto) + FFB debug (fills leftover height) -->
+                  <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                      <RowDefinition Height="Auto"/>
+                      <RowDefinition x:Name="FfbDebugRowDef" Height="Auto"/>
+                    </Grid.RowDefinitions>
+                  <ScrollViewer x:Name="FfbFeelScrollViewer" Grid.Row="0"
+                                VerticalScrollBarVisibility="Auto"
+                                HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,12">
+                  <StackPanel>
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
                       <Expander Header="Output feel" IsExpanded="True"
                                 ToolTip="Optional filtering applied to the final force before it reaches your wheel.">
@@ -545,29 +554,16 @@
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                           <DockPanel Margin="0,4,0,0"
-                                     ToolTip="Softens the strongest peaks (crashes, big curbs). 100% = off; lower = gentler peaks.">
+                                     ToolTip="Softens the strongest peaks (crashes, big curbs). 0 = off; slide up for more compression.">
                             <TextBlock Text="Peak soft" Width="88" VerticalAlignment="Center"/>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                              <TextBlock x:Name="FeelPeakSoftValueText" Width="48" Text="100%" VerticalAlignment="Center"
+                              <TextBlock x:Name="FeelPeakSoftValueText" Width="48" Text="off" VerticalAlignment="Center"
                                          TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
                                          MouseLeftButtonDown="FfbValueLabel_Click"/>
                               <Button x:Name="BindFfbPeakSoft" Style="{StaticResource FfbBindButton}" Content="Bind"
                                       Tag="PeakSoft" Click="FfbEffectBind_Click"/>
                             </StackPanel>
-                            <Slider x:Name="FeelPeakSoftSlider" Minimum="0.5" Maximum="1" Value="1" TickFrequency="0.01"
-                                    ValueChanged="FeelSlider_ValueChanged"/>
-                          </DockPanel>
-                          <DockPanel Margin="0,4,0,0"
-                                     ToolTip="Fades force in when FFB first starts, instead of a sudden jolt. 0 = off.">
-                            <TextBlock Text="Soft start" Width="88" VerticalAlignment="Center"/>
-                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                              <TextBlock x:Name="FeelSoftStartValueText" Width="48" Text="0" VerticalAlignment="Center"
-                                         TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
-                                         MouseLeftButtonDown="FfbValueLabel_Click"/>
-                              <Button x:Name="BindFfbSoftStart" Style="{StaticResource FfbBindButton}" Content="Bind"
-                                      Tag="SoftStart" Click="FfbEffectBind_Click"/>
-                            </StackPanel>
-                            <Slider x:Name="FeelSoftStartSlider" Minimum="0" Maximum="2000" Value="0" TickFrequency="50"
+                            <Slider x:Name="FeelPeakSoftSlider" Minimum="0" Maximum="1" Value="0" TickFrequency="0.01"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                         </StackPanel>
@@ -579,8 +575,8 @@
                                 ToolTip="Optional cleanup for noisy or jumpy force feedback.">
                         <StackPanel Margin="0,8,0,0">
                           <DockPanel Margin="0,2,0,0"
-                                     ToolTip="Ignores very small forces near center so the wheel does not twitch. 0 = off.">
-                            <TextBlock Text="Deadband" Width="88" VerticalAlignment="Center"/>
+                                     ToolTip="Ignores very small forces so the wheel does not twitch. Not a steering-angle deadzone (Fanatec DEA). 0 = off.">
+                            <TextBlock Text="Force deadzone" Width="108" VerticalAlignment="Center"/>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                               <TextBlock x:Name="FeelDeadbandValueText" Width="48" Text="0" VerticalAlignment="Center"
                                          TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
@@ -592,8 +588,8 @@
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                           <DockPanel Margin="0,4,0,0"
-                                     ToolTip="Limits how fast force can change. Lower is smoother; 0 = unlimited.">
-                            <TextBlock Text="Slew" Width="88" VerticalAlignment="Center"/>
+                                     ToolTip="Limits how fast force can change (same idea as Simucube Slew Rate Limit). Lower is smoother; 0 = unlimited.">
+                            <TextBlock Text="Slew rate" Width="108" VerticalAlignment="Center"/>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                               <TextBlock x:Name="FeelSlewValueText" Width="48" Text="off" VerticalAlignment="Center"
                                          TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
@@ -605,21 +601,21 @@
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                           <DockPanel Margin="0,4,0,0"
-                                     ToolTip="Caps the largest force jump in one update. 100% = off.">
-                            <TextBlock Text="Spike cap" Width="88" VerticalAlignment="Center"/>
+                                     ToolTip="Limits how fast force can jump toward the target (per second, like Slew rate). Lower = softer. 0 = off.">
+                            <TextBlock Text="Spike cap" Width="108" VerticalAlignment="Center"/>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                              <TextBlock x:Name="FeelSpikeValueText" Width="48" Text="100%" VerticalAlignment="Center"
+                              <TextBlock x:Name="FeelSpikeValueText" Width="48" Text="off" VerticalAlignment="Center"
                                          TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
                                          MouseLeftButtonDown="FfbValueLabel_Click"/>
                               <Button x:Name="BindFfbSpike" Style="{StaticResource FfbBindButton}" Content="Bind"
                                       Tag="Spike" Click="FfbEffectBind_Click"/>
                             </StackPanel>
-                            <Slider x:Name="FeelSpikeSlider" Minimum="0.05" Maximum="1" Value="1" TickFrequency="0.01"
+                            <Slider x:Name="FeelSpikeSlider" Minimum="0" Maximum="1" Value="0" TickFrequency="0.01"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                           <DockPanel Margin="0,4,0,0"
-                                     ToolTip="Ignores tiny force changes to reduce chatter or buzzing. 0 = off.">
-                            <TextBlock Text="DI epsilon" Width="88" VerticalAlignment="Center"/>
+                                     ToolTip="Skips tiny DirectInput force updates to reduce chatter or buzzing on some bases (e.g. Fanatec). 0 = off; try ~12.">
+                            <TextBlock Text="DI chatter" Width="108" VerticalAlignment="Center"/>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                               <TextBlock x:Name="FeelEpsilonValueText" Width="48" Text="0" VerticalAlignment="Center"
                                          TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
@@ -687,15 +683,32 @@
                     </Border>
 
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
-                      <Expander Header="Advanced mix" IsExpanded="False"
-                                ToolTip="Fine-tune damper response and constant-force direction.">
+                      <Expander Header="Advanced Settings" IsExpanded="False"
+                                ToolTip="Boot ease-in, Invert FFB / soft steering catch-up, damper scales, and constant-force direction.">
                         <StackPanel Margin="0,8,0,0">
-                          <CheckBox x:Name="InvertConstantForceCheck" Content="Invert Constant Force" Margin="0,0,0,4"
-                                    ToolTip="Reverses only the constant-force effect. Independent of Invert FFB."
-                                    Checked="MixOption_Changed" Unchecked="MixOption_Changed"/>
-                          <DockPanel Margin="0,2,0,0"
-                                     ToolTip="How strongly wheel speed feeds into damper and inertia. 100% = as the game sent it.">
-                            <TextBlock Text="Damp vel" Width="88" VerticalAlignment="Center"/>
+                          <UniformGrid Columns="2" Margin="0,0,0,4">
+                            <CheckBox x:Name="BootEaseInCheck" Content="Boot ease-in" Margin="0,0,10,10"
+                                      VerticalAlignment="Center"
+                                      ToolTip="When FFB first comes online, mute all forces for 5 seconds so the base does not kick or shake. Off = full force immediately."
+                                      Checked="BootEaseInCheck_Changed" Unchecked="BootEaseInCheck_Changed"/>
+                            <CheckBox x:Name="InvertFfbCheck" Content="Invert FFB" Margin="0,0,0,10"
+                                      VerticalAlignment="Center"
+                                      ToolTip="Reverses force direction on the physical base (not steering input)."
+                                      Checked="InvertFfbCheck_Changed" Unchecked="InvertFfbCheck_Changed"/>
+                            <CheckBox x:Name="SoftCatchUpSteerCheck" Content="Soft steering catch-up" Margin="0,0,10,4"
+                                      VerticalAlignment="Center"
+                                      ToolTip="Limits sudden virtual steering jumps when the wheel base stalls briefly (USB/DI catch-up). Off by default. Saved with the FFB profile."
+                                      Checked="SoftCatchUpSteerCheck_Changed" Unchecked="SoftCatchUpSteerCheck_Changed"/>
+                            <CheckBox x:Name="InvertConstantForceCheck" Content="Invert Constant Force" Margin="0,0,0,4"
+                                      VerticalAlignment="Center"
+                                      ToolTip="Reverses only the constant-force effect. Independent of Invert FFB."
+                                      Checked="MixOption_Changed" Unchecked="MixOption_Changed"/>
+                          </UniformGrid>
+                          <TextBlock Text="Damper mix" Opacity="0.55" FontSize="11" Margin="0,6,0,6"
+                                     ToolTip="Scales how the game’s damper/inertia effects are evaluated — not Fanatec NDP/DPR."/>
+                          <DockPanel Margin="0,0,0,0"
+                                     ToolTip="How strongly wheel speed feeds into damper and inertia. 100% = as the game sent it. Not Fanatec Natural Damper (NDP).">
+                            <TextBlock Text="Damper velocity" Width="108" VerticalAlignment="Center"/>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                               <TextBlock x:Name="DamperVelScaleValueText" Width="48" Text="100%" VerticalAlignment="Center"
                                          TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
@@ -703,12 +716,12 @@
                               <Button x:Name="BindFfbDampVel" Style="{StaticResource FfbBindButton}" Content="Bind"
                                       Tag="DampVel" Click="FfbEffectBind_Click"/>
                             </StackPanel>
-                            <Slider x:Name="DamperVelScaleSlider" Minimum="0.25" Maximum="4" Value="1" TickFrequency="0.05"
+                            <Slider x:Name="DamperVelScaleSlider" Minimum="0.25" Maximum="2" Value="1" TickFrequency="0.05"
                                     ValueChanged="FeelSlider_ValueChanged"/>
                           </DockPanel>
                           <DockPanel Margin="0,4,0,0"
                                      ToolTip="How soon damper engages near zero speed. Lower engages sooner. 100% = as the game sent it.">
-                            <TextBlock Text="Damp dead" Width="88" VerticalAlignment="Center"/>
+                            <TextBlock Text="Damper deadzone" Width="108" VerticalAlignment="Center"/>
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                               <TextBlock x:Name="DamperDeadbandScaleValueText" Width="48" Text="100%" VerticalAlignment="Center"
                                          TextAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
@@ -722,48 +735,56 @@
                         </StackPanel>
                       </Expander>
                     </Border>
+                  </StackPanel>
+                  </ScrollViewer>
 
-                    <Border Style="{StaticResource CardBorder}">
-                      <Expander x:Name="FfbDebugExpander" Header="FFB debug" IsExpanded="False"
+                    <Border Grid.Row="1" Style="{StaticResource CardBorder}" MinHeight="0">
+                      <Expander x:Name="FfbDebugExpander" Style="{StaticResource StretchFillExpander}"
+                                Header="FFB debug" IsExpanded="False"
+                                VerticalAlignment="Stretch"
                                 Expanded="FfbDebugExpander_ExpandedChanged"
                                 Collapsed="FfbDebugExpander_ExpandedChanged"
                                 ToolTip="Test force feedback and view live effect counters.">
-                        <StackPanel Margin="0,8,0,0">
-                          <TextBlock Text="Send test forces to your FFB wheel. No game required."
-                                     Opacity="0.65" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,10"/>
-                          <WrapPanel Margin="0,0,0,4">
-                            <Button Style="{StaticResource WrapButton}" Content="Attach FFB" Click="FfbAttach_Click"
-                                    ToolTip="Connect force feedback to the selected wheel."/>
-                            <Button Style="{StaticResource WrapButton}" Content="Left" Click="FfbTestLeft_Click"/>
-                            <Button Style="{StaticResource WrapButton}" Content="Center" Click="FfbTestCenter_Click"
-                                    ToolTip="Toggle a return-to-center spring test."/>
-                            <Button Style="{StaticResource WrapButton}" Content="Right" Click="FfbTestRight_Click"/>
-                            <Button Style="{StaticResource WrapButton}" Content="Pulse" Click="FfbTestPulse_Click"
-                                    ToolTip="Short left/right pulse."/>
-                            <Button Style="{StaticResource WrapButton}" Content="Release test" Click="FfbTestRelease_Click"
-                                    Margin="0,0,0,8"
-                                    ToolTip="Clear the test force so game FFB can drive again."/>
-                          </WrapPanel>
-                          <DockPanel Margin="0,0,0,4">
-                            <TextBlock Text="Test torque" Width="88" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="FfbTestTorqueValueText" DockPanel.Dock="Right" Width="48"
-                                       Text="0%" VerticalAlignment="Center" HorizontalAlignment="Right"/>
-                            <Slider x:Name="FfbTestTorqueSlider" Minimum="-1" Maximum="1" Value="0"
-                                    TickFrequency="0.05" IsSnapToTickEnabled="False"
-                                    ValueChanged="FfbTestTorqueSlider_ValueChanged"/>
-                          </DockPanel>
-                          <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto"
+                        <DockPanel Margin="0,8,0,0" LastChildFill="True">
+                          <StackPanel DockPanel.Dock="Top">
+                            <TextBlock Text="Send test forces to your FFB wheel. No game required."
+                                       Opacity="0.65" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,10"/>
+                            <CheckBox x:Name="FfbDebugOverlayToggle" Content="FFB Debug Overlay" Margin="0,0,0,10"
+                                      ToolTip="Show a topmost overlay with live G920 inputs and FFB diagnostics while you drive. Same as Settings → Overlays."
+                                      Checked="FfbDebugOverlayToggle_Changed" Unchecked="FfbDebugOverlayToggle_Changed"/>
+                            <WrapPanel Margin="0,0,0,4">
+                              <Button Style="{StaticResource WrapButton}" Content="Attach FFB" Click="FfbAttach_Click"
+                                      ToolTip="Connect force feedback to the selected wheel."/>
+                              <Button Style="{StaticResource WrapButton}" Content="Left" Click="FfbTestLeft_Click"/>
+                              <Button Style="{StaticResource WrapButton}" Content="Center" Click="FfbTestCenter_Click"
+                                      ToolTip="Toggle a return-to-center spring test."/>
+                              <Button Style="{StaticResource WrapButton}" Content="Right" Click="FfbTestRight_Click"/>
+                              <Button Style="{StaticResource WrapButton}" Content="Pulse" Click="FfbTestPulse_Click"
+                                      ToolTip="Short left/right pulse."/>
+                              <Button Style="{StaticResource WrapButton}" Content="Release test" Click="FfbTestRelease_Click"
+                                      Margin="0,0,0,8"
+                                      ToolTip="Clear the test force so game FFB can drive again."/>
+                            </WrapPanel>
+                            <DockPanel Margin="0,0,0,4">
+                              <TextBlock Text="Test torque" Width="88" VerticalAlignment="Center"/>
+                              <TextBlock x:Name="FfbTestTorqueValueText" DockPanel.Dock="Right" Width="48"
+                                         Text="0%" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                              <Slider x:Name="FfbTestTorqueSlider" Minimum="-1" Maximum="1" Value="0"
+                                      TickFrequency="0.05" IsSnapToTickEnabled="False"
+                                      ValueChanged="FfbTestTorqueSlider_ValueChanged"/>
+                            </DockPanel>
+                          </StackPanel>
+                          <ScrollViewer VerticalScrollBarVisibility="Auto"
                                         HorizontalScrollBarVisibility="Auto" Margin="0,8,0,0">
                             <TextBlock x:Name="FfbDiagText" Opacity="0.8" FontSize="12"
                                        FontFamily="Consolas" TextWrapping="NoWrap"
                                        Text="FFB diagnostics will appear here."/>
                           </ScrollViewer>
-                        </StackPanel>
+                        </DockPanel>
                       </Expander>
                     </Border>
-                  </StackPanel>
-                </Grid>
-              </ScrollViewer>
+                  </Grid>
+      </Grid>
       <ScrollViewer x:Name="TelemetryPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid>
           <Grid.ColumnDefinitions>
@@ -928,10 +949,13 @@
                           Margin="0,0,8,0" IsSnapToTickEnabled="False"
                           ValueChanged="TelemetryTuningSlider_ValueChanged"/>
                 </DockPanel>
-                <DockPanel x:Name="TelemetryGearSettlePanel" Margin="0,0,0,3" Visibility="Collapsed">
-                  <TextBlock Text="Gear settle" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                <DockPanel x:Name="TelemetryGearSettlePanel" Margin="0,0,0,3"
+                           ToolTip="After a downshift, how fast speed bleeds down to that gear’s max (engine-braking style). Separate from Coast (lift) and Brake. 0 = snap to the gear cap instantly.">
+                  <TextBlock Text="Downshift settle" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
                   <TextBlock x:Name="TelemetryGearSettleValueText" DockPanel.Dock="Right" Width="76" Text="25 MPH/s"
-                             VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                             VerticalAlignment="Center" HorizontalAlignment="Right"
+                             Cursor="Hand" ToolTip="Click to type a rate"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
                   <Slider x:Name="TelemetryGearSettleSlider" Minimum="0" Maximum="124" Value="25" TickFrequency="1"
                           Margin="0,0,8,0" IsSnapToTickEnabled="True"
                           ValueChanged="TelemetryTuningSlider_ValueChanged"/>
@@ -1313,13 +1337,11 @@
                 <TextBlock Text="Arcade buttons" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
                            ToolTip="Bind hardware buttons (same dialog as FFB). Handbrake/NOS are hold; sequential gear is press. Gear binds save on the input profile; the enable toggle and strength/boost stay on the telemetry profile."/>
 
-                <DockPanel Margin="0,0,0,8"
-                           ToolTip="When enabled, telemetry gear ignores H-pattern and bumper paddles. Use Gear Up / Down / Reset binds instead: R → 1 → Max gears; Reset jumps to 1.">
-                  <CheckBox x:Name="TelemetrySequentialArcadeCheck" Content="Sequential shifter"
-                            VerticalAlignment="Center"
-                            Checked="TelemetrySequentialArcadeCheck_Changed"
-                            Unchecked="TelemetrySequentialArcadeCheck_Changed"/>
-                </DockPanel>
+                <CheckBox x:Name="TelemetrySequentialArcadeCheck" Content="Sequential shifter"
+                          Margin="0,0,0,8"
+                          ToolTip="When enabled, telemetry gear ignores H-pattern and bumper paddles. Use Gear Up / Down / Reset binds instead: R → 1 → Max gears; Reset jumps to 1."
+                          Checked="TelemetrySequentialArcadeCheck_Changed"
+                          Unchecked="TelemetrySequentialArcadeCheck_Changed"/>
                 <StackPanel x:Name="TelemetrySequentialArcadeBindsPanel" Visibility="Collapsed" Margin="0,0,0,10">
                   <TextBlock Text="R → 1 → Max gears · Reset → 1" FontSize="11" Opacity="0.55" Margin="0,0,0,6"/>
                   <DockPanel Margin="0,2,0,0"
@@ -1382,6 +1404,9 @@
             <Border Style="{StaticResource CardBorder}">
               <StackPanel>
                 <TextBlock Text="Live Telemetry" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"/>
+                <CheckBox x:Name="TelemetryDebugOverlayToggle" Content="Telemetry Debug Overlay" Margin="0,0,0,10"
+                          ToolTip="Show a topmost overlay with the live SimHub telemetry packet being sent. Same as Settings → Overlays."
+                          Checked="TelemetryDebugOverlayToggle_Changed" Unchecked="TelemetryDebugOverlayToggle_Changed"/>
 
                 <!-- Pedals / wheel (mapped inputs) -->
                 <TextBlock Text="Inputs" Opacity="0.55" FontSize="11" Margin="0,0,0,6"/>

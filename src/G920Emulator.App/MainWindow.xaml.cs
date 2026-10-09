@@ -37,6 +37,8 @@ public partial class MainWindow : Window
     private bool _suppressProfileCombo;
     private bool _suppressFfbProfileCombo;
     private bool _suppressTelemetryProfileCombo;
+    private bool _suppressFfbDebugOverlayToggle;
+    private bool _suppressTelemetryDebugOverlayToggle;
     private bool _bindingDialogOpen;
     private bool _ffbTestSliderSilent;
     private bool _effectGainSliderSilent;
@@ -288,7 +290,11 @@ public partial class MainWindow : Window
         InputPanel.Visibility = InputTabRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         FfbPanel.Visibility = FfbTabRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         TelemetryPanel.Visibility = TelemetryTabRadio.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if (FfbTabRadio.IsChecked == true)
+            UpdateFfbDebugRowLayout();
     }
+
+    private void FfbPanel_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateFfbDebugRowLayout();
 
     private void UpdateDependencyUi()
     {
@@ -404,7 +410,6 @@ public partial class MainWindow : Window
             settings.FfbExperimentalInputFixes,
             settings.FfbExperimentalUnlockedSetParameters,
             settings.FfbExperimentalNonBlockingRimReads,
-            settings.FfbExperimentalSoftCatchUpSteer,
             settings.FfbExperimentalDualHandleInput);
         _bridge.SetFfbCooperativeMode(settings.FfbCooperativeMode);
         _ffbExperimentalInputFixesApplied = settings.FfbExperimentalInputFixes;
@@ -598,6 +603,32 @@ public partial class MainWindow : Window
             ShowDebugOverlay();
         else
             CloseDebugOverlay(saveEnabled: false);
+        SyncFfbDebugOverlayToggle(enabled);
+    }
+
+    private void SyncFfbDebugOverlayToggle(bool enabled)
+    {
+        if (FfbDebugOverlayToggle is null) return;
+        _suppressFfbDebugOverlayToggle = true;
+        try
+        {
+            FfbDebugOverlayToggle.IsChecked = enabled;
+        }
+        finally
+        {
+            _suppressFfbDebugOverlayToggle = false;
+        }
+    }
+
+    private void FfbDebugOverlayToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressFfbDebugOverlayToggle || FfbDebugOverlayToggle is null)
+            return;
+        var on = FfbDebugOverlayToggle.IsChecked == true;
+        UpdateAppSettings(s => s.DebugOverlay = on);
+        ApplyDebugOverlay(on);
+        if (StatusText is not null)
+            StatusText.Text = on ? "FFB Debug Overlay on." : "FFB Debug Overlay off.";
     }
 
     private void ApplyTelemetryDebugOverlay(bool enabled)
@@ -606,6 +637,32 @@ public partial class MainWindow : Window
             ShowTelemetryDebugOverlay();
         else
             CloseTelemetryDebugOverlay(saveEnabled: false);
+        SyncTelemetryDebugOverlayToggle(enabled);
+    }
+
+    private void SyncTelemetryDebugOverlayToggle(bool enabled)
+    {
+        if (TelemetryDebugOverlayToggle is null) return;
+        _suppressTelemetryDebugOverlayToggle = true;
+        try
+        {
+            TelemetryDebugOverlayToggle.IsChecked = enabled;
+        }
+        finally
+        {
+            _suppressTelemetryDebugOverlayToggle = false;
+        }
+    }
+
+    private void TelemetryDebugOverlayToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_suppressTelemetryDebugOverlayToggle || TelemetryDebugOverlayToggle is null)
+            return;
+        var on = TelemetryDebugOverlayToggle.IsChecked == true;
+        UpdateAppSettings(s => s.TelemetryDebugOverlay = on);
+        ApplyTelemetryDebugOverlay(on);
+        if (StatusText is not null)
+            StatusText.Text = on ? "Telemetry Debug Overlay on." : "Telemetry Debug Overlay off.";
     }
 
     private void ShowDebugOverlay()
@@ -713,6 +770,7 @@ public partial class MainWindow : Window
             PersistOverlayBounds(_debugOverlay);
         _debugOverlay = null;
         UpdateAppSettings(s => s.DebugOverlay = false);
+        SyncFfbDebugOverlayToggle(false);
         if (StatusText is not null)
             StatusText.Text = "FFB Debug Overlay off.";
     }
@@ -723,6 +781,7 @@ public partial class MainWindow : Window
             PersistTelemetryOverlayBounds(_telemetryDebugOverlay);
         _telemetryDebugOverlay = null;
         UpdateAppSettings(s => s.TelemetryDebugOverlay = false);
+        SyncTelemetryDebugOverlayToggle(false);
         if (StatusText is not null)
             StatusText.Text = "Telemetry Debug Overlay off.";
     }
@@ -2016,6 +2075,7 @@ public partial class MainWindow : Window
             FfbSourceDeviceName = ffbName,
             MasterGain = _profile.FfbGain,
             FfbInvert = _profile.FfbInvert,
+            SoftCatchUpSteer = _profile.SoftCatchUpSteer,
             EffectGains = _profile.FfbEffectGains,
             OutputFeel = _profile.FfbOutputFeel,
             Ffb = ffb,
@@ -2137,7 +2197,7 @@ public partial class MainWindow : Window
         _bridge.ResetCustomBindingState();
         _bridge.Profile = _profile;
         GainSlider.Value = _profile.FfbGain;
-        InvertFfbCheck.IsChecked = _profile.FfbInvert;
+        LoadAdvancedFfbTogglesIntoUi();
         LoadEffectGainsIntoUi(_profile.FfbEffectGains);
         LoadFeelIntoUi(_profile.FfbOutputFeel);
         RefreshFfbProfilesCombo(_profile.FfbProfileName);
@@ -2381,11 +2441,41 @@ public partial class MainWindow : Window
     {
         var name = string.IsNullOrWhiteSpace(_profile.FfbProfileName) ? "Raw" : _profile.FfbProfileName.Trim();
         var ffb = _profiles.CaptureFfbFromMapping(_profile);
+
+        if (name.Equals("Raw", StringComparison.OrdinalIgnoreCase) && !FfbProfile.IsExactRaw(ffb))
+        {
+            if (!quiet)
+            {
+                MessageBox.Show(
+                    "Raw is the exact game-mix preset (100% gains, no feel/shaping) and cannot be overwritten.\n\nUse Save As… to keep your changes as a new FFB profile.",
+                    "Save FFB profile",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+
+            // Keep Raw pristine; discard in-memory tweaks so quiet input-profile saves stay exact-mix.
+            var raw = FfbProfile.CreateRaw();
+            _profiles.SaveFfb(raw, "Raw");
+            _profile.ApplyFfbProfile(raw);
+            GainSlider.Value = _profile.FfbGain;
+            LoadAdvancedFfbTogglesIntoUi();
+            LoadEffectGainsIntoUi(_profile.FfbEffectGains);
+            LoadFeelIntoUi(_profile.FfbOutputFeel);
+            _bridge.Profile = _profile;
+            ScheduleFfbProfilePush();
+            RefreshFfbProfilesCombo("Raw");
+            if (!quiet)
+                StatusText.Text = "Raw left unchanged (exact game mix) - use Save As… for custom FFB";
+            return;
+        }
+
         _profiles.SaveFfb(ffb, name);
-        _profile.FfbProfileName = ffb.Name;
-        RefreshFfbProfilesCombo(ffb.Name);
+        _profile.FfbProfileName = name.Equals("Raw", StringComparison.OrdinalIgnoreCase)
+            ? "Raw"
+            : ffb.Name;
+        RefreshFfbProfilesCombo(_profile.FfbProfileName ?? name);
         if (!quiet)
-            StatusText.Text = $"Saved FFB profile '{ffb.Name}'";
+            StatusText.Text = $"Saved FFB profile '{_profile.FfbProfileName}'";
     }
 
     private void SaveFfbButton_Click(object sender, RoutedEventArgs e)
@@ -2445,21 +2535,19 @@ public partial class MainWindow : Window
     {
         try
         {
-            var defaults = FfbProfile.CreateRaw();
-            _profile.FfbGain = defaults.FfbGain;
-            _profile.FfbInvert = defaults.FfbInvert;
-            _profile.FfbEffectGains = defaults.EffectGains;
-            _profile.FfbOutputFeel = defaults.OutputFeel;
+            // Default always means immutable Raw: 100% gains, no feel/shaping applied.
+            var raw = FfbProfile.CreateRaw();
+            _profiles.SaveFfb(raw, "Raw");
+            _profile.ApplyFfbProfile(raw);
 
             GainSlider.Value = _profile.FfbGain;
-            InvertFfbCheck.IsChecked = _profile.FfbInvert;
+            LoadAdvancedFfbTogglesIntoUi();
             LoadEffectGainsIntoUi(_profile.FfbEffectGains);
             LoadFeelIntoUi(_profile.FfbOutputFeel);
             _bridge.Profile = _profile;
             ScheduleFfbProfilePush();
-
-            var selected = FfbProfilesCombo.SelectedItem as string ?? _profile.FfbProfileName ?? "Raw";
-            StatusText.Text = $"FFB sliders reset to defaults - Save to write '{selected}'";
+            RefreshFfbProfilesCombo("Raw");
+            StatusText.Text = "FFB set to Raw (exact game mix, no modifications)";
         }
         catch (Exception ex)
         {
@@ -2491,7 +2579,7 @@ public partial class MainWindow : Window
         _profile.FfbProfileName = "Raw";
         _profiles.ApplyLinkedFfbProfile(_profile);
         GainSlider.Value = _profile.FfbGain;
-        InvertFfbCheck.IsChecked = _profile.FfbInvert;
+        LoadAdvancedFfbTogglesIntoUi();
         LoadEffectGainsIntoUi(_profile.FfbEffectGains);
         LoadFeelIntoUi(_profile.FfbOutputFeel);
         _bridge.Profile = _profile;
@@ -2510,7 +2598,7 @@ public partial class MainWindow : Window
             _profile.FfbProfileName = name;
             _profiles.ApplyLinkedFfbProfile(_profile);
             GainSlider.Value = _profile.FfbGain;
-            InvertFfbCheck.IsChecked = _profile.FfbInvert;
+            LoadAdvancedFfbTogglesIntoUi();
             LoadEffectGainsIntoUi(_profile.FfbEffectGains);
             LoadFeelIntoUi(_profile.FfbOutputFeel);
             _bridge.Profile = _profile;
@@ -2729,8 +2817,30 @@ public partial class MainWindow : Window
 
     private void FfbDebugExpander_ExpandedChanged(object sender, RoutedEventArgs e)
     {
+        UpdateFfbDebugRowLayout();
         if (FfbDebugExpander?.IsExpanded == true)
             RefreshFfbDiagnostics();
+    }
+
+    /// <summary>
+    /// When FFB debug is expanded, its grid row becomes * so the diag list fills leftover window height.
+    /// Upper feel cards are capped so they cannot steal the whole column.
+    /// </summary>
+    private void UpdateFfbDebugRowLayout()
+    {
+        if (FfbDebugRowDef is null || FfbDebugExpander is null)
+            return;
+        var expanded = FfbDebugExpander.IsExpanded;
+        FfbDebugRowDef.Height = expanded
+            ? new GridLength(1, GridUnitType.Star)
+            : GridLength.Auto;
+
+        if (FfbFeelScrollViewer is null || FfbPanel is null)
+            return;
+        if (expanded && FfbPanel.ActualHeight > 0)
+            FfbFeelScrollViewer.MaxHeight = Math.Max(140, FfbPanel.ActualHeight * 0.55);
+        else
+            FfbFeelScrollViewer.MaxHeight = double.PositiveInfinity;
     }
 
     private void RefreshFfbDiagnostics()
@@ -3182,7 +3292,7 @@ public partial class MainWindow : Window
                 StatusText.Text += " HidHide restore point saved (restores on Stop).";
             else if (autoApplyHidHide)
                 StatusText.Text += hidHideMode == HidHideApplyMode.HideBound
-                    ? " HidHide: bound devices hidden."
+                    ? " HidHide: bound devices synced (unbound gaming devices visible)."
                     : " HidHide session applied.";
             if (col01Missing)
             {
@@ -3206,8 +3316,9 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Unique DirectInput instance IDs referenced by the active profile (standard + custom + FN + FFB source).
-    /// Used by HidHide HideBound mode.
+    /// DirectInput instance + product GUIDs referenced by the active profile
+    /// (standard + custom + FN + FFB source). Used by HidHide HideBound matching
+    /// (instance GUID and ProductGuid → VID/PID against HidHide paths).
     /// </summary>
     private static IReadOnlyList<string> CollectBoundDeviceIds(MappingProfile profile)
     {
@@ -3219,18 +3330,29 @@ public partial class MainWindow : Window
         }
 
         Add(profile.FfbSourceDeviceId);
+        Add(profile.FfbSourceProductId);
         foreach (var binding in profile.Bindings ?? [])
         {
             foreach (var source in binding.Sources ?? [])
+            {
                 Add(source.DeviceId);
+                Add(source.ProductId);
+            }
         }
 
         foreach (var custom in profile.CustomBindings ?? [])
         {
             foreach (var source in custom.Sources ?? [])
+            {
                 Add(source.DeviceId);
+                Add(source.ProductId);
+            }
+
             foreach (var source in custom.FnSources ?? [])
+            {
                 Add(source.DeviceId);
+                Add(source.ProductId);
+            }
         }
 
         return ids.ToList();
@@ -3536,6 +3658,7 @@ public partial class MainWindow : Window
         _profile.Name = CurrentInputProfileName();
         _profile.FfbGain = GainSlider.Value;
         _profile.FfbInvert = InvertFfbCheck.IsChecked == true;
+        _profile.SoftCatchUpSteer = SoftCatchUpSteerCheck.IsChecked == true;
         SyncEffectGainsFromUi();
         SyncFeelFromUi();
         if (FfbDeviceCombo.SelectedItem is DeviceRow row)
@@ -3687,7 +3810,6 @@ public partial class MainWindow : Window
         "Master" or "Constant" or "Spring" or "Damper" or "Friction" or "Inertia"
             or "Periodic" or "Ramp" or "Custom" or "PeakSoft" or "Spike"
             or "CenterStrength" or "CenterRange" or "DampVel" or "DampDead" => $"{value:P0}",
-        "SoftStart" => $"{value:0} ms",
         "Smoothing" or "Slew" or "Epsilon" => $"{value:0}",
         "Deadband" or "CenterDeadzone" => $"{value:0.###}",
         _ => value.ToString("0.##"),
@@ -3829,7 +3951,6 @@ public partial class MainWindow : Window
         G920Control.FfbMasterMinus or G920Control.FfbMasterPlus or G920Control.FfbMasterDefault => GainSlider,
         G920Control.FfbSmoothingMinus or G920Control.FfbSmoothingPlus or G920Control.FfbSmoothingDefault => FeelSmoothingSlider,
         G920Control.FfbPeakSoftMinus or G920Control.FfbPeakSoftPlus or G920Control.FfbPeakSoftDefault => FeelPeakSoftSlider,
-        G920Control.FfbSoftStartMinus or G920Control.FfbSoftStartPlus or G920Control.FfbSoftStartDefault => FeelSoftStartSlider,
         G920Control.FfbDeadbandMinus or G920Control.FfbDeadbandPlus or G920Control.FfbDeadbandDefault => FeelDeadbandSlider,
         G920Control.FfbSlewMinus or G920Control.FfbSlewPlus or G920Control.FfbSlewDefault => FeelSlewSlider,
         G920Control.FfbSpikeMinus or G920Control.FfbSpikePlus or G920Control.FfbSpikeDefault => FeelSpikeSlider,
@@ -3855,7 +3976,6 @@ public partial class MainWindow : Window
         G920Control.FfbMasterMinus or G920Control.FfbMasterPlus or G920Control.FfbMasterDefault => GainValueText,
         G920Control.FfbSmoothingMinus or G920Control.FfbSmoothingPlus or G920Control.FfbSmoothingDefault => FeelSmoothingValueText,
         G920Control.FfbPeakSoftMinus or G920Control.FfbPeakSoftPlus or G920Control.FfbPeakSoftDefault => FeelPeakSoftValueText,
-        G920Control.FfbSoftStartMinus or G920Control.FfbSoftStartPlus or G920Control.FfbSoftStartDefault => FeelSoftStartValueText,
         G920Control.FfbDeadbandMinus or G920Control.FfbDeadbandPlus or G920Control.FfbDeadbandDefault => FeelDeadbandValueText,
         G920Control.FfbSlewMinus or G920Control.FfbSlewPlus or G920Control.FfbSlewDefault => FeelSlewValueText,
         G920Control.FfbSpikeMinus or G920Control.FfbSpikePlus or G920Control.FfbSpikeDefault => FeelSpikeValueText,
@@ -3964,12 +4084,13 @@ public partial class MainWindow : Window
     }
 
     private bool AreFeelControlsReady() =>
-        FeelSmoothingSlider is not null && FeelPeakSoftSlider is not null && FeelSoftStartSlider is not null &&
+        FeelSmoothingSlider is not null && FeelPeakSoftSlider is not null &&
         FeelDeadbandSlider is not null && FeelSlewSlider is not null && FeelSpikeSlider is not null &&
         FeelEpsilonSlider is not null &&
-        FeelSmoothingValueText is not null && FeelPeakSoftValueText is not null && FeelSoftStartValueText is not null &&
+        FeelSmoothingValueText is not null && FeelPeakSoftValueText is not null &&
         FeelDeadbandValueText is not null && FeelSlewValueText is not null && FeelSpikeValueText is not null &&
         FeelEpsilonValueText is not null &&
+        BootEaseInCheck is not null &&
         ForceCenterCheck is not null && CenterStrengthSlider is not null && CenterRangeSlider is not null &&
         CenterDeadzoneSlider is not null && CenterStrengthValueText is not null &&
         CenterRangeValueText is not null && CenterDeadzoneValueText is not null && CenterSpringPanel is not null &&
@@ -3983,6 +4104,20 @@ public partial class MainWindow : Window
         SyncFeelFromUi();
         ScheduleFfbProfilePush();
     }
+
+    private void BootEaseInCheck_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_effectGainSliderSilent || !AreFeelControlsReady()) return;
+        SyncFeelFromUi();
+        ScheduleFfbProfilePush();
+    }
+
+    /// <summary>UI 0 = off … 1 = strongest soft-knee. Stored as PeakSoftStart 1.0 … 0.5.</summary>
+    private static double PeakSoftStartToUiStrength(double peakSoftStart) =>
+        peakSoftStart >= 0.999 ? 0 : Math.Clamp((1.0 - peakSoftStart) / 0.5, 0, 1);
+
+    private static double PeakSoftUiStrengthToStart(double uiStrength) =>
+        uiStrength <= 0.001 ? 1.0 : 1.0 - Math.Clamp(uiStrength, 0, 1) * 0.5;
 
     private void MixOption_Changed(object sender, RoutedEventArgs e)
     {
@@ -4008,8 +4143,8 @@ public partial class MainWindow : Window
         try
         {
             FeelSmoothingSlider.Value = feel.SmoothingMs;
-            FeelPeakSoftSlider.Value = feel.PeakSoftStart;
-            FeelSoftStartSlider.Value = feel.SoftStartMs;
+            FeelPeakSoftSlider.Value = PeakSoftStartToUiStrength(feel.PeakSoftStart);
+            BootEaseInCheck.IsChecked = feel.BootEaseIn;
             FeelDeadbandSlider.Value = feel.Deadband;
             FeelSlewSlider.Value = feel.MaxSlewPerSecond;
             FeelSpikeSlider.Value = feel.MaxSpikeStep;
@@ -4035,8 +4170,9 @@ public partial class MainWindow : Window
         _profile.FfbOutputFeel ??= FfbOutputFeel.CreateDefault();
         var f = _profile.FfbOutputFeel;
         f.SmoothingMs = FeelSmoothingSlider.Value;
-        f.PeakSoftStart = FeelPeakSoftSlider.Value;
-        f.SoftStartMs = FeelSoftStartSlider.Value;
+        f.PeakSoftStart = PeakSoftUiStrengthToStart(FeelPeakSoftSlider.Value);
+        f.BootEaseIn = BootEaseInCheck.IsChecked == true;
+        f.SoftStartMs = 0;
         f.Deadband = FeelDeadbandSlider.Value;
         f.MaxSlewPerSecond = FeelSlewSlider.Value;
         f.MaxSpikeStep = FeelSpikeSlider.Value;
@@ -4055,15 +4191,18 @@ public partial class MainWindow : Window
     {
         if (!AreFeelControlsReady()) return;
         FeelSmoothingValueText.Text = $"{FeelSmoothingSlider.Value:0} ms";
-        FeelPeakSoftValueText.Text = $"{FeelPeakSoftSlider.Value:P0}";
-        FeelSoftStartValueText.Text = $"{FeelSoftStartSlider.Value:0}";
+        FeelPeakSoftValueText.Text = FeelPeakSoftSlider.Value <= 0.001
+            ? "off"
+            : $"{FeelPeakSoftSlider.Value:P0}";
         FeelDeadbandValueText.Text = FeelDeadbandSlider.Value <= 0.0005
             ? "off"
             : FeelDeadbandSlider.Value.ToString("0.###");
         FeelSlewValueText.Text = FeelSlewSlider.Value <= 0.5
             ? "off"
             : $"{FeelSlewSlider.Value:0}/s";
-        FeelSpikeValueText.Text = $"{FeelSpikeSlider.Value:P0}";
+        FeelSpikeValueText.Text = FeelSpikeSlider.Value <= 0.001
+            ? "off"
+            : $"{FeelSpikeSlider.Value:P0}";
         FeelEpsilonValueText.Text = FeelEpsilonSlider.Value <= 0.5
             ? "off"
             : $"{FeelEpsilonSlider.Value:0}";
@@ -4083,7 +4222,6 @@ public partial class MainWindow : Window
         Percent01to2,   // 0..2 shown as %
         Percent0to1,    // 0..1 shown as %
         Milliseconds,
-        SoftStartMs,
         Deadband,
         SlewPerSec,
         Epsilon,
@@ -4110,7 +4248,6 @@ public partial class MainWindow : Window
         if (ReferenceEquals(label, GainCustomValueText)) { slider = GainCustomSlider; kind = FfbValueEditKind.Percent01to2; return true; }
         if (ReferenceEquals(label, FeelSmoothingValueText)) { slider = FeelSmoothingSlider; kind = FfbValueEditKind.Milliseconds; return true; }
         if (ReferenceEquals(label, FeelPeakSoftValueText)) { slider = FeelPeakSoftSlider; kind = FfbValueEditKind.Percent0to1; return true; }
-        if (ReferenceEquals(label, FeelSoftStartValueText)) { slider = FeelSoftStartSlider; kind = FfbValueEditKind.SoftStartMs; return true; }
         if (ReferenceEquals(label, FeelDeadbandValueText)) { slider = FeelDeadbandSlider; kind = FfbValueEditKind.Deadband; return true; }
         if (ReferenceEquals(label, FeelSlewValueText)) { slider = FeelSlewSlider; kind = FfbValueEditKind.SlewPerSec; return true; }
         if (ReferenceEquals(label, FeelSpikeValueText)) { slider = FeelSpikeSlider; kind = FfbValueEditKind.Percent0to1; return true; }
@@ -4159,7 +4296,6 @@ public partial class MainWindow : Window
     {
         FfbValueEditKind.Percent01to2 or FfbValueEditKind.Percent0to1 => $"{value * 100:0.##}",
         FfbValueEditKind.Milliseconds => $"{value:0}",
-        FfbValueEditKind.SoftStartMs => $"{value:0}",
         FfbValueEditKind.Deadband => value <= 0.0005 ? "0" : value.ToString("0.###"),
         FfbValueEditKind.SlewPerSec => value <= 0.5 ? "0" : $"{value:0.##}",
         FfbValueEditKind.Epsilon => $"{value:0}",
@@ -4603,10 +4739,35 @@ public partial class MainWindow : Window
         return true;
     }
 
+    private void LoadAdvancedFfbTogglesIntoUi()
+    {
+        if (InvertFfbCheck is null || SoftCatchUpSteerCheck is null) return;
+        _effectGainSliderSilent = true;
+        try
+        {
+            InvertFfbCheck.IsChecked = _profile.FfbInvert;
+            SoftCatchUpSteerCheck.IsChecked = _profile.SoftCatchUpSteer;
+        }
+        finally
+        {
+            _effectGainSliderSilent = false;
+        }
+    }
+
     private void InvertFfbCheck_Changed(object sender, RoutedEventArgs e)
     {
+        if (_effectGainSliderSilent || InvertFfbCheck is null) return;
         _profile.FfbInvert = InvertFfbCheck.IsChecked == true;
         _bridge.Ffb.Invert = _profile.FfbInvert;
+        ScheduleFfbProfilePush();
+    }
+
+    private void SoftCatchUpSteerCheck_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_effectGainSliderSilent || SoftCatchUpSteerCheck is null) return;
+        _profile.SoftCatchUpSteer = SoftCatchUpSteerCheck.IsChecked == true;
+        _bridge.Profile = _profile;
+        ScheduleFfbProfilePush();
     }
 
     private sealed class DeviceRow(InputDeviceInfo info)

@@ -92,7 +92,7 @@ public static class DiagnosticsExporter
         "  game-ffb-analysis.txt - OEM race signature (Triangle/CF vs spring-only / Vibration)\r\n" +
         "  logs\\g920ffb-effects.log - game OEM calls (SESSION / CALL / EFFECT / MIX)\r\n" +
         "  logs\\g920emulator-perf.log - emulator vs game CPU/RAM every 10s (hint= is our load, not the game GPU)\r\n" +
-        "  logs\\g920emulator-bridge-health.log - HOST_STALE / interruptPush heartbeats + STALE_INPUT\r\n" +
+        "  logs\\g920emulator-bridge-health.log - HOST_STALE / interruptPush / FFB_TUNE (effect+feel apply + SHM readback)\r\n" +
         "Repository: " + GitHubRepoUrl + "\r\n";
 
     private static void WriteSummary(
@@ -229,7 +229,7 @@ public static class DiagnosticsExporter
         {
             sb.AppendLine($"  Telemetry frame: gear={tel.Gear} speed={tel.SpeedKmh:0} rpm={tel.EngineRpm:0} surge={tel.LocalSurgeMs2:0.0} sway={tel.LocalSwayMs2:0.0} heave={tel.LocalHeaveMs2:0.0} rumble={tel.SurfaceRumble:0.00} impact={tel.Impact:0.00} load={tel.RoadLoad:0.00}");
         }
-        sb.AppendLine($"  Master gain: {live.MasterGain:0.##}  Invert: {live.FfbInvert}");
+        sb.AppendLine($"  Master gain: {live.MasterGain:0.##}  Invert: {live.FfbInvert}  Soft catch-up: {(live.SoftCatchUpSteer ? "on" : "off")}");
 
         if (live.Ffb is { } d)
         {
@@ -445,7 +445,7 @@ public static class DiagnosticsExporter
         {
             sb.AppendLine("Input profile: " + (live.ActiveInputProfile ?? "(none)"));
             sb.AppendLine("FFB profile: " + (live.ActiveFfbProfile ?? "(none)"));
-            sb.AppendLine($"Master: {live.MasterGain:0.##}  Invert: {live.FfbInvert}");
+            sb.AppendLine($"Master: {live.MasterGain:0.##}  Invert: {live.FfbInvert}  Soft catch-up: {(live.SoftCatchUpSteer ? "on" : "off")}");
             sb.AppendLine("FFB source: " + (live.FfbSourceDeviceName ?? live.FfbSourceDeviceId ?? "(none)"));
             var g = live.EffectGains ?? FfbEffectGains.CreateDefault();
             sb.AppendLine(
@@ -453,7 +453,7 @@ public static class DiagnosticsExporter
                 $"Friction={g.FrictionForce:0.##} Inertia={g.InertiaForce:0.##} Periodic={g.Periodic:0.##} Ramp={g.RampForce:0.##}");
             var f = live.OutputFeel ?? FfbOutputFeel.CreateDefault();
             sb.AppendLine(
-                $"Feel: smooth={f.SmoothingMs:0}ms peak={f.PeakSoftStart:0.##} softStart={f.SoftStartMs:0} " +
+                $"Feel: smooth={f.SmoothingMs:0}ms peak={f.PeakSoftStart:0.##} bootEaseIn={(f.BootEaseIn ? "on" : "off")} " +
                 $"dead={f.Deadband:0.###} slew={f.MaxSlewPerSecond:0} spike={f.MaxSpikeStep:0.##} eps={f.MagnitudeEpsilon:0}");
             sb.AppendLine(
                 $"OEM mix: invertCF={f.InvertConstantForce} dampVel={f.DamperVelocityScale:0.##} " +
@@ -502,14 +502,13 @@ public static class DiagnosticsExporter
         sb.AppendLine();
         sb.AppendLine("Debug Test (Settings)");
         sb.AppendLine("  Enabled: " + (settings.FfbExperimentalInputFixes ? "yes" : "no (normal / release path)"));
-        // Effective runtime: sub-options only apply when Enabled is on (except soft catch-up, on when disabled).
+        // Effective runtime: sub-options only apply when Enabled is on.
         var coop = settings.FfbExperimentalInputFixes
             ? settings.FfbCooperativeMode.ToString()
             : nameof(FfbCooperativeMode.Exclusive);
         var dualHandle = settings.FfbExperimentalInputFixes && settings.FfbExperimentalDualHandleInput;
         var unlocked = settings.FfbExperimentalInputFixes && settings.FfbExperimentalUnlockedSetParameters;
         var nonBlocking = settings.FfbExperimentalInputFixes && settings.FfbExperimentalNonBlockingRimReads;
-        var softCatchUp = !settings.FfbExperimentalInputFixes || settings.FfbExperimentalSoftCatchUpSteer;
         sb.AppendLine("  Cooperative level (effective): " + coop);
         sb.AppendLine("  Dual-handle input (effective): " +
                       (dualHandle
@@ -517,14 +516,12 @@ public static class DiagnosticsExporter
                           : "off"));
         sb.AppendLine("  Unlocked SetParameters (effective): " + (unlocked ? "on" : "off"));
         sb.AppendLine("  Non-blocking rim reads (effective): " + (nonBlocking ? "on" : "off"));
-        sb.AppendLine("  Soft steering catch-up (effective): " + (softCatchUp ? "on" : "off"));
         if (settings.FfbExperimentalInputFixes)
         {
             sb.AppendLine("  Stored coop: " + settings.FfbCooperativeMode);
             sb.AppendLine("  Stored dual-handle input: " + settings.FfbExperimentalDualHandleInput);
             sb.AppendLine("  Stored unlocked SetParameters: " + settings.FfbExperimentalUnlockedSetParameters);
             sb.AppendLine("  Stored non-blocking rim reads: " + settings.FfbExperimentalNonBlockingRimReads);
-            sb.AppendLine("  Stored soft steering catch-up: " + settings.FfbExperimentalSoftCatchUpSteer);
         }
     }
 

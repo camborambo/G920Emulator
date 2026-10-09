@@ -27,8 +27,8 @@ public sealed class TelemetryTuning
     public const float DefaultAeroDragScale = 1f;
     public const float DefaultGearPullScale = 1f;
     /// <summary>
-    /// When above a gear's top speed (typical after downshift), bleed toward the cap at this rate.
-    /// Previous hard clamp + ~0.2 s bleed felt like an instant snap.
+    /// Default downshift settle (km/h per second): bleed toward a shorter gear's top speed
+    /// after downshifting. Distinct from Coast (lift) and Brake.
     /// </summary>
     public const float DefaultGearSettleKmhPerSec = 40f;
     /// <summary>How hard FFB impact / heavy CF cuts simulated speed (walls, crashes). 0.5 = mild default.</summary>
@@ -138,8 +138,8 @@ public sealed class TelemetryTuning
     public float GearPullScale { get; set; } = DefaultGearPullScale;
 
     /// <summary>
-    /// How fast simulated speed tapers down toward a lower gear's max when overspeeding (km/h per second).
-    /// 0 = no settle (only coast / brake / aero reduce speed).
+    /// Downshift settle: how fast speed tapers toward a shorter gear's max when overspeeding
+    /// (km/h per second). 0 = off (only coast / brake / aero reduce speed). UI: Speed dynamics.
     /// </summary>
     public float GearSettleKmhPerSec { get; set; } = DefaultGearSettleKmhPerSec;
 

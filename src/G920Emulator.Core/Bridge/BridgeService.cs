@@ -122,7 +122,6 @@ public sealed class BridgeService : IDisposable
     private bool _ffbExperimentalInputFixes;
     private bool _ffbExperimentalUnlockedSetParameters;
     private bool _ffbExperimentalNonBlockingRimReads;
-    private bool _ffbExperimentalSoftCatchUpSteer;
     private bool _ffbExperimentalDualHandleInput;
     /// <summary>Last live axes from the exclusive FFB base (InputHub does not Poll it).</summary>
     private Dictionary<string, float>? _lastFfbAxes01;
@@ -649,13 +648,11 @@ public sealed class BridgeService : IDisposable
         bool enabled,
         bool unlockedSetParameters,
         bool nonBlockingRimReads,
-        bool softCatchUpSteer,
         bool dualHandleInput)
     {
         _ffbExperimentalInputFixes = enabled;
         _ffbExperimentalUnlockedSetParameters = enabled && unlockedSetParameters;
         _ffbExperimentalNonBlockingRimReads = enabled && nonBlockingRimReads;
-        _ffbExperimentalSoftCatchUpSteer = enabled && softCatchUpSteer;
         _ffbExperimentalDualHandleInput = enabled && dualHandleInput;
         _ffb.SetExperimentalInputOptions(
             _ffbExperimentalUnlockedSetParameters,
@@ -766,9 +763,8 @@ public sealed class BridgeService : IDisposable
                 {
                     profile = _profile;
                     mapped = _mapper.Map(profile, devices);
-                    // Normal path: soft catch-up (same as previous releases). Debug Test can
-                    // uncheck it to A/B without the limiter.
-                    if (!_ffbExperimentalInputFixes || _ffbExperimentalSoftCatchUpSteer)
+                    // FFB profile option (default off): limit per-frame steering jumps.
+                    if (profile.SoftCatchUpSteer)
                         mapped.Steering = SoftCatchUpSteer(mapped.Steering);
                     _latest = mapped;
                     _latestDevices = devices;
@@ -1308,8 +1304,11 @@ public sealed class BridgeService : IDisposable
 
     private void ApplyEffectGains(MappingProfile profile)
     {
-        OemFfbSharedMemory.WriteTypeGains(profile.FfbEffectGains);
-        ApplyEffectGainsUnlocked(profile);
+        var g = profile.FfbEffectGains ?? FfbEffectGains.CreateDefault();
+        g.Clamp();
+        var shmGainsOk = OemFfbSharedMemory.WriteTypeGains(g);
+        ApplyEffectGainsUnlocked(profile, g);
+        LogFfbTuneApply(profile, g, shmGainsOk);
     }
 
     private void ApplyOutputFeel(FfbOutputFeel? feel)
@@ -1319,9 +1318,9 @@ public sealed class BridgeService : IDisposable
         OemFfbSharedMemory.WriteMixOptions(feel);
     }
 
-    private void ApplyEffectGainsUnlocked(MappingProfile profile)
+    private void ApplyEffectGainsUnlocked(MappingProfile profile, FfbEffectGains? gains = null)
     {
-        var g = profile.FfbEffectGains ?? FfbEffectGains.CreateDefault();
+        var g = gains ?? profile.FfbEffectGains ?? FfbEffectGains.CreateDefault();
         g.Clamp();
         ApplyOutputFeel(profile.FfbOutputFeel);
         IVirtualG920Device? device;
@@ -1333,6 +1332,39 @@ public sealed class BridgeService : IDisposable
             (float)g.FrictionForce,
             (float)g.InertiaForce,
             (float)g.Periodic);
+    }
+
+    /// <summary>
+    /// Debug session: log effect/feel values we push and SHM readback so exports prove
+    /// slider changes reached g920ffb (or that SHM was closed).
+    /// </summary>
+    private static void LogFfbTuneApply(MappingProfile profile, FfbEffectGains g, bool shmGainsOk)
+    {
+        if (!BridgeHealthLog.IsEnabled)
+            return;
+
+        var f = profile.FfbOutputFeel ?? FfbOutputFeel.CreateDefault();
+        f.Clamp();
+        Span<ushort> readback = stackalloc ushort[FfbEffectGains.TypeCount];
+        var shmReadOk = OemFfbSharedMemory.TryReadTypeGains(readback);
+        var mixOk = OemFfbSharedMemory.TryReadMixOptions(out var mixFlags, out var dampVel, out var dampDead);
+        var shmCf = shmReadOk ? readback[FfbEffectGains.Constant] : (ushort)0;
+        var shmSpring = shmReadOk ? readback[FfbEffectGains.Spring] : (ushort)0;
+        var shmDamper = shmReadOk ? readback[FfbEffectGains.Damper] : (ushort)0;
+        var shmPeriodic = shmReadOk ? readback[FfbEffectGains.Sine] : (ushort)0;
+
+        BridgeHealthLog.Note(
+            $"FFB_TUNE master={profile.FfbGain:0.##} inv={profile.FfbInvert} " +
+            $"CF={g.ConstantForce:0.##} Spring={g.SpringForce:0.##} Damper={g.DamperForce:0.##} " +
+            $"Friction={g.FrictionForce:0.##} Inertia={g.InertiaForce:0.##} Periodic={g.Periodic:0.##} " +
+            $"Ramp={g.RampForce:0.##} Custom={g.CustomForce:0.##} " +
+            $"feel smooth={f.SmoothingMs:0} peak={f.PeakSoftStart:0.##} bootEaseIn={(f.BootEaseIn ? "on" : "off")} " +
+            $"dead={f.Deadband:0.###} slew={f.MaxSlewPerSecond:0} spike={f.MaxSpikeStep:0.##} eps={f.MagnitudeEpsilon:0} " +
+            $"dampVel={f.DamperVelocityScale:0.##} dampDead={f.DamperDeadbandScale:0.##} " +
+            $"invertCF={f.InvertConstantForce} center={f.ForceCenterSpring} " +
+            $"shmWrite={(shmGainsOk ? 1 : 0)} shmRead={(shmReadOk ? 1 : 0)} " +
+            $"shmCF={shmCf} shmSpring={shmSpring} shmDamper={shmDamper} shmPeriodic={shmPeriodic} " +
+            $"mixRead={(mixOk ? 1 : 0)} mixFlags=0x{mixFlags:X} dampVelDi={dampVel} dampDeadDi={dampDead}");
     }
 
     public void Dispose()

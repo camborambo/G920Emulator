@@ -37,7 +37,8 @@ public static class BridgeHealthLog
             Write_NoLock("HEALTH START");
             Write_NoLock(
                 "HEALTH HINT look for: CONFIG interruptPush autoRecover=0 / HOST_STALE / " +
-                "HB hostReadAgeMs notReadyDelta / STALE_INPUT / RECOVER skipped (auto-recover off)");
+                "HB hostReadAgeMs notReadyDelta / STALE_INPUT / FFB_TUNE (gains+feel apply) / " +
+                "RECOVER skipped (auto-recover off)");
         }
     }
 

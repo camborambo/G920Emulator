@@ -215,44 +215,84 @@ public static class OemFfbSharedMemory
     /// Writes per DI effect-type gains (UINT16, 10000 = 100%, up to 20000 = 200%).
     /// Applied by <c>g920ffb.dll</c> before effects are mixed.
     /// </summary>
-    public static void WriteTypeGains(ReadOnlySpan<ushort> gains)
+    /// <returns>False when shared memory is not open (game OEM not publishing yet).</returns>
+    public static bool WriteTypeGains(ReadOnlySpan<ushort> gains)
     {
         try
         {
             EnsureOpen();
-            if (_view is null) return;
+            if (_view is null) return false;
 
             var count = Math.Min(TypeGainCount, gains.Length);
             for (var i = 0; i < count; i++)
                 _view.Write(Offset.TypeGain + i * sizeof(ushort), gains[i]);
+            return true;
         }
-        catch (FileNotFoundException) { Close(); }
-        catch { Close(); }
+        catch (FileNotFoundException) { Close(); return false; }
+        catch { Close(); return false; }
     }
 
-    public static void WriteTypeGains(FfbEffectGains gains) =>
+    public static bool WriteTypeGains(FfbEffectGains gains) =>
         WriteTypeGains(gains.ToSharedMemoryGains());
+
+    /// <summary>Read back TypeGain slots written by the emulator (for Debug verify).</summary>
+    public static bool TryReadTypeGains(Span<ushort> dest)
+    {
+        try
+        {
+            EnsureOpen();
+            if (_view is null) return false;
+            var count = Math.Min(TypeGainCount, dest.Length);
+            for (var i = 0; i < count; i++)
+                dest[i] = _view.ReadUInt16(Offset.TypeGain + i * sizeof(ushort));
+            for (var i = count; i < dest.Length; i++)
+                dest[i] = 0;
+            return true;
+        }
+        catch (FileNotFoundException) { Close(); return false; }
+        catch { Close(); return false; }
+    }
 
     /// <summary>
     /// Writes OEM mix options (CF invert, damper velocity/deadband scales) for <c>g920ffb.dll</c>.
     /// Scales use the same 10000 = 1.0 convention as type gains.
     /// </summary>
-    public static void WriteMixOptions(FfbOutputFeel? feel)
+    public static bool WriteMixOptions(FfbOutputFeel? feel)
     {
         feel ??= FfbOutputFeel.CreateDefault();
         feel.Clamp();
         try
         {
             EnsureOpen();
-            if (_view is null) return;
+            if (_view is null) return false;
 
             uint flags = feel.InvertConstantForce ? 1u : 0u;
             _view.Write(Offset.MixFlags, flags);
             _view.Write(Offset.DamperVelScale, ToDiScale(feel.DamperVelocityScale));
             _view.Write(Offset.DamperDeadbandScale, ToDiScale(feel.DamperDeadbandScale));
+            return true;
         }
-        catch (FileNotFoundException) { Close(); }
-        catch { Close(); }
+        catch (FileNotFoundException) { Close(); return false; }
+        catch { Close(); return false; }
+    }
+
+    /// <summary>Read back OEM mix options (for Debug verify).</summary>
+    public static bool TryReadMixOptions(out uint mixFlags, out ushort damperVelScale, out ushort damperDeadbandScale)
+    {
+        mixFlags = 0;
+        damperVelScale = 0;
+        damperDeadbandScale = 0;
+        try
+        {
+            EnsureOpen();
+            if (_view is null) return false;
+            mixFlags = _view.ReadUInt32(Offset.MixFlags);
+            damperVelScale = _view.ReadUInt16(Offset.DamperVelScale);
+            damperDeadbandScale = _view.ReadUInt16(Offset.DamperDeadbandScale);
+            return true;
+        }
+        catch (FileNotFoundException) { Close(); return false; }
+        catch { Close(); return false; }
     }
 
     private static ushort ToDiScale(double scale) =>

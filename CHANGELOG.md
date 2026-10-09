@@ -9,6 +9,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Debug session logs **FFB_TUNE** lines to `g920emulator-bridge-health.log` when effect gains / output feel are applied (values + shared-memory readback) so exports can prove slider changes reached `g920ffb`.
 - Telemetry **Max gears** in the Gearing card (1–10): UDP `MaxGears` → SimHub `CarSettings_MaxGears`, shows that many gear ratio / top-speed rows (paddles can use 7–10 for speed sim; H-shifter still 1–6). Gear tops use the [Blocklayer](https://www.blocklayer.com/rpm-gear) formula MPH = (tire × ShiftAt) / (336 × gear × diff) for all gears including 7–10; absolute speed ceiling raised to 1600 km/h so tall overdrive is not clipped through AbsoluteRpmMax. After updating, **Remove registration** → restart SimHub → **Register with SimHub** again if the packet layout changed.
 - Telemetry **Arcade buttons → Sequential shifter** (opt-in): bind **Gear up** / **Gear down** / **Gear reset** on the input profile for sequential/paddle boxes that do not map to H-pattern gears. Pattern is **R → 1 → Max gears**; Reset jumps to **1**. When enabled, H-pattern and bumper-paddle gear inference are ignored.
 - **Custom bindings** after Gear 6: Binding Wizard with **Bind Button** + optional **Bind FN** popups, plus a **Toggle** checkbox (hold vs latch). If FN is bound, the button requires that key held. Remove with **X**.
@@ -19,10 +20,22 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- Telemetry **Downshift settle** (Speed dynamics): after a downshift, speed bleeds toward that gear’s max instead of snapping. Separate from Coast / Brake; 0 = off. (Restores the old Gear settle path that had been hard-pinned.)
+- FFB label clarity: **Force deadzone** (was Deadband; not Fanatec DEA), **Slew rate** (Simucube-style), **DI chatter** (was DI epsilon), **Damper velocity** / **Damper deadzone** (was Damp vel / Damp dead). Bind ids unchanged.
+- **Damper velocity** max capped at **200%** (was 400%) to match Master / effect gains; legacy values above 200% clamp down.
+- FFB **Raw** / Default is always exact game mix (100% gains, no feel/shaping) and cannot be overwritten — Save with tweaks prompts **Save As…**; Default switches to Raw. Tuned presets are user-created only.
+- Renamed Output feel **Soft start** → **Boot ease-in**, now an on/off toggle: when on, mute forces for ~5 s when FFB first comes online so the base does not kick (was a ms fade slider). Moved under Force Feedback → **Advanced Settings**.
+- Renamed Force Feedback → **Advanced mix** → **Advanced Settings**.
+- Checkboxes use a **toggle switch** style app-wide (Settings, Force Feedback, bind dialogs); same on/off behavior.
+- **Soft steering catch-up** moved from Settings → Debug Test to Force Feedback → **Advanced Settings** (with Invert FFB). Saved with the FFB profile (default off).
+- **Invert FFB** moved under Force Feedback → **Advanced Settings** (with Invert Constant Force / damper scales).
 - Replaced Settings checkboxes **Apply HidHide on Start** / **Restore my HidHide on Stop** with the HidHide tab radios + restore checkbox (`hidHideApplyMode` in `settings.json`; legacy `autoApplyHidHideConfigOnStart` migrates).
 
 ### Fixed
 
+- **Peak soft** slider: **0 = off**, slide up for more peak compression (was inverted: 100% = off, lower = stronger).
+- **Spike cap:** limit is a per-second |Δtorque| cap (like Slew), not a raw per-call clamp. Slider goes to **0 = off** (was stuck at 5% minimum with “off” only at 100%). Legacy 100% migrates to 0. On the ~500 Hz OEM path, lowering the slider no longer turns into hard stair-steps that feel more rugged on DD bases.
+- **HidHide Hide bound devices only:** each **Start** syncs the hide list to the active profile — hides bound devices (match by DirectInput instance/product GUID and VID/PID) and **unhides** other gaming devices left hidden from a previous full-rig / Hide-all session. Wheel-only profiles no longer leave pedals/shifters cloaked after you switch profiles (or manually unhide them in HidHide Client).
 - **Install folder still “in use” by Steam:** never re-register `g920ffb.dll` COM InprocServer32 to the install folder when the ProgramData cache copy fails; rewrite stale Desktop/install paths (HKCU/HKLM × 32/64-bit) to `%ProgramData%\G920Emulator\g920ffb\`; update the cache via temp+Replace. Diagnostics `oem-registry.txt` shows install vs ProgramData. If the folder was already locked from an older load, close Steam once after updating.
 - **HOST_STALE / mid-session disconnect:** virtual G920 uses **interrupt-push** WinUHid input (no ReadReport pull mode) so `SubmitInputReport` is not gated on a pending host read. Status + Debug log `HOST_STALE` / 2s heartbeats (`hostReadAgeMs`, `notReadyDelta`). **No mid-session Col01 auto-recover** for HOST_STALE or hard submit-fail (log + Stop/Start only; Settings opt-in later). Start/Stop orphan Col01 cleanup unchanged. Validated on Fanatec (idle + ~30 min live Unbound).
 - On bridge Start, disable Device Manager power-saving (“Allow the computer to turn off this device…”) for **WinUHid / VHF** nodes so Windows cannot sleep the virtual G920 while the app stays Running. Best-effort (needs elevation).
@@ -31,7 +44,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Telemetry-on further lightened after Fanatec `HOST_STALE` (game stops reading Col01 while FFB continues): input thread enqueues at **SendHz** (not every ~2 ms), caches arcade-bind presence, and sheds samples when `hostReadAge ≥ 250 ms`.
 - Telemetry/OEM hot path: no per-frame `CombinedTypeTorqueDi` / effect-table string allocs (reuse buffers, throttle FFB diag text ~10 Hz), skip game-process probe while OEM is playing, avoid per-packet Engine-scale file writes and status-string rebuilds, ASCII gear packet fast-path, Telemetry UI meters only while that tab/overlay is visible.
 - Debug bridge-health log records `steer`/`thr`/`brk`, FFB cache age, and `STALE_INPUT` when the virtual report stops changing (Debug session only).
-- Settings → **Debug Test** tab: Enable only reveals knobs; defaults match the last stable release (Exclusive, locked SetParameters, blocking rim reads, soft catch-up on). **Default** restores that path. Sub-options are for A/B only; re-attaches FFB when Enable/coop/dual-handle changes. Debug capture records effective + stored Debug Test flags.
+- Settings → **Debug Test** tab: Enable only reveals knobs; defaults match the last stable release (Exclusive, locked SetParameters, blocking rim reads). **Default** restores that path. Sub-options are for A/B only; re-attaches FFB when Enable/coop/dual-handle changes. Debug capture records effective + stored Debug Test flags.
 - Debug Test → **Dual-handle input** (opt-in): standalone Exclusive FFB joystick while InputHub keeps NonExclusive Poll (unpinned). Fixes the Fanatec case where sharing Exclusive on InputHub + a second Poll handle still flatlined game input; FFB forces stay Exclusive.
 - Debug bridge-health: `hostReadAgeMs` / `notReady` / `HOST_STALE` when mapped pedals move but the game stops reading the virtual G920 (distinguishes emulator soft-freeze from game DI/host stall).
 - Input profiles with unknown binding targets (e.g. saved by a newer build) no longer crash on launch: invalid rows are skipped and a **Profile needs attention** dialog asks you to rebind and Save.
