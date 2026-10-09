@@ -43,6 +43,11 @@ public sealed class TelemetrySynthesizer
     private bool _paddleArmed;
     private bool _prevPaddleLeft;
     private bool _prevPaddleRight;
+    /// <summary>Sequential arcade index: 0 = R, 1..MaxGears = forward.</summary>
+    private int _seqGearIndex = 1;
+    private bool _prevSeqGearUp;
+    private bool _prevSeqGearDown;
+    private bool _prevSeqGearReset;
     private float _prevCf;
     private float _prevPeriodic;
     private float _impactDumpCooldown;
@@ -51,7 +56,8 @@ public sealed class TelemetrySynthesizer
     private bool _revLimitCut;
     /// <summary>Keeps ignition/idle alive briefly after pedals/speed go quiet (N only).</summary>
     private float _engineLingerSec;
-    private static readonly string[] PaddleGearLabels = ["1", "2", "3", "4", "5", "6"];
+    private static readonly string[] PaddleGearLabels =
+        ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 
     public void Configure(TelemetryTuning? tuning)
     {
@@ -66,7 +72,10 @@ public sealed class TelemetrySynthesizer
         bool knownGameRunning,
         double dtSec,
         bool handbrakeHeld = false,
-        bool nosHeld = false)
+        bool nosHeld = false,
+        bool gearUpHeld = false,
+        bool gearDownHeld = false,
+        bool gearResetHeld = false)
     {
         dtSec = Math.Clamp(dtSec, 0.0005, 0.05);
         var throttle = Math.Clamp(mapped.Throttle, 0f, 1f);
@@ -100,7 +109,7 @@ public sealed class TelemetrySynthesizer
         var playing = oemPlaying;
         var session = knownGameRunning || playing;
 
-        var gear = ResolveGear(mapped);
+        var gear = ResolveGear(mapped, gearUpHeld, gearDownHeld, gearResetHeld);
         var prevGear = _lastGear;
         var gearChanged = !string.Equals(gear, prevGear, StringComparison.Ordinal);
         if (gearChanged)
@@ -461,6 +470,8 @@ public sealed class TelemetrySynthesizer
         _paddleGear = 1;
         _paddleArmed = false;
         _prevPaddleLeft = _prevPaddleRight = false;
+        _seqGearIndex = 1;
+        _prevSeqGearUp = _prevSeqGearDown = _prevSeqGearReset = false;
         _prevCf = _prevPeriodic = 0;
         _impactDumpCooldown = 0;
         _suspensionPhase = 0;
@@ -513,8 +524,20 @@ public sealed class TelemetrySynthesizer
         return (surface, surface, surface, surface);
     }
 
-    private string ResolveGear(MappedG920State mapped)
+    private string ResolveGear(
+        MappedG920State mapped,
+        bool gearUpHeld,
+        bool gearDownHeld,
+        bool gearResetHeld)
     {
+        if (_tuning.SequentialArcadeGears)
+            return ResolveSequentialArcadeGear(gearUpHeld, gearDownHeld, gearResetHeld);
+
+        // Clear sequential edge state while H-pattern / paddles own gear.
+        _prevSeqGearUp = gearUpHeld;
+        _prevSeqGearDown = gearDownHeld;
+        _prevSeqGearReset = gearResetHeld;
+
         if (mapped.GearR) { _paddleArmed = false; return "R"; }
         if (mapped.Gear1) { _paddleArmed = false; return "1"; }
         if (mapped.Gear2) { _paddleArmed = false; return "2"; }
@@ -527,10 +550,11 @@ public sealed class TelemetrySynthesizer
         var right = mapped.PaddleRight && !_prevPaddleRight;
         _prevPaddleLeft = mapped.PaddleLeft;
         _prevPaddleRight = mapped.PaddleRight;
+        var maxGears = EffectiveMaxGears();
         if (right)
         {
             _paddleArmed = true;
-            _paddleGear = Math.Min(6, _paddleGear + 1);
+            _paddleGear = Math.Min(maxGears, _paddleGear + 1);
         }
         else if (left)
         {
@@ -540,7 +564,44 @@ public sealed class TelemetrySynthesizer
 
         if (!_paddleArmed)
             return "N";
+        if (_paddleGear > maxGears)
+            _paddleGear = maxGears;
         var idx = _paddleGear - 1;
         return (uint)idx < (uint)PaddleGearLabels.Length ? PaddleGearLabels[idx] : "N";
     }
+
+    /// <summary>
+    /// Arcade sequential: R → 1 → … → MaxGears. Rising-edge Up/Down; Reset → 1.
+    /// Ignores H-pattern and bumper paddles while enabled.
+    /// </summary>
+    private string ResolveSequentialArcadeGear(bool gearUpHeld, bool gearDownHeld, bool gearResetHeld)
+    {
+        var maxGears = EffectiveMaxGears();
+        var up = gearUpHeld && !_prevSeqGearUp;
+        var down = gearDownHeld && !_prevSeqGearDown;
+        var reset = gearResetHeld && !_prevSeqGearReset;
+        _prevSeqGearUp = gearUpHeld;
+        _prevSeqGearDown = gearDownHeld;
+        _prevSeqGearReset = gearResetHeld;
+
+        if (_seqGearIndex > maxGears)
+            _seqGearIndex = maxGears;
+
+        if (reset)
+            _seqGearIndex = 1;
+        else if (up)
+            _seqGearIndex = Math.Min(maxGears, _seqGearIndex + 1);
+        else if (down)
+            _seqGearIndex = Math.Max(0, _seqGearIndex - 1);
+
+        if (_seqGearIndex <= 0)
+            return "R";
+        var idx = _seqGearIndex - 1;
+        return (uint)idx < (uint)PaddleGearLabels.Length ? PaddleGearLabels[idx] : "1";
+    }
+
+    private int EffectiveMaxGears() => Math.Clamp(
+        _tuning.MaxGears <= 0 ? TelemetryTuning.DefaultMaxGears : _tuning.MaxGears,
+        TelemetryTuning.MinMaxGears,
+        TelemetryTuning.AbsoluteMaxGears);
 }

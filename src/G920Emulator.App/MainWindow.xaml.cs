@@ -806,18 +806,15 @@ public partial class MainWindow : Window
             if (TelemetryGearSettleSlider is not null)
                 TelemetryGearSettleSlider.Value = FromKmh(settings.TelemetryGearSettleKmhPerSec);
             SyncGearMaxSliderRanges(FromKmh(settings.TelemetrySpeedMaxKmh));
-            if (TelemetryGear1MaxSlider is not null)
-                TelemetryGear1MaxSlider.Value = FromKmh(settings.TelemetryGear1MaxKmh);
-            if (TelemetryGear2MaxSlider is not null)
-                TelemetryGear2MaxSlider.Value = FromKmh(settings.TelemetryGear2MaxKmh);
-            if (TelemetryGear3MaxSlider is not null)
-                TelemetryGear3MaxSlider.Value = FromKmh(settings.TelemetryGear3MaxKmh);
-            if (TelemetryGear4MaxSlider is not null)
-                TelemetryGear4MaxSlider.Value = FromKmh(settings.TelemetryGear4MaxKmh);
-            if (TelemetryGear5MaxSlider is not null)
-                TelemetryGear5MaxSlider.Value = FromKmh(settings.TelemetryGear5MaxKmh);
-            if (TelemetryGear6MaxSlider is not null)
-                TelemetryGear6MaxSlider.Value = FromKmh(settings.TelemetryGear6MaxKmh);
+            {
+                var tuning = settings.ToTelemetryTuning();
+                for (var g = 1; g <= TelemetryTuning.AbsoluteMaxGears; g++)
+                {
+                    var maxSlider = GearMaxSlider(g);
+                    if (maxSlider is not null)
+                        maxSlider.Value = FromKmh(tuning.GetGearMaxKmh(g));
+                }
+            }
             if (TelemetryDiffRatioSlider is not null)
                 TelemetryDiffRatioSlider.Value = settings.TelemetryDiffRatio > 0
                     ? settings.TelemetryDiffRatio
@@ -838,20 +835,24 @@ public partial class MainWindow : Window
                 TelemetryHandbrakeStrengthSlider.Value = FromKmh(settings.TelemetryHandbrakeKmhPerSec);
             if (TelemetryNosBoostSlider is not null)
                 TelemetryNosBoostSlider.Value = FromKmh(settings.TelemetryNosBoostKmhPerSec);
+            if (TelemetrySequentialArcadeCheck is not null)
+                TelemetrySequentialArcadeCheck.IsChecked = settings.TelemetrySequentialArcadeGears;
+            UpdateSequentialArcadeBindsVisibility();
             if (TelemetryRpmBounceAmountSlider is not null)
                 TelemetryRpmBounceAmountSlider.Value = settings.TelemetryRpmBounceAmount;
             if (TelemetryRpmBounceHzSlider is not null)
                 TelemetryRpmBounceHzSlider.Value = settings.TelemetryRpmBounceHz;
             if (TelemetryEngineVibrationScaleSlider is not null)
                 TelemetryEngineVibrationScaleSlider.Value = settings.TelemetryEngineVibrationScale;
-            if (TelemetryMaxGearsBox is not null)
+            if (TelemetryMaxGearsSlider is not null)
             {
                 var maxGears = Math.Clamp(
                     settings.TelemetryMaxGears <= 0 ? TelemetryTuning.DefaultMaxGears : settings.TelemetryMaxGears,
                     TelemetryTuning.MinMaxGears,
                     TelemetryTuning.AbsoluteMaxGears);
-                TelemetryMaxGearsBox.Text = maxGears.ToString();
+                TelemetryMaxGearsSlider.Value = maxGears;
             }
+            UpdateGearRowsVisibility();
             if (TelemetryRumbleScaleSlider is not null)
                 TelemetryRumbleScaleSlider.Value = settings.TelemetrySurfaceRumbleScale;
             if (TelemetryImpactScaleSlider is not null)
@@ -932,7 +933,7 @@ public partial class MainWindow : Window
         if (_telemetryUiBusy || !IsLoaded) return;
         if (sender is not Slider maxSlider) return;
         var gear = GearIndexFromMaxSlider(maxSlider);
-        if (gear is < 1 or > 6) return;
+        if (gear is < 1 or > TelemetryTuning.AbsoluteMaxGears) return;
 
         _telemetryUiBusy = true;
         try
@@ -956,7 +957,7 @@ public partial class MainWindow : Window
         if (_telemetryUiBusy || !IsLoaded) return;
         if (sender is not Slider ratioSlider) return;
         var gear = GearIndexFromRatioSlider(ratioSlider);
-        if (gear is < 1 or > 6) return;
+        if (gear is < 1 or > TelemetryTuning.AbsoluteMaxGears) return;
 
         _telemetryUiBusy = true;
         try
@@ -1016,6 +1017,7 @@ public partial class MainWindow : Window
     {
         var t = new TelemetryTuning
         {
+            MaxGears = CurrentUiMaxGears(),
             RpmMax = (float)(TelemetryRpmRange?.UpperValue ?? TelemetryTuning.DefaultRpmMax),
             RpmMin = (float)(TelemetryRpmRange?.LowerValue ?? TelemetryTuning.DefaultRpmMin),
             RpmRedline = (float)(TelemetryRpmRedlineSlider?.Value ?? TelemetryTuning.DefaultRpmRedline),
@@ -1027,12 +1029,20 @@ public partial class MainWindow : Window
             Gear4Ratio = (float)(TelemetryGear4RatioSlider?.Value ?? 0),
             Gear5Ratio = (float)(TelemetryGear5RatioSlider?.Value ?? 0),
             Gear6Ratio = (float)(TelemetryGear6RatioSlider?.Value ?? 0),
+            Gear7Ratio = (float)(TelemetryGear7RatioSlider?.Value ?? 0),
+            Gear8Ratio = (float)(TelemetryGear8RatioSlider?.Value ?? 0),
+            Gear9Ratio = (float)(TelemetryGear9RatioSlider?.Value ?? 0),
+            Gear10Ratio = (float)(TelemetryGear10RatioSlider?.Value ?? 0),
             Gear1MaxKmh = TelemetryGear1MaxSlider is null ? 0 : (float)ToStoredKmh(TelemetryGear1MaxSlider.Value),
             Gear2MaxKmh = TelemetryGear2MaxSlider is null ? 0 : (float)ToStoredKmh(TelemetryGear2MaxSlider.Value),
             Gear3MaxKmh = TelemetryGear3MaxSlider is null ? 0 : (float)ToStoredKmh(TelemetryGear3MaxSlider.Value),
             Gear4MaxKmh = TelemetryGear4MaxSlider is null ? 0 : (float)ToStoredKmh(TelemetryGear4MaxSlider.Value),
             Gear5MaxKmh = TelemetryGear5MaxSlider is null ? 0 : (float)ToStoredKmh(TelemetryGear5MaxSlider.Value),
             Gear6MaxKmh = TelemetryGear6MaxSlider is null ? 0 : (float)ToStoredKmh(TelemetryGear6MaxSlider.Value),
+            Gear7MaxKmh = TelemetryGear7MaxSlider is null ? 0 : (float)ToStoredKmh(TelemetryGear7MaxSlider.Value),
+            Gear8MaxKmh = TelemetryGear8MaxSlider is null ? 0 : (float)ToStoredKmh(TelemetryGear8MaxSlider.Value),
+            Gear9MaxKmh = TelemetryGear9MaxSlider is null ? 0 : (float)ToStoredKmh(TelemetryGear9MaxSlider.Value),
+            Gear10MaxKmh = TelemetryGear10MaxSlider is null ? 0 : (float)ToStoredKmh(TelemetryGear10MaxSlider.Value),
         };
         t.Clamp();
         return t;
@@ -1041,7 +1051,7 @@ public partial class MainWindow : Window
     private void ApplyGearChartFromTuning(TelemetryTuning chart)
     {
         var abs = AbsoluteSpeedMaxUi;
-        void ApplyGear(int gear, float ratio, float maxKmh)
+        for (var gear = 1; gear <= TelemetryTuning.AbsoluteMaxGears; gear++)
         {
             var ratioSlider = GearRatioSlider(gear);
             var maxSlider = GearMaxSlider(gear);
@@ -1049,48 +1059,33 @@ public partial class MainWindow : Window
             {
                 ratioSlider.Minimum = TelemetryTuning.MinGearRatio;
                 ratioSlider.Maximum = TelemetryTuning.MaxGearRatio;
-                ratioSlider.Value = Math.Clamp(ratio, ratioSlider.Minimum, ratioSlider.Maximum);
+                ratioSlider.Value = Math.Clamp(chart.GetGearRatio(gear), ratioSlider.Minimum, ratioSlider.Maximum);
             }
 
             if (maxSlider is not null)
             {
                 maxSlider.Minimum = FromKmh(5);
                 maxSlider.Maximum = abs;
-                maxSlider.Value = Math.Clamp(FromKmh(maxKmh), maxSlider.Minimum, maxSlider.Maximum);
+                maxSlider.Value = Math.Clamp(FromKmh(chart.GetGearMaxKmh(gear)), maxSlider.Minimum, maxSlider.Maximum);
             }
         }
-
-        ApplyGear(1, chart.Gear1Ratio, chart.Gear1MaxKmh);
-        ApplyGear(2, chart.Gear2Ratio, chart.Gear2MaxKmh);
-        ApplyGear(3, chart.Gear3Ratio, chart.Gear3MaxKmh);
-        ApplyGear(4, chart.Gear4Ratio, chart.Gear4MaxKmh);
-        ApplyGear(5, chart.Gear5Ratio, chart.Gear5MaxKmh);
-        ApplyGear(6, chart.Gear6Ratio, chart.Gear6MaxKmh);
     }
 
-    private static int GearIndexFromMaxSlider(Slider slider)
+    private static int GearIndexFromNamedSlider(Slider slider)
     {
         var name = slider.Name ?? "";
-        if (name.Contains("Gear1", StringComparison.Ordinal)) return 1;
-        if (name.Contains("Gear2", StringComparison.Ordinal)) return 2;
-        if (name.Contains("Gear3", StringComparison.Ordinal)) return 3;
-        if (name.Contains("Gear4", StringComparison.Ordinal)) return 4;
-        if (name.Contains("Gear5", StringComparison.Ordinal)) return 5;
-        if (name.Contains("Gear6", StringComparison.Ordinal)) return 6;
+        // Match Gear10 before Gear1.
+        for (var g = TelemetryTuning.AbsoluteMaxGears; g >= 1; g--)
+        {
+            if (name.Contains("Gear" + g, StringComparison.Ordinal))
+                return g;
+        }
         return 0;
     }
 
-    private static int GearIndexFromRatioSlider(Slider slider)
-    {
-        var name = slider.Name ?? "";
-        if (name.Contains("Gear1", StringComparison.Ordinal)) return 1;
-        if (name.Contains("Gear2", StringComparison.Ordinal)) return 2;
-        if (name.Contains("Gear3", StringComparison.Ordinal)) return 3;
-        if (name.Contains("Gear4", StringComparison.Ordinal)) return 4;
-        if (name.Contains("Gear5", StringComparison.Ordinal)) return 5;
-        if (name.Contains("Gear6", StringComparison.Ordinal)) return 6;
-        return 0;
-    }
+    private static int GearIndexFromMaxSlider(Slider slider) => GearIndexFromNamedSlider(slider);
+
+    private static int GearIndexFromRatioSlider(Slider slider) => GearIndexFromNamedSlider(slider);
 
     private Slider? GearMaxSlider(int gear) => gear switch
     {
@@ -1100,6 +1095,10 @@ public partial class MainWindow : Window
         4 => TelemetryGear4MaxSlider,
         5 => TelemetryGear5MaxSlider,
         6 => TelemetryGear6MaxSlider,
+        7 => TelemetryGear7MaxSlider,
+        8 => TelemetryGear8MaxSlider,
+        9 => TelemetryGear9MaxSlider,
+        10 => TelemetryGear10MaxSlider,
         _ => null,
     };
 
@@ -1111,8 +1110,123 @@ public partial class MainWindow : Window
         4 => TelemetryGear4RatioSlider,
         5 => TelemetryGear5RatioSlider,
         6 => TelemetryGear6RatioSlider,
+        7 => TelemetryGear7RatioSlider,
+        8 => TelemetryGear8RatioSlider,
+        9 => TelemetryGear9RatioSlider,
+        10 => TelemetryGear10RatioSlider,
         _ => null,
     };
+
+    private TextBlock? GearRatioValueText(int gear) => gear switch
+    {
+        1 => TelemetryGear1RatioValueText,
+        2 => TelemetryGear2RatioValueText,
+        3 => TelemetryGear3RatioValueText,
+        4 => TelemetryGear4RatioValueText,
+        5 => TelemetryGear5RatioValueText,
+        6 => TelemetryGear6RatioValueText,
+        7 => TelemetryGear7RatioValueText,
+        8 => TelemetryGear8RatioValueText,
+        9 => TelemetryGear9RatioValueText,
+        10 => TelemetryGear10RatioValueText,
+        _ => null,
+    };
+
+    private TextBlock? GearMaxValueText(int gear) => gear switch
+    {
+        1 => TelemetryGear1MaxValueText,
+        2 => TelemetryGear2MaxValueText,
+        3 => TelemetryGear3MaxValueText,
+        4 => TelemetryGear4MaxValueText,
+        5 => TelemetryGear5MaxValueText,
+        6 => TelemetryGear6MaxValueText,
+        7 => TelemetryGear7MaxValueText,
+        8 => TelemetryGear8MaxValueText,
+        9 => TelemetryGear9MaxValueText,
+        10 => TelemetryGear10MaxValueText,
+        _ => null,
+    };
+
+    private static void SetSettingsGearRatio(AppSettings s, int gear, float ratio)
+    {
+        switch (gear)
+        {
+            case 1: s.TelemetryGear1Ratio = ratio; break;
+            case 2: s.TelemetryGear2Ratio = ratio; break;
+            case 3: s.TelemetryGear3Ratio = ratio; break;
+            case 4: s.TelemetryGear4Ratio = ratio; break;
+            case 5: s.TelemetryGear5Ratio = ratio; break;
+            case 6: s.TelemetryGear6Ratio = ratio; break;
+            case 7: s.TelemetryGear7Ratio = ratio; break;
+            case 8: s.TelemetryGear8Ratio = ratio; break;
+            case 9: s.TelemetryGear9Ratio = ratio; break;
+            case 10: s.TelemetryGear10Ratio = ratio; break;
+        }
+    }
+
+    private static void SetSettingsGearMaxKmh(AppSettings s, int gear, float maxKmh)
+    {
+        switch (gear)
+        {
+            case 1: s.TelemetryGear1MaxKmh = maxKmh; break;
+            case 2: s.TelemetryGear2MaxKmh = maxKmh; break;
+            case 3: s.TelemetryGear3MaxKmh = maxKmh; break;
+            case 4: s.TelemetryGear4MaxKmh = maxKmh; break;
+            case 5: s.TelemetryGear5MaxKmh = maxKmh; break;
+            case 6: s.TelemetryGear6MaxKmh = maxKmh; break;
+            case 7: s.TelemetryGear7MaxKmh = maxKmh; break;
+            case 8: s.TelemetryGear8MaxKmh = maxKmh; break;
+            case 9: s.TelemetryGear9MaxKmh = maxKmh; break;
+            case 10: s.TelemetryGear10MaxKmh = maxKmh; break;
+        }
+    }
+
+    private FrameworkElement? GearRow(int gear) => gear switch
+    {
+        1 => TelemetryGearRow1,
+        2 => TelemetryGearRow2,
+        3 => TelemetryGearRow3,
+        4 => TelemetryGearRow4,
+        5 => TelemetryGearRow5,
+        6 => TelemetryGearRow6,
+        7 => TelemetryGearRow7,
+        8 => TelemetryGearRow8,
+        9 => TelemetryGearRow9,
+        10 => TelemetryGearRow10,
+        _ => null,
+    };
+
+    private int CurrentUiMaxGears()
+    {
+        if (TelemetryMaxGearsSlider is null)
+            return TelemetryTuning.DefaultMaxGears;
+        return (int)Math.Clamp(
+            Math.Round(TelemetryMaxGearsSlider.Value),
+            TelemetryTuning.MinMaxGears,
+            TelemetryTuning.AbsoluteMaxGears);
+    }
+
+    private void UpdateGearRowsVisibility()
+    {
+        var n = CurrentUiMaxGears();
+        for (var g = 1; g <= TelemetryTuning.AbsoluteMaxGears; g++)
+        {
+            var row = GearRow(g);
+            if (row is not null)
+                row.Visibility = g <= n ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
+    private void TelemetryMaxGearsSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_telemetryUiBusy || !IsLoaded) return;
+        UpdateGearRowsVisibility();
+        if (TelemetryMaxGearsValueText is not null)
+            TelemetryMaxGearsValueText.Text = CurrentUiMaxGears().ToString();
+        SyncSpeedMaxFromGear6Ui();
+        RefreshTelemetryTuningLabels();
+        SaveTelemetrySettingsFromUi();
+    }
 
     private void TelemetryRangeThumb_Changed(object? sender, RoutedPropertyChangedEventArgs<double> e)
     {
@@ -1161,12 +1275,10 @@ public partial class MainWindow : Window
         try
         {
             double tallest = FromKmh(20);
-            foreach (var slider in new[]
-                     {
-                         TelemetryGear1MaxSlider, TelemetryGear2MaxSlider, TelemetryGear3MaxSlider,
-                         TelemetryGear4MaxSlider, TelemetryGear5MaxSlider, TelemetryGear6MaxSlider,
-                     })
+            var n = CurrentUiMaxGears();
+            for (var g = 1; g <= n; g++)
             {
+                var slider = GearMaxSlider(g);
                 if (slider is not null && slider.Value > tallest)
                     tallest = slider.Value;
             }
@@ -1253,12 +1365,9 @@ public partial class MainWindow : Window
         // (that re-fired ValueChanged and crashed).
         _ = speedMaxUi;
         var abs = AbsoluteSpeedMaxUi;
-        foreach (var slider in new[]
-                 {
-                     TelemetryGear1MaxSlider, TelemetryGear2MaxSlider, TelemetryGear3MaxSlider,
-                     TelemetryGear4MaxSlider, TelemetryGear5MaxSlider, TelemetryGear6MaxSlider,
-                 })
+        for (var g = 1; g <= TelemetryTuning.AbsoluteMaxGears; g++)
         {
+            var slider = GearMaxSlider(g);
             if (slider is null) continue;
             slider.Minimum = FromKmh(5);
             slider.Maximum = abs;
@@ -1314,30 +1423,19 @@ public partial class MainWindow : Window
             TelemetryDiffRatioValueText.Text = $"{TelemetryDiffRatioSlider.Value:0.00}";
         if (TelemetryTireDiameterValueText is not null && TelemetryTireDiameterSlider is not null)
             TelemetryTireDiameterValueText.Text = $"{TelemetryTireDiameterSlider.Value:0.#}\"";
-        if (TelemetryGear1RatioValueText is not null && TelemetryGear1RatioSlider is not null)
-            TelemetryGear1RatioValueText.Text = FormatRatioUi(TelemetryGear1RatioSlider.Value);
-        if (TelemetryGear2RatioValueText is not null && TelemetryGear2RatioSlider is not null)
-            TelemetryGear2RatioValueText.Text = FormatRatioUi(TelemetryGear2RatioSlider.Value);
-        if (TelemetryGear3RatioValueText is not null && TelemetryGear3RatioSlider is not null)
-            TelemetryGear3RatioValueText.Text = FormatRatioUi(TelemetryGear3RatioSlider.Value);
-        if (TelemetryGear4RatioValueText is not null && TelemetryGear4RatioSlider is not null)
-            TelemetryGear4RatioValueText.Text = FormatRatioUi(TelemetryGear4RatioSlider.Value);
-        if (TelemetryGear5RatioValueText is not null && TelemetryGear5RatioSlider is not null)
-            TelemetryGear5RatioValueText.Text = FormatRatioUi(TelemetryGear5RatioSlider.Value);
-        if (TelemetryGear6RatioValueText is not null && TelemetryGear6RatioSlider is not null)
-            TelemetryGear6RatioValueText.Text = FormatRatioUi(TelemetryGear6RatioSlider.Value);
-        if (TelemetryGear1MaxValueText is not null && TelemetryGear1MaxSlider is not null)
-            TelemetryGear1MaxValueText.Text = FormatSpeedUi(TelemetryGear1MaxSlider.Value);
-        if (TelemetryGear2MaxValueText is not null && TelemetryGear2MaxSlider is not null)
-            TelemetryGear2MaxValueText.Text = FormatSpeedUi(TelemetryGear2MaxSlider.Value);
-        if (TelemetryGear3MaxValueText is not null && TelemetryGear3MaxSlider is not null)
-            TelemetryGear3MaxValueText.Text = FormatSpeedUi(TelemetryGear3MaxSlider.Value);
-        if (TelemetryGear4MaxValueText is not null && TelemetryGear4MaxSlider is not null)
-            TelemetryGear4MaxValueText.Text = FormatSpeedUi(TelemetryGear4MaxSlider.Value);
-        if (TelemetryGear5MaxValueText is not null && TelemetryGear5MaxSlider is not null)
-            TelemetryGear5MaxValueText.Text = FormatSpeedUi(TelemetryGear5MaxSlider.Value);
-        if (TelemetryGear6MaxValueText is not null && TelemetryGear6MaxSlider is not null)
-            TelemetryGear6MaxValueText.Text = FormatSpeedUi(TelemetryGear6MaxSlider.Value);
+        if (TelemetryMaxGearsValueText is not null)
+            TelemetryMaxGearsValueText.Text = CurrentUiMaxGears().ToString();
+        for (var g = 1; g <= TelemetryTuning.AbsoluteMaxGears; g++)
+        {
+            var ratioSlider = GearRatioSlider(g);
+            var maxSlider = GearMaxSlider(g);
+            var ratioLabel = GearRatioValueText(g);
+            var maxLabel = GearMaxValueText(g);
+            if (ratioLabel is not null && ratioSlider is not null)
+                ratioLabel.Text = FormatRatioUi(ratioSlider.Value);
+            if (maxLabel is not null && maxSlider is not null)
+                maxLabel.Text = FormatSpeedUi(maxSlider.Value);
+        }
         if (TelemetryCrashDumpValueText is not null && TelemetryCrashDumpSlider is not null)
             TelemetryCrashDumpValueText.Text = $"{TelemetryCrashDumpSlider.Value:P0}";
         if (TelemetryHandbrakeStrengthValueText is not null && TelemetryHandbrakeStrengthSlider is not null)
@@ -1378,9 +1476,45 @@ public partial class MainWindow : Window
             AutoSaveCurrent();
     }
 
+    private void TelemetryGearUpBind_Click(object sender, RoutedEventArgs e)
+    {
+        if (OpenBindDialog(G920Control.TelemetryGearUp))
+            AutoSaveCurrent();
+    }
+
+    private void TelemetryGearDownBind_Click(object sender, RoutedEventArgs e)
+    {
+        if (OpenBindDialog(G920Control.TelemetryGearDown))
+            AutoSaveCurrent();
+    }
+
+    private void TelemetryGearResetBind_Click(object sender, RoutedEventArgs e)
+    {
+        if (OpenBindDialog(G920Control.TelemetryGearReset))
+            AutoSaveCurrent();
+    }
+
+    private void TelemetrySequentialArcadeCheck_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_telemetryUiBusy) return;
+        UpdateSequentialArcadeBindsVisibility();
+        SaveTelemetrySettingsFromUi();
+    }
+
+    private void UpdateSequentialArcadeBindsVisibility()
+    {
+        if (TelemetrySequentialArcadeBindsPanel is null) return;
+        var on = TelemetrySequentialArcadeCheck?.IsChecked == true;
+        TelemetrySequentialArcadeBindsPanel.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void RefreshTelemetryArcadeBindButtons()
     {
-        if (TelemetryHandbrakeBindButton is null && TelemetryNosBindButton is null)
+        if (TelemetryHandbrakeBindButton is null &&
+            TelemetryNosBindButton is null &&
+            TelemetryGearUpBindButton is null &&
+            TelemetryGearDownBindButton is null &&
+            TelemetryGearResetBindButton is null)
             return;
 
         var unboundStyle = (Style)FindResource("FfbBindButton");
@@ -1389,6 +1523,9 @@ public partial class MainWindow : Window
                  {
                      (TelemetryHandbrakeBindButton, G920Control.TelemetryHandbrake),
                      (TelemetryNosBindButton, G920Control.TelemetryNos),
+                     (TelemetryGearUpBindButton, G920Control.TelemetryGearUp),
+                     (TelemetryGearDownBindButton, G920Control.TelemetryGearDown),
+                     (TelemetryGearResetBindButton, G920Control.TelemetryGearReset),
                  })
         {
             if (button is null) continue;
@@ -1445,53 +1582,38 @@ public partial class MainWindow : Window
                 s.TelemetryGearPullScale = (float)TelemetryGearPullSlider.Value;
             if (TelemetryGearSettleSlider is not null)
                 s.TelemetryGearSettleKmhPerSec = (float)ToStoredKmh(TelemetryGearSettleSlider.Value);
-            if (TelemetryGear1MaxSlider is not null)
-                s.TelemetryGear1MaxKmh = (float)ToStoredKmh(TelemetryGear1MaxSlider.Value);
-            if (TelemetryGear2MaxSlider is not null)
-                s.TelemetryGear2MaxKmh = (float)ToStoredKmh(TelemetryGear2MaxSlider.Value);
-            if (TelemetryGear3MaxSlider is not null)
-                s.TelemetryGear3MaxKmh = (float)ToStoredKmh(TelemetryGear3MaxSlider.Value);
-            if (TelemetryGear4MaxSlider is not null)
-                s.TelemetryGear4MaxKmh = (float)ToStoredKmh(TelemetryGear4MaxSlider.Value);
-            if (TelemetryGear5MaxSlider is not null)
-                s.TelemetryGear5MaxKmh = (float)ToStoredKmh(TelemetryGear5MaxSlider.Value);
-            if (TelemetryGear6MaxSlider is not null)
-                s.TelemetryGear6MaxKmh = (float)ToStoredKmh(TelemetryGear6MaxSlider.Value);
             if (TelemetryDiffRatioSlider is not null)
                 s.TelemetryDiffRatio = (float)TelemetryDiffRatioSlider.Value;
             if (TelemetryTireDiameterSlider is not null)
                 s.TelemetryTireDiameterInches = (float)TelemetryTireDiameterSlider.Value;
-            if (TelemetryGear1RatioSlider is not null)
-                s.TelemetryGear1Ratio = (float)TelemetryGear1RatioSlider.Value;
-            if (TelemetryGear2RatioSlider is not null)
-                s.TelemetryGear2Ratio = (float)TelemetryGear2RatioSlider.Value;
-            if (TelemetryGear3RatioSlider is not null)
-                s.TelemetryGear3Ratio = (float)TelemetryGear3RatioSlider.Value;
-            if (TelemetryGear4RatioSlider is not null)
-                s.TelemetryGear4Ratio = (float)TelemetryGear4RatioSlider.Value;
-            if (TelemetryGear5RatioSlider is not null)
-                s.TelemetryGear5Ratio = (float)TelemetryGear5RatioSlider.Value;
-            if (TelemetryGear6RatioSlider is not null)
-                s.TelemetryGear6Ratio = (float)TelemetryGear6RatioSlider.Value;
+            s.TelemetryMaxGears = CurrentUiMaxGears();
+            for (var g = 1; g <= TelemetryTuning.AbsoluteMaxGears; g++)
+            {
+                var ratioSlider = GearRatioSlider(g);
+                var maxSlider = GearMaxSlider(g);
+                if (ratioSlider is not null)
+                    SetSettingsGearRatio(s, g, (float)ratioSlider.Value);
+                if (maxSlider is not null)
+                    SetSettingsGearMaxKmh(s, g, (float)ToStoredKmh(maxSlider.Value));
+            }
             if (TelemetryCrashDumpSlider is not null)
                 s.TelemetryCrashDumpScale = (float)TelemetryCrashDumpSlider.Value;
             if (TelemetryHandbrakeStrengthSlider is not null)
                 s.TelemetryHandbrakeKmhPerSec = (float)ToStoredKmh(TelemetryHandbrakeStrengthSlider.Value);
             if (TelemetryNosBoostSlider is not null)
                 s.TelemetryNosBoostKmhPerSec = (float)ToStoredKmh(TelemetryNosBoostSlider.Value);
+            if (TelemetrySequentialArcadeCheck is not null)
+                s.TelemetrySequentialArcadeGears = TelemetrySequentialArcadeCheck.IsChecked == true;
             if (TelemetryRpmBounceAmountSlider is not null)
                 s.TelemetryRpmBounceAmount = (float)TelemetryRpmBounceAmountSlider.Value;
             if (TelemetryRpmBounceHzSlider is not null)
                 s.TelemetryRpmBounceHz = (float)TelemetryRpmBounceHzSlider.Value;
             if (TelemetryEngineVibrationScaleSlider is not null)
                 s.TelemetryEngineVibrationScale = (float)TelemetryEngineVibrationScaleSlider.Value;
-            if (TelemetryMaxGearsBox is not null)
-            {
-                if (!int.TryParse(TelemetryMaxGearsBox.Text.Trim(), out var maxGears) || maxGears <= 0)
-                    maxGears = TelemetryTuning.DefaultMaxGears;
-                s.TelemetryMaxGears = Math.Clamp(maxGears, TelemetryTuning.MinMaxGears, TelemetryTuning.AbsoluteMaxGears);
-                TelemetryMaxGearsBox.Text = s.TelemetryMaxGears.ToString();
-            }
+            if (TelemetryMaxGearsSlider is not null)
+                TelemetryMaxGearsSlider.Value = s.TelemetryMaxGears;
+            if (TelemetryMaxGearsValueText is not null)
+                TelemetryMaxGearsValueText.Text = s.TelemetryMaxGears.ToString();
             if (TelemetryRumbleScaleSlider is not null)
                 s.TelemetrySurfaceRumbleScale = (float)TelemetryRumbleScaleSlider.Value;
             if (TelemetryImpactScaleSlider is not null)
@@ -1887,6 +2009,7 @@ public partial class MainWindow : Window
             VirtualRecoverCount = _bridge.VirtualRecoverCount,
             HostInputReadAgeMs = _bridge.HostInputReadAgeMs,
             SubmitNotReadyCount = _bridge.SubmitNotReadyCount,
+            OemComInprocReport = G920OemRegistration.FormatComInprocDiagnostics(),
             ActiveInputProfile = _profile.Name,
             ActiveFfbProfile = _profile.FfbProfileName,
             FfbSourceDeviceId = _profile.FfbSourceDeviceId ?? ffb.DeviceId,
@@ -4233,30 +4356,15 @@ public partial class MainWindow : Window
             return true;
         if (TrySliderBinding(label, TelemetryTireDiameterValueText, TelemetryTireDiameterSlider, TelemetryValueEditKind.Ratio, out binding))
             return true;
-        if (TrySliderBinding(label, TelemetryGear1RatioValueText, TelemetryGear1RatioSlider, TelemetryValueEditKind.Ratio, out binding))
+        if (TrySliderBinding(label, TelemetryMaxGearsValueText, TelemetryMaxGearsSlider, TelemetryValueEditKind.Integer, out binding))
             return true;
-        if (TrySliderBinding(label, TelemetryGear2RatioValueText, TelemetryGear2RatioSlider, TelemetryValueEditKind.Ratio, out binding))
-            return true;
-        if (TrySliderBinding(label, TelemetryGear3RatioValueText, TelemetryGear3RatioSlider, TelemetryValueEditKind.Ratio, out binding))
-            return true;
-        if (TrySliderBinding(label, TelemetryGear4RatioValueText, TelemetryGear4RatioSlider, TelemetryValueEditKind.Ratio, out binding))
-            return true;
-        if (TrySliderBinding(label, TelemetryGear5RatioValueText, TelemetryGear5RatioSlider, TelemetryValueEditKind.Ratio, out binding))
-            return true;
-        if (TrySliderBinding(label, TelemetryGear6RatioValueText, TelemetryGear6RatioSlider, TelemetryValueEditKind.Ratio, out binding))
-            return true;
-        if (TrySliderBinding(label, TelemetryGear1MaxValueText, TelemetryGear1MaxSlider, TelemetryValueEditKind.Speed, out binding))
-            return true;
-        if (TrySliderBinding(label, TelemetryGear2MaxValueText, TelemetryGear2MaxSlider, TelemetryValueEditKind.Speed, out binding))
-            return true;
-        if (TrySliderBinding(label, TelemetryGear3MaxValueText, TelemetryGear3MaxSlider, TelemetryValueEditKind.Speed, out binding))
-            return true;
-        if (TrySliderBinding(label, TelemetryGear4MaxValueText, TelemetryGear4MaxSlider, TelemetryValueEditKind.Speed, out binding))
-            return true;
-        if (TrySliderBinding(label, TelemetryGear5MaxValueText, TelemetryGear5MaxSlider, TelemetryValueEditKind.Speed, out binding))
-            return true;
-        if (TrySliderBinding(label, TelemetryGear6MaxValueText, TelemetryGear6MaxSlider, TelemetryValueEditKind.Speed, out binding))
-            return true;
+        for (var g = 1; g <= TelemetryTuning.AbsoluteMaxGears; g++)
+        {
+            if (TrySliderBinding(label, GearRatioValueText(g), GearRatioSlider(g), TelemetryValueEditKind.Ratio, out binding))
+                return true;
+            if (TrySliderBinding(label, GearMaxValueText(g), GearMaxSlider(g), TelemetryValueEditKind.Speed, out binding))
+                return true;
+        }
         if (TrySliderBinding(label, TelemetryCrashDumpValueText, TelemetryCrashDumpSlider, TelemetryValueEditKind.Percent0to2, out binding))
             return true;
         if (TrySliderBinding(label, TelemetryHandbrakeStrengthValueText, TelemetryHandbrakeStrengthSlider, TelemetryValueEditKind.RatePerSec, out binding))

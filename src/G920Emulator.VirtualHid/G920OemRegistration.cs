@@ -31,8 +31,19 @@ public static class G920OemRegistration
     {
         var dll = ResolveG920FfbDllPath();
         LastDllPath = dll;
-        if (dll is not null)
+
+        // Never register the install-folder DLL — Steam/games would lock Desktop\G920Emulator.
+        if (dll is not null && IsProgramDataG920FfbPath(dll))
             RegisterComServer(dll);
+        else if (File.Exists(G920FfbCachedDllPath))
+        {
+            dll = G920FfbCachedDllPath;
+            LastDllPath = dll;
+            RegisterComServer(dll);
+        }
+
+        // Rewrite any stale InprocServer32 still pointing at the install folder.
+        var rewritten = RewriteStaleInstallFolderComServers();
 
         // Same as last-known-good: overwrite OEM values in place.
         // Do NOT delete the OEM tree - that was a post-G-HUB experiment and can briefly
@@ -53,9 +64,16 @@ public static class G920OemRegistration
         else
             PinSteeringWheelSdk();
 
-        LastMessage = dll is null
-            ? "OEM registry written; g920ffb.dll not found beside EXE."
-            : $"OEM + COM registered → {dll}";
+        if (dll is null)
+        {
+            LastMessage = "OEM registry written; g920ffb.dll cache unavailable (not beside EXE / copy failed).";
+        }
+        else
+        {
+            LastMessage = rewritten > 0
+                ? $"OEM + COM registered → {dll} (rewrote {rewritten} stale install-folder InprocServer32)"
+                : $"OEM + COM registered → {dll}";
+        }
     }
 
     /// <summary>Copy bundled SDK DLLs to ProgramData only - does not write registry.</summary>
@@ -231,19 +249,20 @@ public static class G920OemRegistration
             }
         }
 
-        foreach (var root in new[] { Registry.CurrentUser, Registry.LocalMachine })
+        foreach (var hive in new[] { RegistryHive.CurrentUser, RegistryHive.LocalMachine })
         {
-            try
+            foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
             {
-                var clsidRoot = root == Registry.LocalMachine
-                    ? @"SOFTWARE\Classes\CLSID\"
-                    : @"Software\Classes\CLSID\";
-                root.DeleteSubKeyTree(clsidRoot + OemFfbClsid, throwOnMissingSubKey: false);
-                parts.Add($"{root.Name} g920ffb COM removed");
-            }
-            catch (Exception ex)
-            {
-                parts.Add($"{root.Name} COM: {ex.Message}");
+                try
+                {
+                    using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+                    baseKey.DeleteSubKeyTree($@"SOFTWARE\Classes\CLSID\{OemFfbClsid}", throwOnMissingSubKey: false);
+                    parts.Add($"{hive}/{view} g920ffb COM removed");
+                }
+                catch (Exception ex)
+                {
+                    parts.Add($"{hive}/{view} COM: {ex.Message}");
+                }
             }
         }
 
@@ -376,19 +395,22 @@ public static class G920OemRegistration
 
     private static bool IsComServerIntact()
     {
-        var dll = ResolveG920FfbDllPath();
-        if (dll is null)
-            return true;
-        try
+        if (!File.Exists(G920FfbCachedDllPath))
+            return ResolveG920FfbDllPath() is null; // no DLL expected yet
+
+        foreach (var entry in EnumerateComInprocEntries())
         {
-            using var inproc = Registry.LocalMachine.OpenSubKey($@"SOFTWARE\Classes\CLSID\{OemFfbClsid}\InprocServer32")
-                               ?? Registry.CurrentUser.OpenSubKey($@"Software\Classes\CLSID\{OemFfbClsid}\InprocServer32");
-            return inproc?.GetValue("") is string path && File.Exists(path);
+            if (string.IsNullOrWhiteSpace(entry.Path))
+                continue;
+            if (IsInstallFolderDll(entry.Path))
+                return false;
+            if (!IsProgramDataG920FfbPath(entry.Path) || !File.Exists(entry.Path))
+                return false;
         }
-        catch
-        {
-            return false;
-        }
+
+        // At least one view should point at ProgramData when cache exists.
+        return EnumerateComInprocEntries().Any(e =>
+            !string.IsNullOrWhiteSpace(e.Path) && IsProgramDataG920FfbPath(e.Path));
     }
 
     private static void ForceOemFfbClsid(RegistryKey root)
@@ -415,23 +437,68 @@ public static class G920OemRegistration
 
     public static string G920FfbCachedDllPath => Path.Combine(G920FfbCacheDir, "g920ffb.dll");
 
+    /// <summary>
+    /// Resolve the DLL path for COM registration. Always ProgramData when possible —
+    /// never returns the install-folder copy (Steam would lock that folder).
+    /// </summary>
     private static string? ResolveG920FfbDllPath()
     {
         var source = FindBundledG920FfbDll();
-        if (source is null)
-            return File.Exists(G920FfbCachedDllPath) ? G920FfbCachedDllPath : null;
+        if (source is not null)
+            TryUpdateG920FfbCache(source);
 
+        return File.Exists(G920FfbCachedDllPath) ? G920FfbCachedDllPath : null;
+    }
+
+    /// <summary>
+    /// Copy bundled DLL into ProgramData. Prefer temp+Replace so a Steam-loaded cache
+    /// does not force us to re-register the install-folder path.
+    /// </summary>
+    private static void TryUpdateG920FfbCache(string source)
+    {
         try
         {
             Directory.CreateDirectory(G920FfbCacheDir);
-            if (!SameFile(source, G920FfbCachedDllPath))
-                File.Copy(source, G920FfbCachedDllPath, overwrite: true);
-            return G920FfbCachedDllPath;
+            if (SameFile(source, G920FfbCachedDllPath))
+                return;
+
+            var temp = Path.Combine(
+                G920FfbCacheDir,
+                "g920ffb.dll." + Guid.NewGuid().ToString("N") + ".tmp");
+            try
+            {
+                File.Copy(source, temp, overwrite: true);
+                if (File.Exists(G920FfbCachedDllPath))
+                {
+                    // Replace destination; backup ignored (null). May fail if Steam has the DLL mapped.
+                    File.Replace(temp, G920FfbCachedDllPath, destinationBackupFileName: null, ignoreMetadataErrors: true);
+                }
+                else
+                {
+                    File.Move(temp, G920FfbCachedDllPath, overwrite: true);
+                }
+            }
+            finally
+            {
+                try { if (File.Exists(temp)) File.Delete(temp); } catch { /* ignore */ }
+            }
         }
         catch
         {
-            // Fall back to install-folder DLL if cache copy fails (folder may stay locked).
-            return source;
+            // Cache may already exist and be locked by Steam — keep using it; never fall back
+            // to registering the install-folder DLL.
+            if (!File.Exists(G920FfbCachedDllPath))
+            {
+                try
+                {
+                    Directory.CreateDirectory(G920FfbCacheDir);
+                    File.Copy(source, G920FfbCachedDllPath, overwrite: false);
+                }
+                catch
+                {
+                    // leave missing; EnsureRegistered will not point COM at install folder
+                }
+            }
         }
     }
 
@@ -457,34 +524,208 @@ public static class G920OemRegistration
         return null;
     }
 
-    private static void RegisterComServer(string dllPath)
+    /// <summary>True when <paramref name="path"/> is under the running EXE / BaseDirectory.</summary>
+    public static bool IsInstallFolderDll(string? path)
     {
-        // HKCU CLSID is enough for the current user; also try HKLM when elevated.
-        foreach (var root in new[] { Registry.CurrentUser, Registry.LocalMachine })
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+        try
         {
-            try
+            var full = Path.GetFullPath(path);
+            foreach (var root in GetInstallFolderRoots())
             {
-                var clsidRoot = root == Registry.CurrentUser
-                    ? @"Software\Classes\CLSID\"
-                    : @"Software\Classes\CLSID\";
-                // HKLM Classes is under HKLM\SOFTWARE\Classes
-                if (root == Registry.LocalMachine)
-                    clsidRoot = @"SOFTWARE\Classes\CLSID\";
-
-                using var clsid = root.CreateSubKey(clsidRoot + OemFfbClsid, writable: true);
-                clsid?.SetValue("", "G920 Emulator Force Feedback Driver");
-                using var inproc = clsid?.CreateSubKey("InprocServer32", writable: true);
-                if (inproc is not null)
-                {
-                    inproc.SetValue("", dllPath);
-                    inproc.SetValue("ThreadingModel", "Both");
-                }
-            }
-            catch
-            {
-                // HKLM may fail without elevation.
+                if (full.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                    return true;
             }
         }
+        catch { /* ignore */ }
+
+        return false;
+    }
+
+    public static bool IsProgramDataG920FfbPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+        try
+        {
+            return string.Equals(
+                Path.GetFullPath(path),
+                Path.GetFullPath(G920FfbCachedDllPath),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static IEnumerable<string> GetInstallFolderRoots()
+    {
+        var roots = new List<string>();
+        try
+        {
+            var exeDir = Path.GetDirectoryName(Environment.ProcessPath);
+            if (!string.IsNullOrEmpty(exeDir))
+                roots.Add(EnsureTrailingSep(Path.GetFullPath(exeDir)));
+        }
+        catch { /* ignore */ }
+
+        try
+        {
+            if (!string.IsNullOrEmpty(AppContext.BaseDirectory))
+                roots.Add(EnsureTrailingSep(Path.GetFullPath(AppContext.BaseDirectory)));
+        }
+        catch { /* ignore */ }
+
+        return roots.Distinct(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string EnsureTrailingSep(string dir) =>
+        dir.EndsWith(Path.DirectorySeparatorChar) || dir.EndsWith(Path.AltDirectorySeparatorChar)
+            ? dir
+            : dir + Path.DirectorySeparatorChar;
+
+    private static void RegisterComServer(string dllPath)
+    {
+        if (IsInstallFolderDll(dllPath))
+            return; // hard guard — never write Desktop/install path into COM
+
+        var full = Path.GetFullPath(dllPath);
+        foreach (var hive in new[] { RegistryHive.CurrentUser, RegistryHive.LocalMachine })
+        {
+            foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+            {
+                try
+                {
+                    using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+                    using var clsid = baseKey.CreateSubKey($@"SOFTWARE\Classes\CLSID\{OemFfbClsid}", writable: true);
+                    clsid?.SetValue("", "G920 Emulator Force Feedback Driver");
+                    using var inproc = clsid?.CreateSubKey("InprocServer32", writable: true);
+                    if (inproc is not null)
+                    {
+                        inproc.SetValue("", full);
+                        inproc.SetValue("ThreadingModel", "Both");
+                    }
+                }
+                catch
+                {
+                    // HKLM / some views may fail without elevation.
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// If any InprocServer32 still points at the install folder, rewrite to ProgramData.
+    /// Returns how many keys were rewritten.
+    /// </summary>
+    public static int RewriteStaleInstallFolderComServers()
+    {
+        if (!File.Exists(G920FfbCachedDllPath))
+            return 0;
+
+        var target = Path.GetFullPath(G920FfbCachedDllPath);
+        var count = 0;
+        foreach (var entry in EnumerateComInprocEntries())
+        {
+            if (string.IsNullOrWhiteSpace(entry.Path) || !IsInstallFolderDll(entry.Path))
+                continue;
+            if (TryWriteComInproc(entry.Hive, entry.View, target))
+                count++;
+        }
+
+        return count;
+    }
+
+    private readonly record struct ComInprocEntry(RegistryHive Hive, RegistryView View, string? Path);
+
+    private static IEnumerable<ComInprocEntry> EnumerateComInprocEntries()
+    {
+        foreach (var hive in new[] { RegistryHive.CurrentUser, RegistryHive.LocalMachine })
+        {
+            foreach (var view in new[] { RegistryView.Registry64, RegistryView.Registry32 })
+            {
+                string? path = null;
+                try
+                {
+                    using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+                    using var inproc = baseKey.OpenSubKey(
+                        $@"SOFTWARE\Classes\CLSID\{OemFfbClsid}\InprocServer32");
+                    path = inproc?.GetValue("") as string;
+                }
+                catch { /* ignore */ }
+
+                yield return new ComInprocEntry(hive, view, path);
+            }
+        }
+    }
+
+    private static bool TryWriteComInproc(RegistryHive hive, RegistryView view, string dllPath)
+    {
+        try
+        {
+            using var baseKey = RegistryKey.OpenBaseKey(hive, view);
+            using var clsid = baseKey.CreateSubKey($@"SOFTWARE\Classes\CLSID\{OemFfbClsid}", writable: true);
+            clsid?.SetValue("", "G920 Emulator Force Feedback Driver");
+            using var inproc = clsid?.CreateSubKey("InprocServer32", writable: true);
+            if (inproc is null)
+                return false;
+            inproc.SetValue("", dllPath);
+            inproc.SetValue("ThreadingModel", "Both");
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Human-readable COM InprocServer32 locations for diagnostics export.</summary>
+    public static string FormatComInprocDiagnostics()
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("g920ffb COM InprocServer32 (Steam/games load this DLL path)");
+        sb.AppendLine("CLSID: " + OemFfbClsid);
+        sb.AppendLine("Expected ProgramData: " + G920FfbCachedDllPath);
+        sb.AppendLine("Cache present: " + File.Exists(G920FfbCachedDllPath));
+        sb.AppendLine("LastDllPath: " + (LastDllPath ?? "(none)"));
+        sb.AppendLine("LastMessage: " + (LastMessage ?? "(none)"));
+        sb.AppendLine();
+
+        var anyInstall = false;
+        foreach (var entry in EnumerateComInprocEntries())
+        {
+            var label = $"{entry.Hive}/{entry.View}";
+            if (string.IsNullOrWhiteSpace(entry.Path))
+            {
+                sb.AppendLine($"  {label}: (absent)");
+                continue;
+            }
+
+            string kind;
+            if (IsProgramDataG920FfbPath(entry.Path))
+                kind = "ProgramData (OK)";
+            else if (IsInstallFolderDll(entry.Path))
+            {
+                kind = "INSTALL FOLDER — Steam may lock Desktop\\G920Emulator until Steam exits";
+                anyInstall = true;
+            }
+            else
+                kind = "other path";
+
+            sb.AppendLine($"  {label}: {entry.Path}");
+            sb.AppendLine($"    → {kind}");
+        }
+
+        if (anyInstall)
+        {
+            sb.AppendLine();
+            sb.AppendLine(
+                "HINT: Close Steam once after updating so it drops any already-loaded install-folder g920ffb.dll.");
+        }
+
+        return sb.ToString();
     }
 
     private static void WriteOemTree(RegistryKey root)

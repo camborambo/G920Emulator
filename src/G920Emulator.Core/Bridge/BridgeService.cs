@@ -163,11 +163,17 @@ public sealed class BridgeService : IDisposable
     private MappingProfile? _telemetryArcadeProfile;
     private bool _telemetryHasHandbrakeBind;
     private bool _telemetryHasNosBind;
+    private bool _telemetryHasGearUpBind;
+    private bool _telemetryHasGearDownBind;
+    private bool _telemetryHasGearResetBind;
     /// <summary>Latest sample for the telemetry side thread (never blocks HID/FFB).</summary>
     private MappedG920State? _telemetryQueuedMapped;
     private float _telemetryQueuedSteer;
     private int _telemetryQueuedHandbrake;
     private int _telemetryQueuedNos;
+    private int _telemetryQueuedGearUp;
+    private int _telemetryQueuedGearDown;
+    private int _telemetryQueuedGearReset;
     private int _telemetryQueuedVersion;
     /// <summary>Combined OEM type DI torque copied on the input thread (no SHM re-read / no alloc).</summary>
     private readonly int[] _telemetryQueuedTypeDi = new int[OemFfbSharedMemory.TypeGainCount];
@@ -1375,10 +1381,19 @@ public sealed class BridgeService : IDisposable
                             MapperEngine.IsPressed(profile, devices, G920Control.TelemetryHandbrake);
         var nosHeld = _telemetryHasNosBind &&
                       MapperEngine.IsPressed(profile, devices, G920Control.TelemetryNos);
+        var gearUpHeld = _telemetryHasGearUpBind &&
+                         MapperEngine.IsPressed(profile, devices, G920Control.TelemetryGearUp);
+        var gearDownHeld = _telemetryHasGearDownBind &&
+                           MapperEngine.IsPressed(profile, devices, G920Control.TelemetryGearDown);
+        var gearResetHeld = _telemetryHasGearResetBind &&
+                            MapperEngine.IsPressed(profile, devices, G920Control.TelemetryGearReset);
         Volatile.Write(ref _telemetryQueuedMapped, mapped);
         Volatile.Write(ref _telemetryQueuedSteer, steering);
         Volatile.Write(ref _telemetryQueuedHandbrake, handbrakeHeld ? 1 : 0);
         Volatile.Write(ref _telemetryQueuedNos, nosHeld ? 1 : 0);
+        Volatile.Write(ref _telemetryQueuedGearUp, gearUpHeld ? 1 : 0);
+        Volatile.Write(ref _telemetryQueuedGearDown, gearDownHeld ? 1 : 0);
+        Volatile.Write(ref _telemetryQueuedGearReset, gearResetHeld ? 1 : 0);
 
         if (oemLive && oem is { } snap && !oemStale)
         {
@@ -1416,6 +1431,9 @@ public sealed class BridgeService : IDisposable
         _telemetryArcadeProfile = null;
         _telemetryHasHandbrakeBind = false;
         _telemetryHasNosBind = false;
+        _telemetryHasGearUpBind = false;
+        _telemetryHasGearDownBind = false;
+        _telemetryHasGearResetBind = false;
     }
 
     private void EnsureTelemetryArcadeCache(MappingProfile profile)
@@ -1425,6 +1443,9 @@ public sealed class BridgeService : IDisposable
         _telemetryArcadeProfile = profile;
         _telemetryHasHandbrakeBind = HasArcadeSources(profile, G920Control.TelemetryHandbrake);
         _telemetryHasNosBind = HasArcadeSources(profile, G920Control.TelemetryNos);
+        _telemetryHasGearUpBind = HasArcadeSources(profile, G920Control.TelemetryGearUp);
+        _telemetryHasGearDownBind = HasArcadeSources(profile, G920Control.TelemetryGearDown);
+        _telemetryHasGearResetBind = HasArcadeSources(profile, G920Control.TelemetryGearReset);
     }
 
     private static bool HasArcadeSources(MappingProfile profile, G920Control target)
@@ -1480,6 +1501,9 @@ public sealed class BridgeService : IDisposable
             var steering = Volatile.Read(ref _telemetryQueuedSteer);
             var handbrakeHeld = Volatile.Read(ref _telemetryQueuedHandbrake) != 0;
             var nosHeld = Volatile.Read(ref _telemetryQueuedNos) != 0;
+            var gearUpHeld = Volatile.Read(ref _telemetryQueuedGearUp) != 0;
+            var gearDownHeld = Volatile.Read(ref _telemetryQueuedGearDown) != 0;
+            var gearResetHeld = Volatile.Read(ref _telemetryQueuedGearReset) != 0;
             var oemValid = Volatile.Read(ref _telemetryQueuedOemValid) != 0;
             var oemPlaying = Volatile.Read(ref _telemetryQueuedOemPlaying) != 0;
 
@@ -1518,7 +1542,8 @@ public sealed class BridgeService : IDisposable
                     typeDi = _telemetryWorkingTypeDi;
                 }
                 var frame = _telemetrySynth.Update(
-                    mapped, steering, typeDi, oemPlaying, knownGame, dtSec, handbrakeHeld, nosHeld);
+                    mapped, steering, typeDi, oemPlaying, knownGame, dtSec,
+                    handbrakeHeld, nosHeld, gearUpHeld, gearDownHeld, gearResetHeld);
 
                 _telemetrySessionTime += dtSec;
                 _telemetryPackets++;

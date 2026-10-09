@@ -48,7 +48,7 @@ public static class DiagnosticsExporter
             WriteDevices(staging);
             WriteFfbSnapshot(staging, live);
             WriteHidHide(staging);
-            WriteOemRegistry(staging);
+            WriteOemRegistry(staging, live);
             CopyTempLogs(staging);
             WriteGameFfbAnalysis(staging);
             CopyProfilesAndSettings(staging);
@@ -546,12 +546,20 @@ public static class DiagnosticsExporter
         }
     }
 
-    private static void WriteOemRegistry(string staging)
+    private static void WriteOemRegistry(string staging, DiagnosticsLiveSnapshot? live = null)
     {
         var sb = new StringBuilder();
         sb.AppendLine("OEMForceFeedback registration for Logitech G920 VID_046D&PID_C262");
         sb.AppendLine("Expected CLSID: {A920FFB0-E7DB-4329-8C13-A966D84A289F} → g920ffb.dll");
         sb.AppendLine();
+
+        if (!string.IsNullOrWhiteSpace(live?.OemComInprocReport))
+        {
+            sb.AppendLine(live.OemComInprocReport.TrimEnd());
+            sb.AppendLine();
+            sb.AppendLine("--- OEM joystick tree ---");
+            sb.AppendLine();
+        }
 
         var relative = @"SYSTEM\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_046D&PID_C262";
         try

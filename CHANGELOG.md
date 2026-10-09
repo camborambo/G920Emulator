@@ -9,7 +9,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
-- Telemetry **SimHub MaxGears Settings** card: External Sim UDP `MaxGears` → SimHub `GameData.CarSettings_MaxGears` (1–10, default 6). Saved with the telemetry profile (not under Gearing). After updating, **Remove registration** → restart SimHub → **Register with SimHub** again (packet layout/signature changed).
+- Telemetry **Max gears** in the Gearing card (1–10): UDP `MaxGears` → SimHub `CarSettings_MaxGears`, shows that many gear ratio / top-speed rows (paddles can use 7–10 for speed sim; H-shifter still 1–6). Gear tops use the [Blocklayer](https://www.blocklayer.com/rpm-gear) formula MPH = (tire × ShiftAt) / (336 × gear × diff) for all gears including 7–10; absolute speed ceiling raised to 1600 km/h so tall overdrive is not clipped through AbsoluteRpmMax. After updating, **Remove registration** → restart SimHub → **Register with SimHub** again if the packet layout changed.
+- Telemetry **Arcade buttons → Sequential shifter** (opt-in): bind **Gear up** / **Gear down** / **Gear reset** on the input profile for sequential/paddle boxes that do not map to H-pattern gears. Pattern is **R → 1 → Max gears**; Reset jumps to **1**. When enabled, H-pattern and bumper-paddle gear inference are ignored.
 - **Custom bindings** after Gear 6: Binding Wizard with **Bind Button** + optional **Bind FN** popups, plus a **Toggle** checkbox (hold vs latch). If FN is bound, the button requires that key held. Remove with **X**.
 - Axis→button on standard Assign and custom Binding Wizard: capturing an axis for a button target converts automatically (**Activate on Axis** threshold + live meter). Checkbox label is **Invert**.
 - **Axis range** (start/end) for axis→axis bindings: dual-handle slider remaps the usable throw. Separate from **Activate on Axis** (single % for axis→button).
@@ -22,6 +23,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **Install folder still “in use” by Steam:** never re-register `g920ffb.dll` COM InprocServer32 to the install folder when the ProgramData cache copy fails; rewrite stale Desktop/install paths (HKCU/HKLM × 32/64-bit) to `%ProgramData%\G920Emulator\g920ffb\`; update the cache via temp+Replace. Diagnostics `oem-registry.txt` shows install vs ProgramData. If the folder was already locked from an older load, close Steam once after updating.
 - **HOST_STALE / mid-session disconnect:** virtual G920 uses **interrupt-push** WinUHid input (no ReadReport pull mode) so `SubmitInputReport` is not gated on a pending host read. Status + Debug log `HOST_STALE` / 2s heartbeats (`hostReadAgeMs`, `notReadyDelta`). **No mid-session Col01 auto-recover** for HOST_STALE or hard submit-fail (log + Stop/Start only; Settings opt-in later). Start/Stop orphan Col01 cleanup unchanged. Validated on Fanatec (idle + ~30 min live Unbound).
 - On bridge Start, disable Device Manager power-saving (“Allow the computer to turn off this device…”) for **WinUHid / VHF** nodes so Windows cannot sleep the virtual G920 while the app stays Running. Best-effort (needs elevation).
 - Telemetry synth, UDP send, and game-process probe run on a **side thread** (same idea as Simucube FFB apply). When Telemetry is off, the input loop skips that work entirely so SimHub I/O cannot stall virtual G920 reports.

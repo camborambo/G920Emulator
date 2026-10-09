@@ -100,6 +100,12 @@ public enum G920Control
     TelemetryHandbrake,
     /// <summary>Input-profile only: hold for arcade NOS / turbo boost (telemetry). Not a virtual G920 control.</summary>
     TelemetryNos,
+    /// <summary>Input-profile only: rising edge = sequential gear up (telemetry arcade). Not a virtual G920 control.</summary>
+    TelemetryGearUp,
+    /// <summary>Input-profile only: rising edge = sequential gear down (telemetry arcade). Not a virtual G920 control.</summary>
+    TelemetryGearDown,
+    /// <summary>Input-profile only: rising edge = reset sequential gear to 1 (telemetry arcade). Not a virtual G920 control.</summary>
+    TelemetryGearReset,
 }
 
 public static class G920ControlInfo
@@ -272,11 +278,14 @@ public static class G920ControlInfo
 
     public static bool IsFfbNudge(G920Control control) => FfbNudgeControls.Contains(control);
 
-    /// <summary>Telemetry arcade holds bound on the input profile (same Bind dialog as FFB).</summary>
+    /// <summary>Telemetry arcade binds on the input profile (same Bind dialog as FFB).</summary>
     public static readonly G920Control[] TelemetryArcadeControls =
     [
         G920Control.TelemetryHandbrake,
         G920Control.TelemetryNos,
+        G920Control.TelemetryGearUp,
+        G920Control.TelemetryGearDown,
+        G920Control.TelemetryGearReset,
     ];
 
     public static bool IsTelemetryArcade(G920Control control) => TelemetryArcadeControls.Contains(control);
@@ -413,6 +422,9 @@ public static class G920ControlInfo
         G920Control.FfbDampDeadDefault => "Damp dead default",
         G920Control.TelemetryHandbrake => "Handbrake (telemetry)",
         G920Control.TelemetryNos => "NOS / Turbo (telemetry)",
+        G920Control.TelemetryGearUp => "Gear up (telemetry)",
+        G920Control.TelemetryGearDown => "Gear down (telemetry)",
+        G920Control.TelemetryGearReset => "Gear reset (telemetry)",
         _ => control.ToString(),
     };
 }

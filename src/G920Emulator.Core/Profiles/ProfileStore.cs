@@ -823,12 +823,22 @@ public sealed class AppSettings
     /// <summary>NOS / turbo hold boost (km/h per second). Button bind lives on the input profile.</summary>
     public float TelemetryNosBoostKmhPerSec { get; set; } = TelemetryTuning.DefaultNosBoostKmhPerSec;
 
+    /// <summary>
+    /// When true, telemetry gear uses arcade Gear Up / Down / Reset binds (R → 1 → MaxGears)
+    /// instead of H-pattern / bumper paddles. Binds live on the input profile.
+    /// </summary>
+    public bool TelemetrySequentialArcadeGears { get; set; } = TelemetryTuning.DefaultSequentialArcadeGears;
+
     public float TelemetryGear1MaxKmh { get; set; } = TelemetryTuning.DefaultGear1MaxKmh;
     public float TelemetryGear2MaxKmh { get; set; } = TelemetryTuning.DefaultGear2MaxKmh;
     public float TelemetryGear3MaxKmh { get; set; } = TelemetryTuning.DefaultGear3MaxKmh;
     public float TelemetryGear4MaxKmh { get; set; } = TelemetryTuning.DefaultGear4MaxKmh;
     public float TelemetryGear5MaxKmh { get; set; } = TelemetryTuning.DefaultGear5MaxKmh;
     public float TelemetryGear6MaxKmh { get; set; } = TelemetryTuning.DefaultGear6MaxKmh;
+    public float TelemetryGear7MaxKmh { get; set; } = TelemetryTuning.DefaultGear7MaxKmh;
+    public float TelemetryGear8MaxKmh { get; set; } = TelemetryTuning.DefaultGear8MaxKmh;
+    public float TelemetryGear9MaxKmh { get; set; } = TelemetryTuning.DefaultGear9MaxKmh;
+    public float TelemetryGear10MaxKmh { get; set; } = TelemetryTuning.DefaultGear10MaxKmh;
 
     /// <summary>Absolute gearbox ratios (Blocklayer). 0 = derive from max speeds.</summary>
     public float TelemetryGear1Ratio { get; set; }
@@ -837,6 +847,10 @@ public sealed class AppSettings
     public float TelemetryGear4Ratio { get; set; }
     public float TelemetryGear5Ratio { get; set; }
     public float TelemetryGear6Ratio { get; set; }
+    public float TelemetryGear7Ratio { get; set; }
+    public float TelemetryGear8Ratio { get; set; }
+    public float TelemetryGear9Ratio { get; set; }
+    public float TelemetryGear10Ratio { get; set; }
 
     /// <summary>Differential / final-drive ratio (Blocklayer Diff Ratio).</summary>
     public float TelemetryDiffRatio { get; set; } = TelemetryTuning.DefaultDiffRatio;
@@ -869,18 +883,27 @@ public sealed class AppSettings
             CrashDumpScale = TelemetryCrashDumpScale,
             HandbrakeKmhPerSec = TelemetryHandbrakeKmhPerSec,
             NosBoostKmhPerSec = TelemetryNosBoostKmhPerSec,
+            SequentialArcadeGears = TelemetrySequentialArcadeGears,
             Gear1Ratio = TelemetryGear1Ratio,
             Gear2Ratio = TelemetryGear2Ratio,
             Gear3Ratio = TelemetryGear3Ratio,
             Gear4Ratio = TelemetryGear4Ratio,
             Gear5Ratio = TelemetryGear5Ratio,
             Gear6Ratio = TelemetryGear6Ratio,
+            Gear7Ratio = TelemetryGear7Ratio,
+            Gear8Ratio = TelemetryGear8Ratio,
+            Gear9Ratio = TelemetryGear9Ratio,
+            Gear10Ratio = TelemetryGear10Ratio,
             Gear1MaxKmh = TelemetryGear1MaxKmh,
             Gear2MaxKmh = TelemetryGear2MaxKmh,
             Gear3MaxKmh = TelemetryGear3MaxKmh,
             Gear4MaxKmh = TelemetryGear4MaxKmh,
             Gear5MaxKmh = TelemetryGear5MaxKmh,
             Gear6MaxKmh = TelemetryGear6MaxKmh,
+            Gear7MaxKmh = TelemetryGear7MaxKmh,
+            Gear8MaxKmh = TelemetryGear8MaxKmh,
+            Gear9MaxKmh = TelemetryGear9MaxKmh,
+            Gear10MaxKmh = TelemetryGear10MaxKmh,
             DiffRatio = TelemetryDiffRatio,
             TireDiameterInches = TelemetryTireDiameterInches,
         };
@@ -913,18 +936,27 @@ public sealed class AppSettings
         TelemetryCrashDumpScale = tuning.CrashDumpScale;
         TelemetryHandbrakeKmhPerSec = tuning.HandbrakeKmhPerSec;
         TelemetryNosBoostKmhPerSec = tuning.NosBoostKmhPerSec;
+        TelemetrySequentialArcadeGears = tuning.SequentialArcadeGears;
         TelemetryGear1Ratio = tuning.Gear1Ratio;
         TelemetryGear2Ratio = tuning.Gear2Ratio;
         TelemetryGear3Ratio = tuning.Gear3Ratio;
         TelemetryGear4Ratio = tuning.Gear4Ratio;
         TelemetryGear5Ratio = tuning.Gear5Ratio;
         TelemetryGear6Ratio = tuning.Gear6Ratio;
+        TelemetryGear7Ratio = tuning.Gear7Ratio;
+        TelemetryGear8Ratio = tuning.Gear8Ratio;
+        TelemetryGear9Ratio = tuning.Gear9Ratio;
+        TelemetryGear10Ratio = tuning.Gear10Ratio;
         TelemetryGear1MaxKmh = tuning.Gear1MaxKmh;
         TelemetryGear2MaxKmh = tuning.Gear2MaxKmh;
         TelemetryGear3MaxKmh = tuning.Gear3MaxKmh;
         TelemetryGear4MaxKmh = tuning.Gear4MaxKmh;
         TelemetryGear5MaxKmh = tuning.Gear5MaxKmh;
         TelemetryGear6MaxKmh = tuning.Gear6MaxKmh;
+        TelemetryGear7MaxKmh = tuning.Gear7MaxKmh;
+        TelemetryGear8MaxKmh = tuning.Gear8MaxKmh;
+        TelemetryGear9MaxKmh = tuning.Gear9MaxKmh;
+        TelemetryGear10MaxKmh = tuning.Gear10MaxKmh;
         TelemetryDiffRatio = tuning.DiffRatio;
         TelemetryTireDiameterInches = tuning.TireDiameterInches;
     }

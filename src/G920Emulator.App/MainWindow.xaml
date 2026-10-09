@@ -864,7 +864,7 @@
                              VerticalAlignment="Center" HorizontalAlignment="Right"
                              Cursor="Hand" ToolTip="Click to type a value"
                              MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetrySpeedMaxSlider" Minimum="12" Maximum="404" Value="217" TickFrequency="1"
+                  <Slider x:Name="TelemetrySpeedMaxSlider" Minimum="12" Maximum="994" Value="217" TickFrequency="1"
                           Margin="0,0,8,0" IsSnapToTickEnabled="True"
                           ValueChanged="TelemetryTuningSlider_ValueChanged"/>
                 </DockPanel>
@@ -950,26 +950,23 @@
               </StackPanel>
             </Border>
 
-            <!-- SimHub MaxGears (External Sim UDP) - separate from gearbox ratios -->
-            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
-              <StackPanel>
-                <TextBlock Text="SimHub MaxGears Settings" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
-                           ToolTip="Sent to SimHub as MaxGears (GameData.CarSettings_MaxGears) in the External Sim UDP packet. Independent of the Gearing ratios below."/>
-                <DockPanel
-                           ToolTip="SimHub CarSettings_MaxGears via External Sim MaxGears field.">
-                  <TextBlock Text="MaxGears" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
-                  <TextBox x:Name="TelemetryMaxGearsBox" Width="56" HorizontalAlignment="Left"
-                           Text="6" LostFocus="TelemetrySettings_Changed"
-                           ToolTip="1–10. Default 6. Included in the SimHub UDP telemetry packet."/>
-                </DockPanel>
-              </StackPanel>
-            </Border>
-
             <!-- Gearing - accuracy -->
             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
               <StackPanel>
                 <TextBlock x:Name="TelemetryGearMaxTitle" Text="Gearing" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
-                           ToolTip="Match your car’s ratios, final drive, and tire size. Max speeds follow Redline: MPH = (tire × RPM) / (336 × gear × diff)."/>
+                           ToolTip="Match your car’s ratios, final drive, and tire size. Max speeds follow Redline: MPH = (tire × RPM) / (336 × gear × diff). MaxGears also sets SimHub CarSettings_MaxGears and how many gear rows are shown."/>
+                <DockPanel Margin="0,0,0,8"
+                           ToolTip="Forward gear count (1–10). Sent to SimHub as MaxGears (CarSettings_MaxGears). Shows that many ratio / top-speed rows. Physical shifter still maps gears 1–6; paddles can go higher for speed simulation.">
+                  <TextBlock Text="Max gears" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                  <TextBlock x:Name="TelemetryMaxGearsValueText" DockPanel.Dock="Right" Width="76" Text="6"
+                             VerticalAlignment="Center" HorizontalAlignment="Right"
+                             Cursor="Hand" ToolTip="Click to type 1–10"
+                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  <Slider x:Name="TelemetryMaxGearsSlider" Minimum="1" Maximum="10" Value="6" TickFrequency="1"
+                          Margin="0,0,8,0" IsSnapToTickEnabled="True"
+                          ValueChanged="TelemetryMaxGearsSlider_ValueChanged"
+                          ToolTip="1–10. Default 6."/>
+                </DockPanel>
                 <DockPanel Margin="0,0,0,3"
                            ToolTip="Shift / redline RPM - each gear’s max speed is road speed at this RPM (SimHub EngineShiftRpm).">
                   <TextBlock Text="Redline / shift" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
@@ -1004,8 +1001,8 @@
                           ValueChanged="TelemetryTireDiameterSlider_ValueChanged"/>
                 </DockPanel>
                 <TextBlock Text="Gear ratios → top speed @ redline" Opacity="0.45" FontSize="10" Margin="0,0,0,2"
-                           ToolTip="Edit ratio or max - the other updates. Absolute gearbox ratios (6th can be overdrive)."/>
-                <Grid>
+                           ToolTip="Edit ratio or max - the other updates. Absolute gearbox ratios. Rows shown match Max gears (1–10)."/>
+                <Grid Margin="0,0,0,2">
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="22"/>
                     <ColumnDefinition Width="*"/>
@@ -1013,105 +1010,198 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="72"/>
                   </Grid.ColumnDefinitions>
-                  <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                  </Grid.RowDefinitions>
-                  <TextBlock Grid.Row="0" Grid.Column="1" Text="Ratio" Opacity="0.45" FontSize="10" Margin="0,0,0,2"/>
-                  <TextBlock Grid.Row="0" Grid.Column="3" Text="Top speed" Opacity="0.45" FontSize="10" Margin="0,0,0,2"/>
-
-                  <TextBlock Grid.Row="1" Grid.Column="0" Text="1" VerticalAlignment="Center" Opacity="0.85"/>
-                  <Slider x:Name="TelemetryGear1RatioSlider" Grid.Row="1" Grid.Column="1" Minimum="0.3" Maximum="8" Value="2.97" TickFrequency="0.01"
-                          Margin="0,0,6,3" IsSnapToTickEnabled="False" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"
-                          ToolTip="Absolute gearbox ratio. Higher = shorter gear / lower max speed."/>
-                  <TextBlock x:Name="TelemetryGear1RatioValueText" Grid.Row="1" Grid.Column="2" Text="2.97" Margin="0,0,6,3"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear1MaxSlider" Grid.Row="1" Grid.Column="3" Minimum="3" Maximum="404" Value="43" TickFrequency="1"
-                          Margin="0,0,6,3" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged" ToolTip="1st gear top speed"/>
-                  <TextBlock x:Name="TelemetryGear1MaxValueText" Grid.Row="1" Grid.Column="4" Text="43 MPH" Margin="0,0,0,3"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-
-                  <TextBlock Grid.Row="2" Grid.Column="0" Text="2" VerticalAlignment="Center" Opacity="0.85"/>
-                  <Slider x:Name="TelemetryGear2RatioSlider" Grid.Row="2" Grid.Column="1" Minimum="0.3" Maximum="8" Value="2.07" TickFrequency="0.01"
-                          Margin="0,0,6,3" IsSnapToTickEnabled="False" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
-                  <TextBlock x:Name="TelemetryGear2RatioValueText" Grid.Row="2" Grid.Column="2" Text="2.07" Margin="0,0,6,3"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear2MaxSlider" Grid.Row="2" Grid.Column="3" Minimum="3" Maximum="404" Value="75" TickFrequency="1"
-                          Margin="0,0,6,3" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
-                  <TextBlock x:Name="TelemetryGear2MaxValueText" Grid.Row="2" Grid.Column="4" Text="75 MPH" Margin="0,0,0,3"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-
-                  <TextBlock Grid.Row="3" Grid.Column="0" Text="3" VerticalAlignment="Center" Opacity="0.85"/>
-                  <Slider x:Name="TelemetryGear3RatioSlider" Grid.Row="3" Grid.Column="1" Minimum="0.3" Maximum="8" Value="1.43" TickFrequency="0.01"
-                          Margin="0,0,6,3" IsSnapToTickEnabled="False" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
-                  <TextBlock x:Name="TelemetryGear3RatioValueText" Grid.Row="3" Grid.Column="2" Text="1.43" Margin="0,0,6,3"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear3MaxSlider" Grid.Row="3" Grid.Column="3" Minimum="3" Maximum="404" Value="109" TickFrequency="1"
-                          Margin="0,0,6,3" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
-                  <TextBlock x:Name="TelemetryGear3MaxValueText" Grid.Row="3" Grid.Column="4" Text="109 MPH" Margin="0,0,0,3"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-
-                  <TextBlock Grid.Row="4" Grid.Column="0" Text="4" VerticalAlignment="Center" Opacity="0.85"/>
-                  <Slider x:Name="TelemetryGear4RatioSlider" Grid.Row="4" Grid.Column="1" Minimum="0.3" Maximum="8" Value="1.00" TickFrequency="0.01"
-                          Margin="0,0,6,3" IsSnapToTickEnabled="False" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
-                  <TextBlock x:Name="TelemetryGear4RatioValueText" Grid.Row="4" Grid.Column="2" Text="1.00" Margin="0,0,6,3"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear4MaxSlider" Grid.Row="4" Grid.Column="3" Minimum="3" Maximum="404" Value="143" TickFrequency="1"
-                          Margin="0,0,6,3" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
-                  <TextBlock x:Name="TelemetryGear4MaxValueText" Grid.Row="4" Grid.Column="4" Text="143 MPH" Margin="0,0,0,3"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-
-                  <TextBlock Grid.Row="5" Grid.Column="0" Text="5" VerticalAlignment="Center" Opacity="0.85"/>
-                  <Slider x:Name="TelemetryGear5RatioSlider" Grid.Row="5" Grid.Column="1" Minimum="0.3" Maximum="8" Value="0.84" TickFrequency="0.01"
-                          Margin="0,0,6,3" IsSnapToTickEnabled="False" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
-                  <TextBlock x:Name="TelemetryGear5RatioValueText" Grid.Row="5" Grid.Column="2" Text="0.84" Margin="0,0,6,3"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear5MaxSlider" Grid.Row="5" Grid.Column="3" Minimum="3" Maximum="404" Value="177" TickFrequency="1"
-                          Margin="0,0,6,3" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
-                  <TextBlock x:Name="TelemetryGear5MaxValueText" Grid.Row="5" Grid.Column="4" Text="177 MPH" Margin="0,0,0,3"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-
-                  <TextBlock Grid.Row="6" Grid.Column="0" Text="6" VerticalAlignment="Center" Opacity="0.85"/>
-                  <Slider x:Name="TelemetryGear6RatioSlider" Grid.Row="6" Grid.Column="1" Minimum="0.3" Maximum="8" Value="0.56" TickFrequency="0.01"
-                          Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearRatioSlider_ValueChanged"
-                          ToolTip="Absolute 6th gear ratio (often ~0.56 overdrive). Determines 6th max speed with Diff + Tire + Redline."/>
-                  <TextBlock x:Name="TelemetryGear6RatioValueText" Grid.Row="6" Grid.Column="2" Text="0.56" Margin="0,0,6,0"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryGear6MaxSlider" Grid.Row="6" Grid.Column="3" Minimum="3" Maximum="404" Value="217" TickFrequency="1"
-                          Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
-                          ValueChanged="TelemetryGearMaxSlider_ValueChanged"
-                          ToolTip="6th gear max speed at Redline / shift RPM."/>
-                  <TextBlock x:Name="TelemetryGear6MaxValueText" Grid.Row="6" Grid.Column="4" Text="217 MPH"
-                             VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
-                             MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  <TextBlock Grid.Column="1" Text="Ratio" Opacity="0.45" FontSize="10"/>
+                  <TextBlock Grid.Column="3" Text="Top speed" Opacity="0.45" FontSize="10"/>
                 </Grid>
+                <StackPanel x:Name="TelemetryGearRowsHost">
+                  <!-- Gear rows 1–10; visibility follows Max gears -->
+                  <Grid x:Name="TelemetryGearRow1" Margin="0,0,0,3">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="22"/>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="52"/>
+                      <ColumnDefinition Width="*"/>
+                      <ColumnDefinition Width="72"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="1" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Slider x:Name="TelemetryGear1RatioSlider" Grid.Column="1" Minimum="0.3" Maximum="8" Value="2.97" TickFrequency="0.01"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearRatioSlider_ValueChanged"
+                            ToolTip="Absolute gearbox ratio. Higher = shorter gear / lower max speed."/>
+                    <TextBlock x:Name="TelemetryGear1RatioValueText" Grid.Column="2" Text="2.97" Margin="0,0,6,0"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Slider x:Name="TelemetryGear1MaxSlider" Grid.Column="3" Minimum="3" Maximum="994" Value="43" TickFrequency="1"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearMaxSlider_ValueChanged" ToolTip="1st gear top speed"/>
+                    <TextBlock x:Name="TelemetryGear1MaxValueText" Grid.Column="4" Text="43 MPH"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  </Grid>
+                  <Grid x:Name="TelemetryGearRow2" Margin="0,0,0,3">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="2" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Slider x:Name="TelemetryGear2RatioSlider" Grid.Column="1" Minimum="0.3" Maximum="8" Value="2.07" TickFrequency="0.01"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear2RatioValueText" Grid.Column="2" Text="2.07" Margin="0,0,6,0"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Slider x:Name="TelemetryGear2MaxSlider" Grid.Column="3" Minimum="3" Maximum="994" Value="75" TickFrequency="1"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear2MaxValueText" Grid.Column="4" Text="75 MPH"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  </Grid>
+                  <Grid x:Name="TelemetryGearRow3" Margin="0,0,0,3">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="3" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Slider x:Name="TelemetryGear3RatioSlider" Grid.Column="1" Minimum="0.3" Maximum="8" Value="1.43" TickFrequency="0.01"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear3RatioValueText" Grid.Column="2" Text="1.43" Margin="0,0,6,0"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Slider x:Name="TelemetryGear3MaxSlider" Grid.Column="3" Minimum="3" Maximum="994" Value="109" TickFrequency="1"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear3MaxValueText" Grid.Column="4" Text="109 MPH"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  </Grid>
+                  <Grid x:Name="TelemetryGearRow4" Margin="0,0,0,3">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="4" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Slider x:Name="TelemetryGear4RatioSlider" Grid.Column="1" Minimum="0.3" Maximum="8" Value="1.00" TickFrequency="0.01"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear4RatioValueText" Grid.Column="2" Text="1.00" Margin="0,0,6,0"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Slider x:Name="TelemetryGear4MaxSlider" Grid.Column="3" Minimum="3" Maximum="994" Value="143" TickFrequency="1"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear4MaxValueText" Grid.Column="4" Text="143 MPH"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  </Grid>
+                  <Grid x:Name="TelemetryGearRow5" Margin="0,0,0,3">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="5" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Slider x:Name="TelemetryGear5RatioSlider" Grid.Column="1" Minimum="0.3" Maximum="8" Value="0.84" TickFrequency="0.01"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear5RatioValueText" Grid.Column="2" Text="0.84" Margin="0,0,6,0"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Slider x:Name="TelemetryGear5MaxSlider" Grid.Column="3" Minimum="3" Maximum="994" Value="177" TickFrequency="1"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear5MaxValueText" Grid.Column="4" Text="177 MPH"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  </Grid>
+                  <Grid x:Name="TelemetryGearRow6" Margin="0,0,0,3">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="6" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Slider x:Name="TelemetryGear6RatioSlider" Grid.Column="1" Minimum="0.3" Maximum="8" Value="0.56" TickFrequency="0.01"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearRatioSlider_ValueChanged"
+                            ToolTip="Absolute gear ratio (often overdrive on tall gears)."/>
+                    <TextBlock x:Name="TelemetryGear6RatioValueText" Grid.Column="2" Text="0.56" Margin="0,0,6,0"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Slider x:Name="TelemetryGear6MaxSlider" Grid.Column="3" Minimum="3" Maximum="994" Value="217" TickFrequency="1"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear6MaxValueText" Grid.Column="4" Text="217 MPH"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  </Grid>
+                  <Grid x:Name="TelemetryGearRow7" Margin="0,0,0,3" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="7" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Slider x:Name="TelemetryGear7RatioSlider" Grid.Column="1" Minimum="0.3" Maximum="8" Value="0.48" TickFrequency="0.01"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear7RatioValueText" Grid.Column="2" Text="0.48" Margin="0,0,6,0"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Slider x:Name="TelemetryGear7MaxSlider" Grid.Column="3" Minimum="3" Maximum="994" Value="248" TickFrequency="1"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear7MaxValueText" Grid.Column="4" Text="248 MPH"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  </Grid>
+                  <Grid x:Name="TelemetryGearRow8" Margin="0,0,0,3" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="8" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Slider x:Name="TelemetryGear8RatioSlider" Grid.Column="1" Minimum="0.3" Maximum="8" Value="0.42" TickFrequency="0.01"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear8RatioValueText" Grid.Column="2" Text="0.42" Margin="0,0,6,0"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Slider x:Name="TelemetryGear8MaxSlider" Grid.Column="3" Minimum="3" Maximum="994" Value="280" TickFrequency="1"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear8MaxValueText" Grid.Column="4" Text="280 MPH"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  </Grid>
+                  <Grid x:Name="TelemetryGearRow9" Margin="0,0,0,3" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="9" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Slider x:Name="TelemetryGear9RatioSlider" Grid.Column="1" Minimum="0.3" Maximum="8" Value="0.37" TickFrequency="0.01"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear9RatioValueText" Grid.Column="2" Text="0.37" Margin="0,0,6,0"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Slider x:Name="TelemetryGear9MaxSlider" Grid.Column="3" Minimum="3" Maximum="994" Value="312" TickFrequency="1"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear9MaxValueText" Grid.Column="4" Text="312 MPH"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  </Grid>
+                  <Grid x:Name="TelemetryGearRow10" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="22"/><ColumnDefinition Width="*"/><ColumnDefinition Width="52"/><ColumnDefinition Width="*"/><ColumnDefinition Width="72"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="10" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Slider x:Name="TelemetryGear10RatioSlider" Grid.Column="1" Minimum="0.3" Maximum="8" Value="0.33" TickFrequency="0.01"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="False" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearRatioSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear10RatioValueText" Grid.Column="2" Text="0.33" Margin="0,0,6,0"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a ratio"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                    <Slider x:Name="TelemetryGear10MaxSlider" Grid.Column="3" Minimum="3" Maximum="994" Value="341" TickFrequency="1"
+                            Margin="0,0,6,0" IsSnapToTickEnabled="True" VerticalAlignment="Center"
+                            ValueChanged="TelemetryGearMaxSlider_ValueChanged"/>
+                    <TextBlock x:Name="TelemetryGear10MaxValueText" Grid.Column="4" Text="341 MPH"
+                               VerticalAlignment="Center" HorizontalAlignment="Right" Cursor="Hand" ToolTip="Click to type a value"
+                               MouseLeftButtonDown="TelemetryValueLabel_Click"/>
+                  </Grid>
+                </StackPanel>
               </StackPanel>
             </Border>
 
@@ -1217,11 +1307,44 @@
               </StackPanel>
             </Border>
 
-            <!-- Arcade handbrake / NOS - hardware bind on input profile (same Bind dialog as FFB) -->
+            <!-- Arcade handbrake / NOS / sequential gear - hardware bind on input profile -->
             <Border Style="{StaticResource CardBorder}">
               <StackPanel>
                 <TextBlock Text="Arcade buttons" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
-                           ToolTip="Bind a hardware button (same dialog as FFB). Hold to dump or boost simulated speed. Saved on the input profile; strength/boost stay on the telemetry profile."/>
+                           ToolTip="Bind hardware buttons (same dialog as FFB). Handbrake/NOS are hold; sequential gear is press. Gear binds save on the input profile; the enable toggle and strength/boost stay on the telemetry profile."/>
+
+                <DockPanel Margin="0,0,0,8"
+                           ToolTip="When enabled, telemetry gear ignores H-pattern and bumper paddles. Use Gear Up / Down / Reset binds instead: R → 1 → Max gears; Reset jumps to 1.">
+                  <CheckBox x:Name="TelemetrySequentialArcadeCheck" Content="Sequential shifter"
+                            VerticalAlignment="Center"
+                            Checked="TelemetrySequentialArcadeCheck_Changed"
+                            Unchecked="TelemetrySequentialArcadeCheck_Changed"/>
+                </DockPanel>
+                <StackPanel x:Name="TelemetrySequentialArcadeBindsPanel" Visibility="Collapsed" Margin="0,0,0,10">
+                  <TextBlock Text="R → 1 → Max gears · Reset → 1" FontSize="11" Opacity="0.55" Margin="0,0,0,6"/>
+                  <DockPanel Margin="0,2,0,0"
+                             ToolTip="Press once to upshift (R→1→…→Max). Rising edge only.">
+                    <TextBlock Text="Gear up" Width="88" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Button x:Name="TelemetryGearUpBindButton" DockPanel.Dock="Right"
+                            Style="{StaticResource FfbBindButton}" Content="Bind"
+                            Click="TelemetryGearUpBind_Click"/>
+                  </DockPanel>
+                  <DockPanel Margin="0,6,0,0"
+                             ToolTip="Press once to downshift (…→1→R). Rising edge only.">
+                    <TextBlock Text="Gear down" Width="88" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Button x:Name="TelemetryGearDownBindButton" DockPanel.Dock="Right"
+                            Style="{StaticResource FfbBindButton}" Content="Bind"
+                            Click="TelemetryGearDownBind_Click"/>
+                  </DockPanel>
+                  <DockPanel Margin="0,6,0,0"
+                             ToolTip="Press once to jump back to gear 1.">
+                    <TextBlock Text="Gear reset" Width="88" VerticalAlignment="Center" Opacity="0.85"/>
+                    <Button x:Name="TelemetryGearResetBindButton" DockPanel.Dock="Right"
+                            Style="{StaticResource FfbBindButton}" Content="Bind"
+                            Click="TelemetryGearResetBind_Click"/>
+                  </DockPanel>
+                </StackPanel>
+
                 <DockPanel Margin="0,2,0,0"
                            ToolTip="Hold the bound button to dump speed (stacks with Brake Force). Bind assigns hardware like FFB effect binds.">
                   <TextBlock Text="Handbrake" Width="88" VerticalAlignment="Center" Opacity="0.85"/>

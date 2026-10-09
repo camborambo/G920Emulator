@@ -13,10 +13,11 @@ public sealed class TelemetryTuning
     /// </summary>
     public const float DefaultRpmRedline = 6000f;
     /// <summary>
-    /// Ceiling for Blocklayer theoretical gear tops (tall overdrive + high Max RPM can exceed 400 km/h).
-    /// UI MPH slider max follows this (~404 MPH at 650).
+    /// Ceiling for Blocklayer theoretical gear tops (tall overdrive + high Shift At / redline).
+    /// Covers gears 7–10 through AbsoluteRpmMax with default tire/diff (and MinGearRatio).
+    /// UI MPH slider max follows this (~994 MPH at 1600 km/h).
     /// </summary>
-    public const float AbsoluteSpeedMaxKmh = 650f;
+    public const float AbsoluteSpeedMaxKmh = 1600f;
     public const float AbsoluteRpmMax = 12000f;
 
     public const float DefaultAccelKmhPerSec = 55f;
@@ -36,6 +37,11 @@ public sealed class TelemetryTuning
     public const float DefaultHandbrakeKmhPerSec = 80f;
     /// <summary>Arcade NOS / turbo hold boost (km/h per second) at 100% slider.</summary>
     public const float DefaultNosBoostKmhPerSec = 40f;
+    /// <summary>
+    /// When true, telemetry gear uses arcade Gear Up / Down / Reset binds
+    /// (R → 1 → MaxGears) instead of H-pattern / bumper paddles.
+    /// </summary>
+    public const bool DefaultSequentialArcadeGears = false;
     /// <summary>Rev-limiter hard-cut strength at 100% (~180 RPM hysteresis band).</summary>
     public const float DefaultRpmBounceAmount = 0.55f;
     /// <summary>Target hard-cut cycle rate (Hz) when pinned at redline / gear top.</summary>
@@ -57,6 +63,10 @@ public sealed class TelemetryTuning
     public const float DefaultGear4Ratio = 1.00f;
     public const float DefaultGear5Ratio = 0.84f;
     public const float DefaultGear6Ratio = 0.56f;
+    public const float DefaultGear7Ratio = 0.48f;
+    public const float DefaultGear8Ratio = 0.42f;
+    public const float DefaultGear9Ratio = 0.37f;
+    public const float DefaultGear10Ratio = 0.33f;
     public const float MinGearRatio = 0.30f;
     public const float MaxGearRatio = 8.00f;
 
@@ -67,6 +77,10 @@ public sealed class TelemetryTuning
     public const float DefaultGear4MaxKmh = 230f;
     public const float DefaultGear5MaxKmh = 285f;
     public const float DefaultGear6MaxKmh = 350f;
+    public const float DefaultGear7MaxKmh = 400f;
+    public const float DefaultGear8MaxKmh = 450f;
+    public const float DefaultGear9MaxKmh = 500f;
+    public const float DefaultGear10MaxKmh = 550f;
 
     // Compat aliases for UI that still references relative clamps.
     public const float MinRelativeGearRatio = MinGearRatio;
@@ -141,6 +155,12 @@ public sealed class TelemetryTuning
     /// <summary>Extra accel while NOS input binding is held (km/h per second); still capped by gear max.</summary>
     public float NosBoostKmhPerSec { get; set; } = DefaultNosBoostKmhPerSec;
 
+    /// <summary>
+    /// Use arcade sequential gear binds (Up / Down / Reset) instead of H-pattern or bumper paddles.
+    /// Pattern: R → 1 → … → MaxGears; Reset jumps to 1.
+    /// </summary>
+    public bool SequentialArcadeGears { get; set; } = DefaultSequentialArcadeGears;
+
     /// <summary>Absolute gearbox ratio for each gear (Blocklayer). 0 = derive from max speed / defaults.</summary>
     public float Gear1Ratio { get; set; }
     public float Gear2Ratio { get; set; }
@@ -148,6 +168,10 @@ public sealed class TelemetryTuning
     public float Gear4Ratio { get; set; }
     public float Gear5Ratio { get; set; }
     public float Gear6Ratio { get; set; }
+    public float Gear7Ratio { get; set; }
+    public float Gear8Ratio { get; set; }
+    public float Gear9Ratio { get; set; }
+    public float Gear10Ratio { get; set; }
 
     /// <summary>Cached max speeds at Max RPM (derived from ratios; kept for settings/UI).</summary>
     public float Gear1MaxKmh { get; set; }
@@ -156,6 +180,10 @@ public sealed class TelemetryTuning
     public float Gear4MaxKmh { get; set; }
     public float Gear5MaxKmh { get; set; }
     public float Gear6MaxKmh { get; set; }
+    public float Gear7MaxKmh { get; set; }
+    public float Gear8MaxKmh { get; set; }
+    public float Gear9MaxKmh { get; set; }
+    public float Gear10MaxKmh { get; set; }
 
     /// <summary>Differential / final-drive ratio (Blocklayer Diff Ratio).</summary>
     public float DiffRatio { get; set; } = DefaultDiffRatio;
@@ -173,6 +201,10 @@ public sealed class TelemetryTuning
             Gear4Ratio = DefaultGear4Ratio,
             Gear5Ratio = DefaultGear5Ratio,
             Gear6Ratio = DefaultGear6Ratio,
+            Gear7Ratio = DefaultGear7Ratio,
+            Gear8Ratio = DefaultGear8Ratio,
+            Gear9Ratio = DefaultGear9Ratio,
+            Gear10Ratio = DefaultGear10Ratio,
             DiffRatio = DefaultDiffRatio,
             TireDiameterInches = DefaultTireDiameterInches,
         };
@@ -226,8 +258,10 @@ public sealed class TelemetryTuning
     public float ChartRpm => Math.Max(100f, RpmRedline > 0 ? RpmRedline : RpmMax);
 
     /// <summary>
-    /// Blocklayer: MPH = (tire × RPM) / (336 × gearRatio × diff).
-    /// Max road speed in a gear is that formula at <see cref="ChartRpm"/> (shift/redline).
+    /// Blocklayer Gearing Analyzer (https://www.blocklayer.com/rpm-gear):
+    /// MPH = (tire × RPM) / (336 × gearRatio × diff).
+    /// Max road speed in a gear is that formula at <see cref="ChartRpm"/> (Shift At / redline).
+    /// Same identity for gears 1–10 — only the ratio changes.
     /// </summary>
     public float MaxSpeedKmhForGearRatio(float gearRatio)
     {
@@ -239,7 +273,9 @@ public sealed class TelemetryTuning
         return Math.Clamp(mph * KmhPerMph, 5f, AbsoluteSpeedMaxKmh);
     }
 
-    /// <summary>Inverse: gearbox ratio from a gear's max speed at shift/redline RPM.</summary>
+    /// <summary>
+    /// Blocklayer inverse: gearbox ratio from a gear's max speed at Shift At / redline RPM.
+    /// </summary>
     public float GearRatioForMaxSpeedKmh(float maxSpeedKmh)
     {
         var mph = Math.Max(1f, maxSpeedKmh * MphPerKmh);
@@ -250,25 +286,118 @@ public sealed class TelemetryTuning
         return Math.Clamp(ratio, MinGearRatio, MaxGearRatio);
     }
 
+    /// <summary>
+    /// Compare our gear tops to the Blocklayer formula (for diagnostics / A/B).
+    /// Returns max abs MPH error across gears 1..<see cref="EffectiveMaxGears"/>.
+    /// </summary>
+    public float BlocklayerMphErrorMax()
+    {
+        var diff = Math.Max(0.5f, DiffRatio);
+        var tire = Math.Max(10f, TireDiameterInches);
+        var rpm = ChartRpm;
+        var maxErr = 0f;
+        var n = EffectiveMaxGears;
+        for (var g = 1; g <= n; g++)
+        {
+            var ratio = Math.Clamp(GetGearRatio(g) <= 0 ? DefaultGearRatio(g) : GetGearRatio(g), MinGearRatio, MaxGearRatio);
+            var blMph = (tire * rpm) / (BlocklayerMphConstant * ratio * diff);
+            var oursMph = GetGearMaxKmh(g) * MphPerKmh;
+            var err = Math.Abs(oursMph - blMph);
+            if (err > maxErr) maxErr = err;
+        }
+        return maxErr;
+    }
+
     public void RecalculateGearMaxSpeedsFromRatios()
     {
-        Gear1MaxKmh = MaxSpeedKmhForGearRatio(Gear1Ratio);
-        Gear2MaxKmh = MaxSpeedKmhForGearRatio(Gear2Ratio);
-        Gear3MaxKmh = MaxSpeedKmhForGearRatio(Gear3Ratio);
-        Gear4MaxKmh = MaxSpeedKmhForGearRatio(Gear4Ratio);
-        Gear5MaxKmh = MaxSpeedKmhForGearRatio(Gear5Ratio);
-        Gear6MaxKmh = MaxSpeedKmhForGearRatio(Gear6Ratio);
+        for (var g = 1; g <= AbsoluteMaxGears; g++)
+            SetGearMaxKmhRaw(g, MaxSpeedKmhForGearRatio(GetGearRatio(g)));
     }
 
     private void EnsureGearRatios()
     {
         // Legacy: only max speeds - derive ratios. Else fall back to Blocklayer defaults.
-        Gear1Ratio = ResolveRatio(Gear1Ratio, Gear1MaxKmh, DefaultGear1Ratio);
-        Gear2Ratio = ResolveRatio(Gear2Ratio, Gear2MaxKmh, DefaultGear2Ratio);
-        Gear3Ratio = ResolveRatio(Gear3Ratio, Gear3MaxKmh, DefaultGear3Ratio);
-        Gear4Ratio = ResolveRatio(Gear4Ratio, Gear4MaxKmh, DefaultGear4Ratio);
-        Gear5Ratio = ResolveRatio(Gear5Ratio, Gear5MaxKmh, DefaultGear5Ratio);
-        Gear6Ratio = ResolveRatio(Gear6Ratio, Gear6MaxKmh, DefaultGear6Ratio);
+        for (var g = 1; g <= AbsoluteMaxGears; g++)
+            SetGearRatioRaw(g, ResolveRatio(GetGearRatio(g), GetGearMaxKmh(g), DefaultGearRatio(g)));
+    }
+
+    public static float DefaultGearRatio(int gear) => gear switch
+    {
+        1 => DefaultGear1Ratio,
+        2 => DefaultGear2Ratio,
+        3 => DefaultGear3Ratio,
+        4 => DefaultGear4Ratio,
+        5 => DefaultGear5Ratio,
+        6 => DefaultGear6Ratio,
+        7 => DefaultGear7Ratio,
+        8 => DefaultGear8Ratio,
+        9 => DefaultGear9Ratio,
+        10 => DefaultGear10Ratio,
+        _ => 1f,
+    };
+
+    public float GetGearRatio(int gear) => gear switch
+    {
+        1 => Gear1Ratio,
+        2 => Gear2Ratio,
+        3 => Gear3Ratio,
+        4 => Gear4Ratio,
+        5 => Gear5Ratio,
+        6 => Gear6Ratio,
+        7 => Gear7Ratio,
+        8 => Gear8Ratio,
+        9 => Gear9Ratio,
+        10 => Gear10Ratio,
+        _ => 0f,
+    };
+
+    public float GetGearMaxKmh(int gear) => gear switch
+    {
+        1 => Gear1MaxKmh,
+        2 => Gear2MaxKmh,
+        3 => Gear3MaxKmh,
+        4 => Gear4MaxKmh,
+        5 => Gear5MaxKmh,
+        6 => Gear6MaxKmh,
+        7 => Gear7MaxKmh,
+        8 => Gear8MaxKmh,
+        9 => Gear9MaxKmh,
+        10 => Gear10MaxKmh,
+        _ => 0f,
+    };
+
+    private void SetGearRatioRaw(int gear, float ratio)
+    {
+        switch (gear)
+        {
+            case 1: Gear1Ratio = ratio; break;
+            case 2: Gear2Ratio = ratio; break;
+            case 3: Gear3Ratio = ratio; break;
+            case 4: Gear4Ratio = ratio; break;
+            case 5: Gear5Ratio = ratio; break;
+            case 6: Gear6Ratio = ratio; break;
+            case 7: Gear7Ratio = ratio; break;
+            case 8: Gear8Ratio = ratio; break;
+            case 9: Gear9Ratio = ratio; break;
+            case 10: Gear10Ratio = ratio; break;
+        }
+    }
+
+    private void SetGearMaxKmhRaw(int gear, float maxKmh)
+    {
+        switch (gear)
+        {
+            case 1: Gear1MaxKmh = maxKmh; break;
+            case 2: Gear2MaxKmh = maxKmh; break;
+            case 3: Gear3MaxKmh = maxKmh; break;
+            case 4: Gear4MaxKmh = maxKmh; break;
+            case 5: Gear5MaxKmh = maxKmh; break;
+            case 6: Gear6MaxKmh = maxKmh; break;
+            case 7: Gear7MaxKmh = maxKmh; break;
+            case 8: Gear8MaxKmh = maxKmh; break;
+            case 9: Gear9MaxKmh = maxKmh; break;
+            case 10: Gear10MaxKmh = maxKmh; break;
+        }
     }
 
     private float ResolveRatio(float ratio, float maxKmh, float fallback)
@@ -283,52 +412,48 @@ public sealed class TelemetryTuning
     private static float ClampGearRatio(float value, float fallback) =>
         Math.Clamp(value <= 0 ? fallback : value, MinGearRatio, MaxGearRatio);
 
-    /// <summary>Tallest gear max speed (often 6th overdrive).</summary>
+    /// <summary>Effective forward gear count (1–10) for chart / paddle / SimHub MaxGears.</summary>
+    public int EffectiveMaxGears =>
+        Math.Clamp(MaxGears <= 0 ? DefaultMaxGears : MaxGears, MinMaxGears, AbsoluteMaxGears);
+
+    /// <summary>Tallest gear max among gears 1..<see cref="EffectiveMaxGears"/>.</summary>
     public float TopGearMaxKmh
     {
         get
         {
-            var tallest = Gear1MaxKmh;
-            if (Gear2MaxKmh > tallest) tallest = Gear2MaxKmh;
-            if (Gear3MaxKmh > tallest) tallest = Gear3MaxKmh;
-            if (Gear4MaxKmh > tallest) tallest = Gear4MaxKmh;
-            if (Gear5MaxKmh > tallest) tallest = Gear5MaxKmh;
-            if (Gear6MaxKmh > tallest) tallest = Gear6MaxKmh;
-            return Math.Max(5f, tallest);
+            var tallest = 5f;
+            var n = EffectiveMaxGears;
+            for (var g = 1; g <= n; g++)
+            {
+                var v = GetGearMaxKmh(g);
+                if (v > tallest) tallest = v;
+            }
+            return tallest;
         }
     }
 
-    /// <summary>Top speed for a gear (1-6 / R). N is uncapped (SpeedMax).</summary>
+    /// <summary>Top speed for a gear (1-10 / R). N is uncapped (SpeedMax).</summary>
     public float GearTopSpeedKmh(string gear)
     {
-        return gear switch
-        {
-            "1" => Gear1MaxKmh,
-            "2" => Gear2MaxKmh,
-            "3" => Gear3MaxKmh,
-            "4" => Gear4MaxKmh,
-            "5" => Gear5MaxKmh,
-            "6" => Gear6MaxKmh,
-            "R" => Math.Clamp(Gear1MaxKmh * 1.1f, 5f, AbsoluteSpeedMaxKmh),
-            _ => SpeedMaxKmh,
-        };
+        if (gear is "R")
+            return Math.Clamp(Gear1MaxKmh * 1.1f, 5f, AbsoluteSpeedMaxKmh);
+        if (int.TryParse(gear, out var g) && g is >= 1 and <= AbsoluteMaxGears)
+            return GetGearMaxKmh(g);
+        return SpeedMaxKmh;
     }
 
     /// <summary>Absolute Blocklayer gearbox ratio for a gear.</summary>
-    public float AbsoluteGearRatio(string gear) => gear switch
+    public float AbsoluteGearRatio(string gear)
     {
-        "1" => Gear1Ratio,
-        "2" => Gear2Ratio,
-        "3" => Gear3Ratio,
-        "4" => Gear4Ratio,
-        "5" => Gear5Ratio,
-        "6" => Gear6Ratio,
-        "R" => Gear1Ratio * 1.05f,
-        _ => 1f,
-    };
+        if (gear is "R")
+            return Gear1Ratio * 1.05f;
+        if (int.TryParse(gear, out var g) && g is >= 1 and <= AbsoluteMaxGears)
+            return GetGearRatio(g);
+        return 1f;
+    }
 
     public float AbsoluteGearRatio(int gear) =>
-        AbsoluteGearRatio(gear is >= 1 and <= 6 ? gear.ToString() : "N");
+        AbsoluteGearRatio(gear is >= 1 and <= AbsoluteMaxGears ? gear.ToString() : "N");
 
     /// <summary>Alias used by older UI helpers - absolute gearbox ratio (not forced 1.0 on 6th).</summary>
     public float RelativeGearRatio(string gear) => AbsoluteGearRatio(gear);
@@ -337,16 +462,9 @@ public sealed class TelemetryTuning
 
     public void SetGearRatio(int gear, float ratio)
     {
-        var r = ClampGearRatio(ratio, 1f);
-        switch (gear)
-        {
-            case 1: Gear1Ratio = r; break;
-            case 2: Gear2Ratio = r; break;
-            case 3: Gear3Ratio = r; break;
-            case 4: Gear4Ratio = r; break;
-            case 5: Gear5Ratio = r; break;
-            case 6: Gear6Ratio = r; break;
-        }
+        if (gear is < 1 or > AbsoluteMaxGears)
+            return;
+        SetGearRatioRaw(gear, ClampGearRatio(ratio, DefaultGearRatio(gear)));
         RecalculateGearMaxSpeedsFromRatios();
         SyncSpeedMaxFromTopGear();
     }
@@ -419,14 +537,11 @@ public sealed class TelemetryTuning
     public string FormatGearTopSpeeds()
     {
         static string Cap(float kmh) => kmh >= 100 ? $"{kmh:0}" : $"{kmh:0.#}";
-        string Pair(int g, float kmh, float ratio) => $"{g}:{Cap(kmh)}@{ratio:0.##}";
-        return string.Join(" · ",
-            Pair(1, Gear1MaxKmh, Gear1Ratio),
-            Pair(2, Gear2MaxKmh, Gear2Ratio),
-            Pair(3, Gear3MaxKmh, Gear3Ratio),
-            Pair(4, Gear4MaxKmh, Gear4Ratio),
-            Pair(5, Gear5MaxKmh, Gear5Ratio),
-            Pair(6, Gear6MaxKmh, Gear6Ratio));
+        var n = EffectiveMaxGears;
+        var parts = new string[n];
+        for (var g = 1; g <= n; g++)
+            parts[g - 1] = $"{g}:{Cap(GetGearMaxKmh(g))}@{GetGearRatio(g):0.##}";
+        return string.Join(" · ", parts);
     }
 
     public TelemetryTuning Clone()
@@ -454,18 +569,27 @@ public sealed class TelemetryTuning
             CrashDumpScale = CrashDumpScale,
             HandbrakeKmhPerSec = HandbrakeKmhPerSec,
             NosBoostKmhPerSec = NosBoostKmhPerSec,
+            SequentialArcadeGears = SequentialArcadeGears,
             Gear1Ratio = Gear1Ratio,
             Gear2Ratio = Gear2Ratio,
             Gear3Ratio = Gear3Ratio,
             Gear4Ratio = Gear4Ratio,
             Gear5Ratio = Gear5Ratio,
             Gear6Ratio = Gear6Ratio,
+            Gear7Ratio = Gear7Ratio,
+            Gear8Ratio = Gear8Ratio,
+            Gear9Ratio = Gear9Ratio,
+            Gear10Ratio = Gear10Ratio,
             Gear1MaxKmh = Gear1MaxKmh,
             Gear2MaxKmh = Gear2MaxKmh,
             Gear3MaxKmh = Gear3MaxKmh,
             Gear4MaxKmh = Gear4MaxKmh,
             Gear5MaxKmh = Gear5MaxKmh,
             Gear6MaxKmh = Gear6MaxKmh,
+            Gear7MaxKmh = Gear7MaxKmh,
+            Gear8MaxKmh = Gear8MaxKmh,
+            Gear9MaxKmh = Gear9MaxKmh,
+            Gear10MaxKmh = Gear10MaxKmh,
             DiffRatio = DiffRatio,
             TireDiameterInches = TireDiameterInches,
         };

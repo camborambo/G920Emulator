@@ -24,6 +24,9 @@ public sealed class DiagnosticsLiveSnapshot
     public long HostInputReadAgeMs { get; init; } = -1;
     public long SubmitNotReadyCount { get; init; }
 
+    /// <summary>g920ffb COM InprocServer32 paths (install vs ProgramData) for oem-registry.txt.</summary>
+    public string OemComInprocReport { get; init; } = "";
+
     public string? ActiveInputProfile { get; init; }
     public string? ActiveFfbProfile { get; init; }
     public string? FfbSourceDeviceId { get; init; }

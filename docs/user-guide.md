@@ -27,6 +27,8 @@ The window title and status bar show the app version (for example **v0.2.7**). W
 3. Unzip the new `G920Emulator` folder **over** the folder you already use (same place you put it the first time).
 4. Run the new `G920Emulator.exe`. Bindings stay in `%AppData%\G920Emulator\` unless you use `portable.txt`.
 
+If Windows says the install folder is **in use**, Steam often still has an old `g920ffb.dll` loaded from that folder. OEM FFB is registered under `%ProgramData%\G920Emulator\g920ffb\` — **fully quit Steam once**, then delete or replace the folder. (Closing only the emulator is not enough if Steam already loaded the old path.)
+
 **Later** hides that version until a newer tag. You can turn the check off in Settings. The app does not overwrite files itself.
 
 ## First-time setup
@@ -57,7 +59,7 @@ Many arcade / console-port titles (Need for Speed Heat and Unbound included) hav
 **Honest fields**
 
 - Throttle, brake, clutch, steering - your mapped G920 controls
-- Gear - H-pattern binds, or sequential paddles if you use them
+- Gear - H-pattern binds, bumper paddles, or (opt-in) Arcade **Sequential shifter** Up / Down / Reset binds
 - `SurfaceRumble`, `Impact`, `RoadLoad`, and per-type FFB (`FfbConstant`, `FfbPeriodic`, …) - from the game's DirectInput mix on the virtual G920
 
 **Simulated (not real game values)**
@@ -73,11 +75,10 @@ Many arcade / console-port titles (Need for Speed Heat and Unbound included) hav
 4. Enable **Send telemetry while the bridge is running**, **Start** the bridge, launch the game.
 5. Optional **Telemetry profile** tuning (Save / Save as / Default / Delete under `telemetry-profiles`):
 
-   - **SimHub MaxGears Settings** - UDP `MaxGears` → SimHub `CarSettings_MaxGears` (1–10). Separate from gearbox ratios.
-   - **Gearing** - gear ratios, Diff / final drive, Tire diameter, and Redline (SimHub `EngineShiftRpm`) tune how simulated speed and RPM behave.
+   - **Gearing** - **Max gears** (1–10; UDP `MaxGears` → SimHub `CarSettings_MaxGears`; shows that many ratio rows), gear ratios, Diff / final drive, Tire diameter, and Redline (SimHub `EngineShiftRpm`).
    - **Live / Accel / Brake / Coast** - MPH (and MPH/s) by default; enable **Settings → Telemetry km/h** for metric. Values are stored and sent to SimHub as **km/h** (rates as km/h/s).
    - **RPM** - follows speed within the current gear (upshift drops RPM). **Rev-limiter** / **Limiter rate** hard-cut when a gear is pinned at top speed.
-   - **Arcade buttons** - optional **Handbrake** and **NOS / Turbo** binds on the input profile, with strength / boost on the telemetry profile.
+   - **Arcade buttons** - optional **Handbrake** and **NOS / Turbo** binds on the input profile, with strength / boost on the telemetry profile. Enable **Sequential shifter** when you use a sequential box or paddles that are not H-pattern gears: bind **Gear up**, **Gear down**, and **Gear reset** (R → 1 → Max gears; Reset → 1).
    - **Engine / ShakeIt scales** - Engine (0-200%) for SimHub Engine vibrations force; SurfaceRumble / Impact / RoadLoad as before.
 
 Unbound still needs **Controller Vibration On** or periodic/CF magnitudes stay 0 (same as FFB).
@@ -253,7 +254,7 @@ The zip includes:
 - `devices.txt` - every DirectInput game device (including virtual G920 and FFB flag)
 - `ffb-snapshot.txt` - OEM shared-memory mix + active gains at export time
 - `hidhide.txt` - cloak / app whitelist / hidden devices via HidHideCLI
-- `oem-registry.txt` - G920 OEMForceFeedback CLSID path
+- `oem-registry.txt` - g920ffb COM InprocServer32 (ProgramData vs install folder) + OEMForceFeedback CLSID tree
 - `game-ffb-analysis.txt` - Unbound race signature / Vibration hint from the OEM log
 - `logs\g920ffb-effects.log` - game OEM calls (`SESSION` / `CALL` / `EFFECT` / `MIX`) when Debug was used
 - `logs\g920emulator-perf.log` - 10 s snapshots of emulator CPU/RAM plus the OEM game (and Steam aux) process; high game load is expected, watch emulator `cpu1` / `hint=`
