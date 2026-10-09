@@ -2823,24 +2823,26 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// When FFB debug is expanded, its grid row becomes * so the diag list fills leftover window height.
-    /// Upper feel cards are capped so they cannot steal the whole column.
+    /// When FFB debug is expanded, grow the diagnostics pane toward the panel height
+    /// so the card fills leftover viewport — still inside the right-column scroll.
     /// </summary>
     private void UpdateFfbDebugRowLayout()
     {
-        if (FfbDebugRowDef is null || FfbDebugExpander is null)
+        if (FfbDebugDiagScroll is null || FfbDebugExpander is null || FfbPanel is null)
             return;
-        var expanded = FfbDebugExpander.IsExpanded;
-        FfbDebugRowDef.Height = expanded
-            ? new GridLength(1, GridUnitType.Star)
-            : GridLength.Auto;
 
-        if (FfbFeelScrollViewer is null || FfbPanel is null)
-            return;
-        if (expanded && FfbPanel.ActualHeight > 0)
-            FfbFeelScrollViewer.MaxHeight = Math.Max(140, FfbPanel.ActualHeight * 0.55);
+        if (FfbDebugExpander.IsExpanded && FfbPanel.ActualHeight > 0)
+        {
+            // Header + buttons + torque slider ≈ 220px; rest goes to the live diag list.
+            var fill = Math.Max(160, FfbPanel.ActualHeight - 220);
+            FfbDebugDiagScroll.MinHeight = fill;
+            FfbDebugDiagScroll.MaxHeight = fill;
+        }
         else
-            FfbFeelScrollViewer.MaxHeight = double.PositiveInfinity;
+        {
+            FfbDebugDiagScroll.MinHeight = 0;
+            FfbDebugDiagScroll.ClearValue(FrameworkElement.MaxHeightProperty);
+        }
     }
 
     private void RefreshFfbDiagnostics()

@@ -526,15 +526,10 @@
                   </StackPanel>
                   </ScrollViewer>
 
-                  <!-- Right: feel / shaping / centering / advanced (auto) + FFB debug (fills leftover height) -->
-                  <Grid Grid.Column="2">
-                    <Grid.RowDefinitions>
-                      <RowDefinition Height="Auto"/>
-                      <RowDefinition x:Name="FfbDebugRowDef" Height="Auto"/>
-                    </Grid.RowDefinitions>
-                  <ScrollViewer x:Name="FfbFeelScrollViewer" Grid.Row="0"
+                  <!-- Right: feel / shaping / centering / advanced / FFB debug (one scroll) -->
+                  <ScrollViewer x:Name="FfbFeelScrollViewer" Grid.Column="2"
                                 VerticalScrollBarVisibility="Auto"
-                                HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,12">
+                                HorizontalScrollBarVisibility="Disabled">
                   <StackPanel>
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
                       <Expander Header="Output feel" IsExpanded="True"
@@ -735,13 +730,9 @@
                         </StackPanel>
                       </Expander>
                     </Border>
-                  </StackPanel>
-                  </ScrollViewer>
 
-                    <Border Grid.Row="1" Style="{StaticResource CardBorder}" MinHeight="0">
-                      <Expander x:Name="FfbDebugExpander" Style="{StaticResource StretchFillExpander}"
-                                Header="FFB debug" IsExpanded="False"
-                                VerticalAlignment="Stretch"
+                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+                      <Expander x:Name="FfbDebugExpander" Header="FFB debug" IsExpanded="False"
                                 Expanded="FfbDebugExpander_ExpandedChanged"
                                 Collapsed="FfbDebugExpander_ExpandedChanged"
                                 ToolTip="Test force feedback and view live effect counters.">
@@ -774,7 +765,7 @@
                                       ValueChanged="FfbTestTorqueSlider_ValueChanged"/>
                             </DockPanel>
                           </StackPanel>
-                          <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          <ScrollViewer x:Name="FfbDebugDiagScroll" VerticalScrollBarVisibility="Auto"
                                         HorizontalScrollBarVisibility="Auto" Margin="0,8,0,0">
                             <TextBlock x:Name="FfbDiagText" Opacity="0.8" FontSize="12"
                                        FontFamily="Consolas" TextWrapping="NoWrap"
@@ -783,7 +774,8 @@
                         </DockPanel>
                       </Expander>
                     </Border>
-                  </Grid>
+                  </StackPanel>
+                  </ScrollViewer>
       </Grid>
       <ScrollViewer x:Name="TelemetryPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid>
