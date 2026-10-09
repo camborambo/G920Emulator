@@ -67,6 +67,7 @@ public partial class TelemetryDebugOverlayWindow : Window
             Row("clutch", $"{t.Clutch:0.00}") +
             Row("steering", $"{t.Steering:+0.00;-0.00;0.00}") +
             Row("gear", string.IsNullOrEmpty(t.Gear) ? "N" : t.Gear) +
+            Row("max gears", $"{t.MaxGears}") +
             Row("handbrake", t.HandbrakeHeld ? "held" : "-") +
             Row("NOS / turbo", t.NosHeld ? "held" : "-") +
             nl +

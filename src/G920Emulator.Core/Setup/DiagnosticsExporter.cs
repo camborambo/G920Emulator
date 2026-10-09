@@ -92,7 +92,7 @@ public static class DiagnosticsExporter
         "  game-ffb-analysis.txt - OEM race signature (Triangle/CF vs spring-only / Vibration)\r\n" +
         "  logs\\g920ffb-effects.log - game OEM calls (SESSION / CALL / EFFECT / MIX)\r\n" +
         "  logs\\g920emulator-perf.log - emulator vs game CPU/RAM every 10s (hint= is our load, not the game GPU)\r\n" +
-        "  logs\\g920emulator-bridge-health.log - mid-race virt/submit health + steer/thr/brk + STALE_INPUT (frozen axes)\r\n" +
+        "  logs\\g920emulator-bridge-health.log - HOST_STALE / interruptPush heartbeats + STALE_INPUT\r\n" +
         "Repository: " + GitHubRepoUrl + "\r\n";
 
     private static void WriteSummary(
@@ -215,6 +215,11 @@ public static class DiagnosticsExporter
         sb.AppendLine("  Virtual Col01 present: " + live.VirtualCol01Present);
         sb.AppendLine("  Virtual error: " + (live.VirtualDeviceError ?? "(none)"));
         sb.AppendLine("  Host path hint: " + (string.IsNullOrWhiteSpace(live.HostPathHint) ? "(none)" : live.HostPathHint));
+        sb.AppendLine("  Interrupt-push virtual input: " + live.InterruptPushVirtualInput);
+        sb.AppendLine("  Mid-session Col01 auto-recover: " + live.HostStaleAutoRecover + " (off — all reasons)");
+        sb.AppendLine("  Virtual recover count: " + live.VirtualRecoverCount);
+        sb.AppendLine("  Host input read age (ms): " + live.HostInputReadAgeMs);
+        sb.AppendLine("  Submit NOT_READY count: " + live.SubmitNotReadyCount);
         sb.AppendLine("  Input profile: " + (live.ActiveInputProfile ?? "(none)"));
         sb.AppendLine("  FFB profile: " + (live.ActiveFfbProfile ?? "(none)"));
         sb.AppendLine("  FFB source id: " + (live.FfbSourceDeviceId ?? "(none)"));

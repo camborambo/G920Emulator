@@ -73,6 +73,7 @@ Many arcade / console-port titles (Need for Speed Heat and Unbound included) hav
 4. Enable **Send telemetry while the bridge is running**, **Start** the bridge, launch the game.
 5. Optional **Telemetry profile** tuning (Save / Save as / Default / Delete under `telemetry-profiles`):
 
+   - **SimHub MaxGears Settings** - UDP `MaxGears` → SimHub `CarSettings_MaxGears` (1–10). Separate from gearbox ratios.
    - **Gearing** - gear ratios, Diff / final drive, Tire diameter, and Redline (SimHub `EngineShiftRpm`) tune how simulated speed and RPM behave.
    - **Live / Accel / Brake / Coast** - MPH (and MPH/s) by default; enable **Settings → Telemetry km/h** for metric. Values are stored and sent to SimHub as **km/h** (rates as km/h/s).
    - **RPM** - follows speed within the current gear (upshift drops RPM). **Rev-limiter** / **Limiter rate** hard-cut when a gear is pinned at top speed.

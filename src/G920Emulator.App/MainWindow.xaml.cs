@@ -844,6 +844,14 @@ public partial class MainWindow : Window
                 TelemetryRpmBounceHzSlider.Value = settings.TelemetryRpmBounceHz;
             if (TelemetryEngineVibrationScaleSlider is not null)
                 TelemetryEngineVibrationScaleSlider.Value = settings.TelemetryEngineVibrationScale;
+            if (TelemetryMaxGearsBox is not null)
+            {
+                var maxGears = Math.Clamp(
+                    settings.TelemetryMaxGears <= 0 ? TelemetryTuning.DefaultMaxGears : settings.TelemetryMaxGears,
+                    TelemetryTuning.MinMaxGears,
+                    TelemetryTuning.AbsoluteMaxGears);
+                TelemetryMaxGearsBox.Text = maxGears.ToString();
+            }
             if (TelemetryRumbleScaleSlider is not null)
                 TelemetryRumbleScaleSlider.Value = settings.TelemetrySurfaceRumbleScale;
             if (TelemetryImpactScaleSlider is not null)
@@ -1477,6 +1485,13 @@ public partial class MainWindow : Window
                 s.TelemetryRpmBounceHz = (float)TelemetryRpmBounceHzSlider.Value;
             if (TelemetryEngineVibrationScaleSlider is not null)
                 s.TelemetryEngineVibrationScale = (float)TelemetryEngineVibrationScaleSlider.Value;
+            if (TelemetryMaxGearsBox is not null)
+            {
+                if (!int.TryParse(TelemetryMaxGearsBox.Text.Trim(), out var maxGears) || maxGears <= 0)
+                    maxGears = TelemetryTuning.DefaultMaxGears;
+                s.TelemetryMaxGears = Math.Clamp(maxGears, TelemetryTuning.MinMaxGears, TelemetryTuning.AbsoluteMaxGears);
+                TelemetryMaxGearsBox.Text = s.TelemetryMaxGears.ToString();
+            }
             if (TelemetryRumbleScaleSlider is not null)
                 s.TelemetrySurfaceRumbleScale = (float)TelemetryRumbleScaleSlider.Value;
             if (TelemetryImpactScaleSlider is not null)
@@ -1758,6 +1773,8 @@ public partial class MainWindow : Window
         {
             _debugSession.Start();
             VirtualG920Device.LogHostIngress = true;
+            try { _bridge.LogHostStaleDebugConfig(); }
+            catch { /* ignore */ }
             StatusText.Text = "Debug logging on - reproduce the issue, then Stop and Export log.";
         }
 
@@ -1863,6 +1880,13 @@ public partial class MainWindow : Window
             VirtualPreviewMode = _virtual.IsPreviewMode,
             VirtualCol01Present = G920DeviceIdentityFix.IsVirtualCol01Present(),
             HostPathHint = ffb.HostPathHint,
+            InterruptPushVirtualInput = _bridge.InterruptPushVirtualInput,
+            HostStaleAutoRecover = _bridge.HostStaleAutoRecover,
+            HostStaleRecoverAgeMs = 0,
+            HostStaleRecoverCooldownMs = 0,
+            VirtualRecoverCount = _bridge.VirtualRecoverCount,
+            HostInputReadAgeMs = _bridge.HostInputReadAgeMs,
+            SubmitNotReadyCount = _bridge.SubmitNotReadyCount,
             ActiveInputProfile = _profile.Name,
             ActiveFfbProfile = _profile.FfbProfileName,
             FfbSourceDeviceId = _profile.FfbSourceDeviceId ?? ffb.DeviceId,

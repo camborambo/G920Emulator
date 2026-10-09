@@ -787,6 +787,9 @@ public sealed class AppSettings
     /// <summary>Scale for ShakeIt Engine vibrations force (1 = 100%). RPM is always sent.</summary>
     public float TelemetryEngineVibrationScale { get; set; } = 1f;
 
+    /// <summary>SimHub GameData.CarSettings_MaxGears (1–10).</summary>
+    public int TelemetryMaxGears { get; set; } = TelemetryTuning.DefaultMaxGears;
+
     /// <summary>Hard-cut rev-limiter strength when pinned at gear top (0 = off, 1 = 100%).</summary>
     public float TelemetryRpmBounceAmount { get; set; } = TelemetryTuning.DefaultRpmBounceAmount;
 
@@ -854,6 +857,7 @@ public sealed class AppSettings
             ImpactScale = TelemetryImpactScale,
             RoadLoadScale = TelemetryRoadLoadScale,
             EngineVibrationScale = TelemetryEngineVibrationScale,
+            MaxGears = TelemetryMaxGears,
             RpmBounceAmount = TelemetryRpmBounceAmount,
             RpmBounceHz = TelemetryRpmBounceHz,
             AccelKmhPerSec = TelemetryAccelKmhPerSec,
@@ -897,6 +901,7 @@ public sealed class AppSettings
         TelemetryImpactScale = tuning.ImpactScale;
         TelemetryRoadLoadScale = tuning.RoadLoadScale;
         TelemetryEngineVibrationScale = tuning.EngineVibrationScale;
+        TelemetryMaxGears = tuning.MaxGears;
         TelemetryRpmBounceAmount = tuning.RpmBounceAmount;
         TelemetryRpmBounceHz = tuning.RpmBounceHz;
         TelemetryAccelKmhPerSec = tuning.AccelKmhPerSec;

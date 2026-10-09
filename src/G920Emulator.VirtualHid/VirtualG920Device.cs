@@ -158,14 +158,17 @@ public sealed class VirtualG920Device : IVirtualG920Device
             var instanceId = Encoding.Unicode.GetBytes("G920Emulator\0");
             _instanceIdHandle = GCHandle.Alloc(instanceId, GCHandleType.Pinned);
 
+            // Interrupt-push input (no ReadReport): WinUHidSubmitInputReport delivers Col01
+            // without waiting for a host ReadReport IRP. ReadReport mode was returning
+            // ERROR_NOT_READY when games stopped polling, while our mapper still looked live.
+            // HID++ replies already push via SubmitInputReport; Get/SetFeature + WriteReport
+            // stay for FFB ingress.
             var config = new WinUHidNative.DeviceConfig
             {
-                // Feature + output reports - HID++ FAP may arrive as WriteReport or SetFeature.
                 SupportedEvents =
                     WinUHidNative.EventType.GetFeature |
                     WinUHidNative.EventType.SetFeature |
-                    WinUHidNative.EventType.WriteReport |
-                    WinUHidNative.EventType.ReadReport,
+                    WinUHidNative.EventType.WriteReport,
                 VendorID = G920HidDescriptor.VendorId,
                 ProductID = G920HidDescriptor.ProductId,
                 VersionNumber = G920HidDescriptor.VersionNumber,
@@ -174,7 +177,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
                 ContainerId = G920HidDescriptor.ContainerId,
                 InstanceID = _instanceIdHandle.AddrOfPinnedObject(),
                 HardwareIDs = _hardwareIdsHandle.AddrOfPinnedObject(),
-                ReadReportPeriodUs = 2000, // 500 Hz
+                ReadReportPeriodUs = 0,
             };
 
             _device = WinUHidNative.WinUHidCreateDevice(ref config);
@@ -246,7 +249,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
                 else
                 {
                     _hostPathHint = present
-                        ? "Microsoft HID path · virtual Col01 present"
+                        ? "Microsoft HID path · virtual Col01 present · interrupt-push input"
                         : "WARNING: virtual Col01 not present - games will not see a wheel";
                 }
 
@@ -306,12 +309,14 @@ public sealed class VirtualG920Device : IVirtualG920Device
             }
 
             if (WinUHidNative.WinUHidSubmitInputReport(_device, report, (uint)report.Length))
+            {
+                // Push accepted by the driver — treat as host-path live for HOST_STALE age.
+                Interlocked.Exchange(ref _hostInputReadTick, Environment.TickCount64);
                 return true;
+            }
 
-            // In ReadReport mode WinUHid returns ERROR_NOT_READY when no HID read is pending
-            // (throttle window / host reading slower than us). _lastReport is served by the
-            // ReadReport callback instead, so this is not a failure — but a long streak with
-            // no ReadReport completions means the game/host stopped polling the virtual G920.
+            // ERROR_NOT_READY: no pending host read (legacy ReadReport mode) or pipe busy.
+            // Do not refresh host tick — BridgeService uses age for HOST_STALE status/log.
             var err = Marshal.GetLastWin32Error();
             if (err == ErrorNotReady)
             {

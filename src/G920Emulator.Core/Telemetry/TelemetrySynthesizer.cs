@@ -420,6 +420,10 @@ public sealed class TelemetrySynthesizer
             Brake: brake,
             Clutch: clutch,
             Gear: gear,
+            MaxGears: Math.Clamp(
+                _tuning.MaxGears <= 0 ? TelemetryTuning.DefaultMaxGears : _tuning.MaxGears,
+                TelemetryTuning.MinMaxGears,
+                TelemetryTuning.AbsoluteMaxGears),
             LocalSurgeMs2: _surgeMs2,
             LocalSwayMs2: _swayMs2,
             LocalHeaveMs2: _heaveMs2,

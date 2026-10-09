@@ -92,6 +92,13 @@ public sealed class TelemetryTuning
     /// </summary>
     public float EngineVibrationScale { get; set; } = 1f;
 
+    public const int DefaultMaxGears = 6;
+    public const int MinMaxGears = 1;
+    public const int AbsoluteMaxGears = 10;
+
+    /// <summary>SimHub External Sim <c>MaxGears</c> → <c>GameData.CarSettings_MaxGears</c>.</summary>
+    public int MaxGears { get; set; } = DefaultMaxGears;
+
     /// <summary>
     /// Hard-cut rev-limiter strength when pinned at redline / gear top
     /// (0 = off, 1 ≈ 180 RPM hysteresis, 2 ≈ 360 RPM).
@@ -188,6 +195,7 @@ public sealed class TelemetryTuning
         ImpactScale = Math.Clamp(ImpactScale, 0f, 2f);
         RoadLoadScale = Math.Clamp(RoadLoadScale, 0f, 2f);
         EngineVibrationScale = Math.Clamp(EngineVibrationScale, 0f, 2f);
+        MaxGears = Math.Clamp(MaxGears <= 0 ? DefaultMaxGears : MaxGears, MinMaxGears, AbsoluteMaxGears);
         RpmBounceAmount = Math.Clamp(RpmBounceAmount, 0f, 2f);
         RpmBounceHz = Math.Clamp(RpmBounceHz <= 0 ? DefaultRpmBounceHz : RpmBounceHz, 2f, 30f);
         AccelKmhPerSec = Math.Clamp(AccelKmhPerSec <= 0 ? DefaultAccelKmhPerSec : AccelKmhPerSec, 5f, 200f);
@@ -434,6 +442,7 @@ public sealed class TelemetryTuning
             ImpactScale = ImpactScale,
             RoadLoadScale = RoadLoadScale,
             EngineVibrationScale = EngineVibrationScale,
+            MaxGears = MaxGears,
             RpmBounceAmount = RpmBounceAmount,
             RpmBounceHz = RpmBounceHz,
             AccelKmhPerSec = AccelKmhPerSec,

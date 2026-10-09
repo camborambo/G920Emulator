@@ -15,10 +15,13 @@ public interface IVirtualG920Device : IDisposable
     bool IsDriverAvailable { get; }
     string? LastError { get; }
 
-    /// <summary>ms since the host last completed a joystick ReadReport (or -1 if never).</summary>
+    /// <summary>
+    /// ms since the host path last accepted joystick input (successful SubmitInputReport
+    /// or joystick ReadReport), or -1 if never.
+    /// </summary>
     long HostInputReadAgeMs { get; }
 
-    /// <summary>Count of ERROR_NOT_READY from SubmitInputReport (ReadReport mode, no pending read).</summary>
+    /// <summary>Count of ERROR_NOT_READY from SubmitInputReport (no pending host read / busy).</summary>
     long SubmitNotReadyCount { get; }
 
     bool Start(Func<byte[]> latestReportProvider, Action<FfbCommand>? onFfb = null);
@@ -107,8 +110,10 @@ public sealed class BridgeService : IDisposable
     private int _submitFailStreak;
     private int _recoverCount;
     private long _lastVirtualHealthTick;
+    private bool _hostInputWasLive;
+    private long _healthLastNotReadyCount;
     private string _linkStatus = "";
-    private const int VirtualHealthIntervalMs = 3_000;
+    private const int VirtualHealthIntervalMs = 1_000;
     private byte[]? _healthLastReport;
     private long _healthReportFrozenSinceTick;
     private long _healthLastStaleNoteTick;
@@ -223,6 +228,40 @@ public sealed class BridgeService : IDisposable
 
     /// <summary>Input / virtual-device health while the bridge runs (empty when OK).</summary>
     public string LinkStatus { get { lock (_gate) return _linkStatus; } }
+
+    /// <summary>Col01 / submit recover attempts this bridge session (diagnostics).</summary>
+    public int VirtualRecoverCount => _recoverCount;
+
+    /// <summary>ms since last accepted virtual joystick push/read, or -1 if never.</summary>
+    public long HostInputReadAgeMs => _virtualDevice?.HostInputReadAgeMs ?? -1;
+
+    /// <summary>Cumulative SubmitInputReport ERROR_NOT_READY this virtual-device lifetime.</summary>
+    public long SubmitNotReadyCount => _virtualDevice?.SubmitNotReadyCount ?? 0;
+
+    /// <summary>WinUHid joystick input is interrupt-push (no ReadReport pull).</summary>
+    public bool InterruptPushVirtualInput => true;
+
+    /// <summary>
+    /// Mid-session Col01 recreate is off for all reasons (HOST_STALE and hard submit-fail).
+    /// Opt-in Settings option later after drive validation.
+    /// </summary>
+    public bool HostStaleAutoRecover => false;
+
+    /// <summary>Write HOST_STALE / interrupt-push config into bridge-health when Debug starts.</summary>
+    public void LogHostStaleDebugConfig()
+    {
+        if (!BridgeHealthLog.IsEnabled)
+            return;
+
+        var virt = _virtualDevice;
+        BridgeHealthLog.NoteAlways(
+            $"CONFIG interruptPush=1 autoRecover=0 " +
+            $"bridgeRunning={(IsRunning ? 1 : 0)} virtRunning={(virt?.IsRunning == true ? 1 : 0)} " +
+            $"recoverCount={_recoverCount} hostWasLive={(_hostInputWasLive ? 1 : 0)} " +
+            $"hostReadAgeMs={virt?.HostInputReadAgeMs ?? -1} " +
+            $"notReady={virt?.SubmitNotReadyCount ?? 0} " +
+            $"hint={TruncateHealth(virt?.GetFfbIngressStats().HostPathHint ?? "")}");
+    }
 
     public TelemetryFrame LatestTelemetry { get { lock (_telemetryGate) return _latestTelemetry; } }
     public string TelemetryStatus { get { lock (_telemetryGate) return _telemetryStatus; } }
@@ -404,13 +443,20 @@ public sealed class BridgeService : IDisposable
         _recoverCount = 0;
         _lastInputRefreshTick = 0;
         _lastVirtualHealthTick = 0;
+        _hostInputWasLive = false;
+        _healthLastNotReadyCount = 0;
         _healthLastReport = null;
         _healthReportFrozenSinceTick = 0;
         _healthLastStaleNoteTick = 0;
         _healthFrozenNotes = 0;
         lock (_gate) _linkStatus = "";
         if (BridgeHealthLog.IsEnabled)
-            BridgeHealthLog.Note($"BRIDGE start virtRunning={device.IsRunning} err={device.LastError ?? "-"}");
+        {
+            BridgeHealthLog.NoteAlways(
+                $"BRIDGE start virtRunning={device.IsRunning} interruptPush=1 autoRecover=0 " +
+                $"err={device.LastError ?? "-"}");
+            LogHostStaleDebugConfig();
+        }
 
         _telemetrySynth.Reset();
         _telemetryUdp.ResetStats();
@@ -633,43 +679,30 @@ public sealed class BridgeService : IDisposable
         Interlocked.Increment(ref _ffbQueuedVersion);
     }
 
-    private void TryRecoverVirtualDevice()
+    /// <summary>
+    /// Mid-session Col01 recreate is disabled for all reasons until a Settings opt-in exists.
+    /// Logs + sticky status only — never calls <see cref="IVirtualG920Device.TryRecover"/>.
+    /// </summary>
+    private void TryRecoverVirtualDevice(string reason = "submit/Col01 lost")
     {
         IVirtualG920Device? device;
         lock (_gate) device = _virtualDevice;
         if (device is null)
             return;
 
+        var hostAgeBefore = device.HostInputReadAgeMs;
+        var notReadyBefore = device.SubmitNotReadyCount;
         lock (_gate)
-            _linkStatus = "Recovering virtual G920 (submit/Col01 lost)…";
-        if (BridgeHealthLog.IsEnabled)
-            BridgeHealthLog.Note($"RECOVER begin (failStreak={_submitFailStreak} err={device.LastError ?? "-"})");
-
-        var ok = device.TryRecover(
-            () =>
-            {
-                var snap = Volatile.Read(ref _callbackReport);
-                return (byte[])snap.Clone();
-            },
-            OnFfb);
-
-        _recoverCount++;
-        lock (_gate)
-        {
-            _linkStatus = ok
-                ? $"Virtual G920 recovered (#{_recoverCount})"
-                : $"Virtual G920 recover failed (#{_recoverCount}): {device.LastError}";
-        }
-
+            _linkStatus =
+                $"Virtual G920 submit/Col01 fault ({reason}) — auto-recover off; Stop then Start";
         if (BridgeHealthLog.IsEnabled)
         {
-            BridgeHealthLog.Note(ok
-                ? $"RECOVER ok #{_recoverCount} virtRunning={device.IsRunning}"
-                : $"RECOVER fail #{_recoverCount} err={device.LastError ?? "-"} virtRunning={device.IsRunning}");
+            BridgeHealthLog.NoteAlways(
+                $"RECOVER skipped autoRecover=0 reason={reason} " +
+                $"failStreak={_submitFailStreak} hostReadAgeMs={hostAgeBefore} " +
+                $"notReady={notReadyBefore} hostWasLive={(_hostInputWasLive ? 1 : 0)} " +
+                $"err={device.LastError ?? "-"}");
         }
-
-        if (ok)
-            ApplyEffectGains(_profile);
     }
 
     private void RunLoop(CancellationToken token)
@@ -798,36 +831,57 @@ public sealed class BridgeService : IDisposable
                             _linkStatus = "Virtual G920 stopped mid-session - Stop then Start bridge";
                         BridgeHealthLog.Note("FAULT virtRunning=false (zombie bridge loop still alive)");
                     }
+
+                    var hostAge = virt?.HostInputReadAgeMs ?? -1;
+                    // Mapped report still changing → our side is live; host path may still stall.
+                    var mappedLive = frozenMs < 400;
+                    if (running && hostAge >= 0 && hostAge < 500)
+                        _hostInputWasLive = true;
+
+                    if (running &&
+                        virt is not null &&
+                        mappedLive &&
+                        hostAge >= 1500)
+                    {
+                        lock (_gate)
+                            _linkStatus =
+                                $"Host not reading virtual G920 ({hostAge}ms) · notReady={virt.SubmitNotReadyCount}";
+
+                        // Log only — do not recreate Col01 mid-session (unsafe on a loaded rim).
+                        if (BridgeHealthLog.IsEnabled &&
+                            now - _healthLastStaleNoteTick >= 750 &&
+                            _healthFrozenNotes < 80)
+                        {
+                            _healthFrozenNotes++;
+                            _healthLastStaleNoteTick = now;
+                            BridgeHealthLog.NoteAlways(
+                                $"HOST_STALE ms={hostAge} frozenMs={frozenMs} " +
+                                $"steer={mapped.Steering:0.00} thr={mapped.Throttle:0.00} " +
+                                $"brk={mapped.Brake:0.00} notReady={virt.SubmitNotReadyCount} " +
+                                $"hostWasLive={(_hostInputWasLive ? 1 : 0)} autoRecover=0");
+                        }
+                    }
+
                     // File log only while status-bar Debug is on (no I/O / alloc when off).
                     if (BridgeHealthLog.IsEnabled)
                     {
                         string link;
                         lock (_gate) link = _linkStatus;
+                        var notReady = virt?.SubmitNotReadyCount ?? 0;
+                        var notReadyDelta = notReady - _healthLastNotReadyCount;
+                        _healthLastNotReadyCount = notReady;
+                        // 2s heartbeats for idle HOST_STALE A/B (default was 5s).
                         BridgeHealthLog.Heartbeat(
-                            $"virtRunning={running} submitFail={_submitFailStreak} recover={_recoverCount} " +
+                            $"interruptPush=1 virtRunning={running} submitFail={_submitFailStreak} " +
+                            $"recover={_recoverCount} " +
                             $"steer={mapped.Steering:0.00} thr={mapped.Throttle:0.00} brk={mapped.Brake:0.00} " +
                             $"ffbCacheMs={_ffb.PhysicalInputCacheAgeMs} frozenMs={frozenMs} " +
-                            $"hostReadAgeMs={virt?.HostInputReadAgeMs ?? -1} " +
-                            $"notReady={virt?.SubmitNotReadyCount ?? 0} " +
+                            $"hostReadAgeMs={hostAge} " +
+                            $"notReady={notReady} notReadyDelta={notReadyDelta} " +
+                            $"hostWasLive={(_hostInputWasLive ? 1 : 0)} " +
                             $"coop={_ffb.CooperativeLevelLabel} " +
-                            $"err={virt?.LastError ?? "-"} link={TruncateHealth(link)}");
-
-                        // Mapped input live but host not reading virtual G920 → game DI stale / wrong device.
-                        if (running &&
-                            virt is not null &&
-                            virt.HostInputReadAgeMs >= 1500 &&
-                            (mapped.Throttle > 0.05f || mapped.Brake > 0.05f ||
-                             Math.Abs(mapped.Steering) > 0.08f) &&
-                            now - _healthLastStaleNoteTick >= 750 &&
-                            _healthFrozenNotes < 40)
-                        {
-                            _healthFrozenNotes++;
-                            _healthLastStaleNoteTick = now;
-                            BridgeHealthLog.Note(
-                                $"HOST_STALE ms={virt.HostInputReadAgeMs} " +
-                                $"steer={mapped.Steering:0.00} thr={mapped.Throttle:0.00} " +
-                                $"brk={mapped.Brake:0.00} notReady={virt.SubmitNotReadyCount}");
-                        }
+                            $"err={virt?.LastError ?? "-"} link={TruncateHealth(link)}",
+                            intervalMs: 2_000);
                     }
                 }
 
@@ -839,7 +893,8 @@ public sealed class BridgeService : IDisposable
                     // effects), so only recover after ~1 s of hard failures at 500 Hz.
                     if (_submitFailStreak >= 500)
                     {
-                        TryRecoverVirtualDevice();
+                        // No mid-session Col01 recreate (HOST_STALE or hard submit-fail).
+                        TryRecoverVirtualDevice("submit/Col01 lost");
                         _submitFailStreak = 0;
                     }
                     else if (_submitFailStreak % 25 == 1)
@@ -861,8 +916,8 @@ public sealed class BridgeService : IDisposable
                     _submitFailStreak = 0;
                     lock (_gate)
                     {
-                        // Keep sticky fault text until a successful recover clears it.
-                        if (!_linkStatus.Contains("recover failed", StringComparison.OrdinalIgnoreCase) &&
+                        // Keep sticky fault text until Stop/Start (auto-recover is off).
+                        if (!_linkStatus.Contains("auto-recover off", StringComparison.OrdinalIgnoreCase) &&
                             !_linkStatus.Contains("stopped mid-session", StringComparison.OrdinalIgnoreCase))
                             _linkStatus = "";
                     }

@@ -950,6 +950,21 @@
               </StackPanel>
             </Border>
 
+            <!-- SimHub MaxGears (External Sim UDP) - separate from gearbox ratios -->
+            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
+              <StackPanel>
+                <TextBlock Text="SimHub MaxGears Settings" Style="{StaticResource SectionTitle}" Margin="0,0,0,10"
+                           ToolTip="Sent to SimHub as MaxGears (GameData.CarSettings_MaxGears) in the External Sim UDP packet. Independent of the Gearing ratios below."/>
+                <DockPanel
+                           ToolTip="SimHub CarSettings_MaxGears via External Sim MaxGears field.">
+                  <TextBlock Text="MaxGears" Width="128" VerticalAlignment="Center" Opacity="0.85"/>
+                  <TextBox x:Name="TelemetryMaxGearsBox" Width="56" HorizontalAlignment="Left"
+                           Text="6" LostFocus="TelemetrySettings_Changed"
+                           ToolTip="1–10. Default 6. Included in the SimHub UDP telemetry packet."/>
+                </DockPanel>
+              </StackPanel>
+            </Border>
+
             <!-- Gearing - accuracy -->
             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,12">
               <StackPanel>

@@ -15,6 +15,15 @@ public sealed class DiagnosticsLiveSnapshot
     public bool VirtualCol01Present { get; init; }
     public string HostPathHint { get; init; } = "";
 
+    /// <summary>Interrupt-push WinUHid input (no ReadReport).</summary>
+    public bool InterruptPushVirtualInput { get; init; }
+    public bool HostStaleAutoRecover { get; init; }
+    public int HostStaleRecoverAgeMs { get; init; }
+    public int HostStaleRecoverCooldownMs { get; init; }
+    public int VirtualRecoverCount { get; init; }
+    public long HostInputReadAgeMs { get; init; } = -1;
+    public long SubmitNotReadyCount { get; init; }
+
     public string? ActiveInputProfile { get; init; }
     public string? ActiveFfbProfile { get; init; }
     public string? FfbSourceDeviceId { get; init; }

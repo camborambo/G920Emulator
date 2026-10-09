@@ -35,6 +35,9 @@ public static class BridgeHealthLog
             catch { /* ignore */ }
 
             Write_NoLock("HEALTH START");
+            Write_NoLock(
+                "HEALTH HINT look for: CONFIG interruptPush autoRecover=0 / HOST_STALE / " +
+                "HB hostReadAgeMs notReadyDelta / STALE_INPUT / RECOVER skipped (auto-recover off)");
         }
     }
 
@@ -59,6 +62,21 @@ public static class BridgeHealthLog
             if (Volatile.Read(ref _enabled) == 0) return;
             if (string.Equals(message, _lastLine, StringComparison.Ordinal))
                 return;
+            _lastLine = message;
+            Write_NoLock(message);
+        }
+    }
+
+    /// <summary>
+    /// Always append (no dedupe) — use for AUTO_RECOVER / CONFIG so idle exports keep every event.
+    /// </summary>
+    public static void NoteAlways(string message)
+    {
+        if (Volatile.Read(ref _enabled) == 0 || string.IsNullOrWhiteSpace(message))
+            return;
+        lock (Gate)
+        {
+            if (Volatile.Read(ref _enabled) == 0) return;
             _lastLine = message;
             Write_NoLock(message);
         }

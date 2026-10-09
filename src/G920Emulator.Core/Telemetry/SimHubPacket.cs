@@ -15,10 +15,11 @@ public static class SimHubPacket
     public const string DefinitionFileName = "G920Telemetry.simdef";
     public const string SimHubGameName = "G920 Emulator (simulated)";
     public const uint GameSignature = 2863604573u;
-    public const uint TelemetrySignature = 1228639197u;
+    /// <summary>Includes standard <c>MaxGears</c> (Int32) after <c>Gear</c>.</summary>
+    public const uint TelemetrySignature = 308537222u;
     public const ushort LayoutMajorVersion = 1;
     public const ushort LayoutMinorVersion = 0;
-    public const int ExpectedPacketLength = 161;
+    public const int ExpectedPacketLength = 165;
     public const int HeaderSize = 55;
     public const string DefaultHost = "127.0.0.1";
     public const int DefaultPort = 20778;
@@ -89,6 +90,7 @@ public static class SimHubPacket
         WriteF32(dest, ref o, frame.Clutch);
         WriteUtf8Z(dest.Slice(o, 8), frame.Gear);
         o += 8;
+        WriteU32(dest, ref o, unchecked((uint)Math.Clamp(frame.MaxGears, 1, 10)));
         WriteF32(dest, ref o, frame.LocalSurgeMs2);
         WriteF32(dest, ref o, frame.LocalSwayMs2);
         WriteF32(dest, ref o, frame.LocalHeaveMs2);
@@ -172,6 +174,8 @@ public readonly record struct TelemetryFrame(
     float Brake,
     float Clutch,
     string Gear,
+    /// <summary>SimHub MaxGears → GameData.CarSettings_MaxGears.</summary>
+    int MaxGears,
     float LocalSurgeMs2,
     float LocalSwayMs2,
     float LocalHeaveMs2,

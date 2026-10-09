@@ -9,6 +9,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Telemetry **SimHub MaxGears Settings** card: External Sim UDP `MaxGears` → SimHub `GameData.CarSettings_MaxGears` (1–10, default 6). Saved with the telemetry profile (not under Gearing). After updating, **Remove registration** → restart SimHub → **Register with SimHub** again (packet layout/signature changed).
 - **Custom bindings** after Gear 6: Binding Wizard with **Bind Button** + optional **Bind FN** popups, plus a **Toggle** checkbox (hold vs latch). If FN is bound, the button requires that key held. Remove with **X**.
 - Axis→button on standard Assign and custom Binding Wizard: capturing an axis for a button target converts automatically (**Activate on Axis** threshold + live meter). Checkbox label is **Invert**.
 - **Axis range** (start/end) for axis→axis bindings: dual-handle slider remaps the usable throw. Separate from **Activate on Axis** (single % for axis→button).
@@ -21,6 +22,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **HOST_STALE / mid-session disconnect:** virtual G920 uses **interrupt-push** WinUHid input (no ReadReport pull mode) so `SubmitInputReport` is not gated on a pending host read. Status + Debug log `HOST_STALE` / 2s heartbeats (`hostReadAgeMs`, `notReadyDelta`). **No mid-session Col01 auto-recover** for HOST_STALE or hard submit-fail (log + Stop/Start only; Settings opt-in later). Start/Stop orphan Col01 cleanup unchanged. Validated on Fanatec (idle + ~30 min live Unbound).
 - On bridge Start, disable Device Manager power-saving (“Allow the computer to turn off this device…”) for **WinUHid / VHF** nodes so Windows cannot sleep the virtual G920 while the app stays Running. Best-effort (needs elevation).
 - Telemetry synth, UDP send, and game-process probe run on a **side thread** (same idea as Simucube FFB apply). When Telemetry is off, the input loop skips that work entirely so SimHub I/O cannot stall virtual G920 reports.
 - Telemetry-on path no longer contends with HID/FFB on `BridgeService`’s main lock or double-reads OEM shared memory; process probe interval is 5s. (Freeze A/B: issue tracked with Telemetry enabled.)
