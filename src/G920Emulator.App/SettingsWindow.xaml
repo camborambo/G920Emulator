@@ -4,8 +4,8 @@
         xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         Title="Settings"
         Icon="pack://application:,,,/Assets/app.ico"
-        Height="480" Width="580"
-        MinHeight="420" MinWidth="500"
+        Height="520" Width="600"
+        MinHeight="460" MinWidth="520"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#121418"
@@ -106,11 +106,19 @@
             </StackPanel>
           </RadioButton>
           <RadioButton x:Name="HidHideTab" Style="{StaticResource SettingsTabRadio}" GroupName="SettingsTabs"
-                       Margin="0" Checked="SettingsTab_Checked">
+                       Checked="SettingsTab_Checked">
             <StackPanel Orientation="Horizontal">
               <iconPacks:PackIconMaterial Kind="EyeOffOutline" Width="14" Height="14"
                                           VerticalAlignment="Center" Margin="0,0,8,0"/>
               <TextBlock Text="HidHide" VerticalAlignment="Center"/>
+            </StackPanel>
+          </RadioButton>
+          <RadioButton x:Name="DebugTestTab" Style="{StaticResource SettingsTabRadio}" GroupName="SettingsTabs"
+                       Margin="0" Checked="SettingsTab_Checked">
+            <StackPanel Orientation="Horizontal">
+              <iconPacks:PackIconMaterial Kind="FlaskOutline" Width="14" Height="14"
+                                          VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <TextBlock Text="Debug Test" VerticalAlignment="Center"/>
             </StackPanel>
           </RadioButton>
         </StackPanel>
@@ -130,17 +138,6 @@
             <CheckBox x:Name="TelemetryKmhCheck" Content="Telemetry km/h"
                       Checked="Setting_Changed" Unchecked="Setting_Changed"
                       ToolTip="Off (default): show MPH / MPH/s. On: show km/h / km/h/s. SimHub always receives km/h."/>
-            <TextBlock Text="Physical FFB (wheel base)" FontWeight="SemiBold" Margin="0,14,0,8"/>
-            <RadioButton x:Name="FfbExclusiveRadio" Style="{StaticResource HidHideModeRadio}" GroupName="FfbCoop"
-                         Content="Exclusive — strongest FFB"
-                         Checked="FfbCoop_Changed"
-                         ToolTip="Emulator claims the base for force feedback. Close Fanatec Control Panel / True Drive while racing."/>
-            <RadioButton x:Name="FfbNonExclusiveRadio" Style="{StaticResource HidHideModeRadio}" GroupName="FfbCoop"
-                         Content="NonExclusive — shared (if pedals freeze)"
-                         Checked="FfbCoop_Changed"
-                         ToolTip="Use when Exclusive freezes steer/pedals on the same base (joy.cpl shows G920 but axes do not move). FFB may be weaker if Fanatec/True Drive stay open."/>
-            <TextBlock Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,8"
-                       Text="Applies on the next FFB attach (Start bridge or change FFB source)."/>
             <Button Style="{StaticResource AppButton}" Content="Manage dependencies…"
                     HorizontalAlignment="Left" Margin="0,4,0,0" Click="Dependencies_Click"
                     ToolTip="Install, uninstall, or recheck WinUHid, HidHide, and test signing."/>
@@ -180,6 +177,47 @@
             <TextBlock Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,12,0,0"
                        Text="Close HidHide Client before Start (it locks the driver). Windows may ask for admin permission."/>
           </StackPanel>
+
+          <!-- Debug Test (experimental FFB/input A/B) -->
+          <ScrollViewer x:Name="DebugTestPanel" Visibility="Collapsed"
+                        VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+              <TextBlock Opacity="0.7" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"
+                         Text="Enable only reveals these knobs. Defaults match the last stable release — turning Enable on by itself does not change FFB/input. Change a sub-option only to A/B a freeze fix."/>
+              <CheckBox x:Name="FfbExperimentalCheck" Content="Enable Debug Test (Experimental)"
+                        Checked="FfbExperimental_Changed" Unchecked="FfbExperimental_Changed"
+                        ToolTip="Shows the options below. With defaults selected, behavior matches the normal (non-debug) path."/>
+              <StackPanel x:Name="FfbExperimentalOptions" Margin="4,4,0,0" Visibility="Collapsed">
+                <TextBlock Text="Cooperative level" FontWeight="SemiBold" Margin="0,8,0,8"/>
+                <RadioButton x:Name="FfbExclusiveRadio" Style="{StaticResource HidHideModeRadio}" GroupName="FfbCoop"
+                             Content="Exclusive — strongest FFB"
+                             Checked="FfbCoop_Changed"
+                             ToolTip="Normal/release path. Emulator claims the base for force feedback."/>
+                <RadioButton x:Name="FfbNonExclusiveRadio" Style="{StaticResource HidHideModeRadio}" GroupName="FfbCoop"
+                             Content="NonExclusive — shared acquire"
+                             Checked="FfbCoop_Changed"
+                             ToolTip="A/B only: try if Exclusive freezes steer/pedals on the FFB base."/>
+                <TextBlock Text="Input / FFB mitigations" FontWeight="SemiBold" Margin="0,12,0,8"/>
+                <CheckBox x:Name="FfbDualHandleInputCheck" Content="Dual-handle input"
+                          Checked="FfbDualHandle_Changed" Unchecked="FfbDualHandle_Changed"
+                          ToolTip="Off = normal/release (Exclusive FFB shares InputHub; input overlaid from that handle). On = A/B standalone Exclusive FFB + InputHub keeps NonExclusive Poll — for mid-race dead inputs while forces stay Exclusive."/>
+                <CheckBox x:Name="FfbUnlockedSetParametersCheck" Content="Unlocked SetParameters"
+                          Checked="Setting_Changed" Unchecked="Setting_Changed"
+                          ToolTip="Off = normal/release (SetParameters under the DI lock). On = A/B unlock so Poll can run during apply."/>
+                <CheckBox x:Name="FfbNonBlockingRimReadsCheck" Content="Non-blocking rim reads"
+                          Checked="Setting_Changed" Unchecked="Setting_Changed"
+                          ToolTip="Off = normal/release (TryEnter 0 + cache). On = A/B brief wait when cache is stale."/>
+                <CheckBox x:Name="FfbSoftCatchUpSteerCheck" Content="Soft steering catch-up"
+                          Checked="Setting_Changed" Unchecked="Setting_Changed"
+                          ToolTip="On = normal/release (limits per-frame steering jumps). Uncheck to A/B without the limiter."/>
+                <Button Style="{StaticResource AppButton}" Content="Default"
+                        HorizontalAlignment="Left" Margin="0,14,0,0" Click="FfbExperimentalDefault_Click"
+                        ToolTip="Turn Debug Test off and restore release defaults (Exclusive, dual-handle off, locked SetParameters, soft catch-up on)."/>
+                <TextBlock Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"
+                           Text="Re-attaches FFB when Enable, cooperative level, or Dual-handle input changes."/>
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
         </Grid>
       </Border>
     </Grid>

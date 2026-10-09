@@ -802,7 +802,7 @@
                              VerticalAlignment="Center" HorizontalAlignment="Right"
                              Cursor="Hand" ToolTip="Click to type a value"
                              MouseLeftButtonDown="TelemetryValueLabel_Click"/>
-                  <Slider x:Name="TelemetryHzSlider" Minimum="30" Maximum="60" Value="60" TickFrequency="10"
+                  <Slider x:Name="TelemetryHzSlider" Minimum="1" Maximum="60" Value="60" TickFrequency="1"
                           IsSnapToTickEnabled="True" ValueChanged="TelemetryHzSlider_ValueChanged"/>
                 </DockPanel>
                 <Grid>

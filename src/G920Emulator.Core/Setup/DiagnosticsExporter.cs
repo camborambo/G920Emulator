@@ -83,9 +83,10 @@ public static class DiagnosticsExporter
         "older builds could stall the game on log I/O while the emulator UI stayed live.\r\n\r\n" +
         "For Fanatec vs Simucube FFB comparison, do the same on both PCs with the same build.\r\n\r\n" +
         "Key files in this zip:\r\n" +
-        "  summary.txt       - machine, deps, processes, g920ffb.dll stamp\r\n" +
+        "  summary.txt       - machine, deps, processes, Debug Test knobs, g920ffb.dll stamp\r\n" +
+        "  settings.json     - full app settings (incl. Debug Test / FFB experimental flags)\r\n" +
         "  devices.txt       - every DirectInput game device (incl. virtual G920 + FFB flag)\r\n" +
-        "  ffb-snapshot.txt  - live OEM mix / bridge attach / gains at export time\r\n" +
+        "  ffb-snapshot.txt  - live OEM mix / bridge attach / gains + Debug Test at export time\r\n" +
         "  hidhide.txt       - cloak, apps whitelist, hidden devices (via HidHideCLI)\r\n" +
         "  oem-registry.txt  - OEMForceFeedback CLSID / Effects / DLL path for VID_046D&PID_C262\r\n" +
         "  game-ffb-analysis.txt - OEM race signature (Triangle/CF vs spring-only / Vibration)\r\n" +
@@ -164,6 +165,7 @@ public static class DiagnosticsExporter
             sb.AppendLine($"  Telemetry UDP: {settings.TelemetryHost}:{settings.TelemetryPort} @ {settings.TelemetrySendHz} Hz");
             sb.AppendLine($"  Telemetry tuning: max speed {settings.TelemetrySpeedMaxKmh:0} km/h, rpm idle {settings.TelemetryRpmMin:0} redline {settings.TelemetryRpmRedline:0} max {settings.TelemetryRpmMax:0}, bounce×{settings.TelemetryRpmBounceAmount:0.00} @{settings.TelemetryRpmBounceHz:0}Hz, accel {settings.TelemetryAccelKmhPerSec:0}/s brake {settings.TelemetryBrakeKmhPerSec:0}/s coast {settings.TelemetryCoastKmhPerSec:0}/s settle {settings.TelemetryGearSettleKmhPerSec:0}/s aero×{settings.TelemetryAeroDragScale:0.00} gear×{settings.TelemetryGearPullScale:0.00} crash×{settings.TelemetryCrashDumpScale:0.00}, engine×{settings.TelemetryEngineVibrationScale:0.00} rumble×{settings.TelemetrySurfaceRumbleScale:0.00} impact×{settings.TelemetryImpactScale:0.00} load×{settings.TelemetryRoadLoadScale:0.00}");
             sb.AppendLine($"  Telemetry gear max km/h: {settings.ToTelemetryTuning().FormatGearTopSpeeds()}");
+            AppendDebugTestSettings(sb, settings);
         }
         catch (Exception ex)
         {
@@ -476,7 +478,49 @@ public static class DiagnosticsExporter
             sb.AppendLine("(no live FFB diagnostics)");
         }
 
+        sb.AppendLine();
+        try
+        {
+            AppendDebugTestSettings(sb, new ProfileStore().LoadSettings());
+        }
+        catch (Exception ex)
+        {
+            sb.AppendLine("Debug Test (Settings): failed - " + ex.Message);
+        }
+
         File.WriteAllText(Path.Combine(staging, "ffb-snapshot.txt"), sb.ToString(), Encoding.UTF8);
+    }
+
+    /// <summary>Readable Settings → Debug Test knobs for freeze A/B triage.</summary>
+    private static void AppendDebugTestSettings(StringBuilder sb, AppSettings settings)
+    {
+        sb.AppendLine();
+        sb.AppendLine("Debug Test (Settings)");
+        sb.AppendLine("  Enabled: " + (settings.FfbExperimentalInputFixes ? "yes" : "no (normal / release path)"));
+        // Effective runtime: sub-options only apply when Enabled is on (except soft catch-up, on when disabled).
+        var coop = settings.FfbExperimentalInputFixes
+            ? settings.FfbCooperativeMode.ToString()
+            : nameof(FfbCooperativeMode.Exclusive);
+        var dualHandle = settings.FfbExperimentalInputFixes && settings.FfbExperimentalDualHandleInput;
+        var unlocked = settings.FfbExperimentalInputFixes && settings.FfbExperimentalUnlockedSetParameters;
+        var nonBlocking = settings.FfbExperimentalInputFixes && settings.FfbExperimentalNonBlockingRimReads;
+        var softCatchUp = !settings.FfbExperimentalInputFixes || settings.FfbExperimentalSoftCatchUpSteer;
+        sb.AppendLine("  Cooperative level (effective): " + coop);
+        sb.AppendLine("  Dual-handle input (effective): " +
+                      (dualHandle
+                          ? "on (standalone Exclusive FFB + InputHub NonExclusive poll)"
+                          : "off"));
+        sb.AppendLine("  Unlocked SetParameters (effective): " + (unlocked ? "on" : "off"));
+        sb.AppendLine("  Non-blocking rim reads (effective): " + (nonBlocking ? "on" : "off"));
+        sb.AppendLine("  Soft steering catch-up (effective): " + (softCatchUp ? "on" : "off"));
+        if (settings.FfbExperimentalInputFixes)
+        {
+            sb.AppendLine("  Stored coop: " + settings.FfbCooperativeMode);
+            sb.AppendLine("  Stored dual-handle input: " + settings.FfbExperimentalDualHandleInput);
+            sb.AppendLine("  Stored unlocked SetParameters: " + settings.FfbExperimentalUnlockedSetParameters);
+            sb.AppendLine("  Stored non-blocking rim reads: " + settings.FfbExperimentalNonBlockingRimReads);
+            sb.AppendLine("  Stored soft steering catch-up: " + settings.FfbExperimentalSoftCatchUpSteer);
+        }
     }
 
     private static void WriteHidHide(string staging)

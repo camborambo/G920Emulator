@@ -53,21 +53,9 @@ public sealed class SimHubUdpSender : IDisposable
 
         try
         {
+            // Synchronous localhost UDP is fine at ≤60 Hz; avoid BeginSend allocs.
             udp.Send(packet, packet.Length, ep);
-            lock (_gate)
-            {
-                _sent++;
-                _windowCount++;
-                _error = null;
-                var now = Environment.TickCount64;
-                var elapsed = now - _windowStart;
-                if (elapsed >= 500)
-                {
-                    _packetsPerSec = _windowCount * 1000.0 / Math.Max(1, elapsed);
-                    _windowCount = 0;
-                    _windowStart = now;
-                }
-            }
+            NoteSent();
             return true;
         }
         catch (Exception ex)
@@ -121,6 +109,24 @@ public sealed class SimHubUdpSender : IDisposable
             _error = ex.Message;
             _udp = null;
             _endPoint = null;
+        }
+    }
+
+    private void NoteSent()
+    {
+        lock (_gate)
+        {
+            _sent++;
+            _windowCount++;
+            _error = null;
+            var now = Environment.TickCount64;
+            var elapsed = now - _windowStart;
+            if (elapsed >= 500)
+            {
+                _packetsPerSec = _windowCount * 1000.0 / Math.Max(1, elapsed);
+                _windowCount = 0;
+                _windowStart = now;
+            }
         }
     }
 

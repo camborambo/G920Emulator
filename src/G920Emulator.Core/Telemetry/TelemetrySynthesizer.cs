@@ -51,6 +51,7 @@ public sealed class TelemetrySynthesizer
     private bool _revLimitCut;
     /// <summary>Keeps ignition/idle alive briefly after pedals/speed go quiet (N only).</summary>
     private float _engineLingerSec;
+    private static readonly string[] PaddleGearLabels = ["1", "2", "3", "4", "5", "6"];
 
     public void Configure(TelemetryTuning? tuning)
     {
@@ -60,7 +61,8 @@ public sealed class TelemetrySynthesizer
     public TelemetryFrame Update(
         MappedG920State mapped,
         float steering,
-        OemFfbSharedMemory.Snapshot? oem,
+        ReadOnlySpan<int> typeTorqueDi,
+        bool oemPlaying,
         bool knownGameRunning,
         double dtSec,
         bool handbrakeHeld = false,
@@ -76,26 +78,26 @@ public sealed class TelemetrySynthesizer
         var rpmMax = Math.Max(rpmMin + 100f, _tuning.RpmMax);
         var rpmRedline = Math.Clamp(_tuning.RpmRedline <= 0 ? rpmMax : _tuning.RpmRedline, rpmMin + 50f, rpmMax);
 
-        var type = oem?.CombinedTypeTorqueDi() ?? [];
-        static float Di(int[] t, int i) => i < t.Length ? Math.Clamp(t[i] / 10000f, -1f, 1f) : 0f;
-        static float AbsDi(int[] t, int i) => MathF.Abs(Di(t, i));
+        static float Di(ReadOnlySpan<int> t, int i) =>
+            i < t.Length ? Math.Clamp(t[i] / 10000f, -1f, 1f) : 0f;
+        static float AbsDi(ReadOnlySpan<int> t, int i) => MathF.Abs(Di(t, i));
 
-        var cf = Di(type, 0);
+        var cf = Di(typeTorqueDi, 0);
         // Signed mix for FfbPeriodic (can cancel across wave types).
         var periodic = Math.Clamp(
-            Di(type, 2) + Di(type, 3) + Di(type, 4) + Di(type, 5) + Di(type, 6),
+            Di(typeTorqueDi, 2) + Di(typeTorqueDi, 3) + Di(typeTorqueDi, 4) + Di(typeTorqueDi, 5) + Di(typeTorqueDi, 6),
             -1f, 1f);
         // Vibration magnitude must sum absolutes - opposite-phase sine/square was wiping rumble to ~0.
         // Include CustomForce (11); many titles put curb/crash shake there, not only Sine/Square.
         var vibMag = Math.Clamp(
-            AbsDi(type, 2) + AbsDi(type, 3) + AbsDi(type, 4) + AbsDi(type, 5) + AbsDi(type, 6)
-            + AbsDi(type, 11),
+            AbsDi(typeTorqueDi, 2) + AbsDi(typeTorqueDi, 3) + AbsDi(typeTorqueDi, 4) + AbsDi(typeTorqueDi, 5) + AbsDi(typeTorqueDi, 6)
+            + AbsDi(typeTorqueDi, 11),
             0f, 1f);
-        var spring = Di(type, 7);
-        var damper = Di(type, 8);
-        var friction = AbsDi(type, 10);
+        var spring = Di(typeTorqueDi, 7);
+        var damper = Di(typeTorqueDi, 8);
+        var friction = AbsDi(typeTorqueDi, 10);
 
-        var playing = oem is { } s && (s.Playing || (s.AuxPlaying && !s.IsAuxStale())) && !s.IsStale();
+        var playing = oemPlaying;
         var session = knownGameRunning || playing;
 
         var gear = ResolveGear(mapped);
@@ -532,18 +534,9 @@ public sealed class TelemetrySynthesizer
             _paddleGear = Math.Max(1, _paddleGear - 1);
         }
 
-        return _paddleArmed ? _paddleGear.ToString() : "N";
+        if (!_paddleArmed)
+            return "N";
+        var idx = _paddleGear - 1;
+        return (uint)idx < (uint)PaddleGearLabels.Length ? PaddleGearLabels[idx] : "N";
     }
-
-    private static int GearIndex(string gear) => gear switch
-    {
-        "R" => 0,
-        "1" => 1,
-        "2" => 2,
-        "3" => 3,
-        "4" => 4,
-        "5" => 5,
-        "6" => 6,
-        _ => -1,
-    };
 }

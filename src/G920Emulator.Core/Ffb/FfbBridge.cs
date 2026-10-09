@@ -29,6 +29,9 @@ public sealed class FfbBridge : IDisposable
     private string? _deviceName;
     private Joystick? _joystick;
     private Joystick? _ownedFallback;
+    /// <summary>Debug Test dual-handle: separate NonExclusive Poll joystick (same GUID as FFB).</summary>
+    private Joystick? _inputJoystick;
+    private readonly object _inputGate = new();
     private Effect? _constantEffect;
     private Guid _constantForceGuid = EffectGuid.ConstantForce;
     private EffectFlags _effectFlags = EffectFlags.Cartesian | EffectFlags.ObjectOffsets;
@@ -61,6 +64,12 @@ public sealed class FfbBridge : IDisposable
     /// <summary>Winning SetParameters flags for this base - skip multi-strategy probes after first success.</summary>
     private EffectParameterFlags? _fastMagnitudeFlags;
     private bool _fastMagnitudeUsesFullParams;
+    /// <summary>Debug Test: SetParameters outside the DI lock (default off).</summary>
+    private bool _experimentalUnlockedSetParameters;
+    /// <summary>Debug Test: brief wait / never stall rim reads behind apply (default off).</summary>
+    private bool _experimentalNonBlockingRimReads;
+    /// <summary>Debug Test: second NonExclusive Poll handle while FFB stays Exclusive (default off).</summary>
+    private bool _experimentalDualHandleInput;
 
     private enum WheelVendor
     {
@@ -107,6 +116,43 @@ public sealed class FfbBridge : IDisposable
         }
     }
 
+    /// <summary>
+    /// Settings → Debug Test sub-options (each default off = last-release FFB/input path).
+    /// </summary>
+    public void SetExperimentalInputOptions(
+        bool unlockedSetParameters,
+        bool nonBlockingRimReads,
+        bool dualHandleInput)
+    {
+        lock (_gate)
+        {
+            _experimentalUnlockedSetParameters = unlockedSetParameters;
+            _experimentalNonBlockingRimReads = nonBlockingRimReads;
+            _experimentalDualHandleInput = dualHandleInput;
+        }
+    }
+
+    private bool ExperimentalUnlockedSetParameters
+    {
+        get { lock (_gate) return _experimentalUnlockedSetParameters; }
+    }
+
+    private bool ExperimentalNonBlockingRimReads
+    {
+        get { lock (_gate) return _experimentalNonBlockingRimReads; }
+    }
+
+    private bool ExperimentalDualHandleInput
+    {
+        get { lock (_gate) return _experimentalDualHandleInput; }
+    }
+
+    /// <summary>True when the NonExclusive dual-handle Poll joystick is open.</summary>
+    public bool DualHandleInputActive
+    {
+        get { lock (_gate) return _inputJoystick is not null; }
+    }
+
     public bool TryAttach(string? deviceId, out string error) =>
         TryAttach(deviceId, _hwnd, preferSharedInput: false, out error);
 
@@ -144,7 +190,13 @@ public sealed class FfbBridge : IDisposable
             lock (_gate)
             {
                 _hwnd = hwnd;
-                if (_hub is not null && _hub.TryGetJoystick(deviceId, out var hubJoy, out var hubName))
+                // Dual-handle: never borrow InputHub's joystick. Exclusive FFB must be a
+                // standalone acquire so InputHub can keep Polling NonExclusive for bindings.
+                // (Fanatec DD2: shared Exclusive + second NE handle still flatlined input.)
+                var preferStandalone = ExperimentalDualHandleInput;
+                if (!preferStandalone &&
+                    _hub is not null &&
+                    _hub.TryGetJoystick(deviceId, out var hubJoy, out var hubName))
                 {
                     joy = hubJoy;
                     deviceName = hubName;
@@ -180,9 +232,7 @@ public sealed class FfbBridge : IDisposable
             {
                 try { joy.Unacquire(); } catch { /* ignore */ }
 
-                // preferSharedInput comes from Settings (FfbCooperativeMode.NonExclusive).
-                // Exclusive = strongest FFB claim; NonExclusive = keep GetCurrentState live
-                // when Exclusive freezes pedals/steer (often with Fanatec app / True Drive open).
+                // preferSharedInput only when Settings experimental fixes + NonExclusive.
                 if (preferSharedInput)
                 {
                     try
@@ -296,6 +346,17 @@ public sealed class FfbBridge : IDisposable
                 _lastApplyUtc = null;
             }
 
+            // Dual-handle: InputHub (unpinned) is the NonExclusive Poll path — no second
+            // overlay joystick. Label so diagnostics show the corrected architecture.
+            if (ExperimentalDualHandleInput && !usingHub)
+            {
+                lock (_gate)
+                {
+                    _coopLevel += " + InputHub NonExclusive poll";
+                    _status = $"FFB: attached to {deviceName} (dual-handle: standalone Exclusive FFB)";
+                }
+            }
+
             return true;
         }
         catch (SharpDXException ex)
@@ -315,18 +376,175 @@ public sealed class FfbBridge : IDisposable
     }
 
     /// <summary>
+    /// Open a second Joystick on the same instance GUID with NonExclusive acquire.
+    /// Used only for Poll; Exclusive FFB stays on <see cref="_joystick"/>.
+    /// </summary>
+    private bool TryOpenDualHandleInput(Guid guid, IntPtr hwnd, out string note)
+    {
+        note = "";
+        CloseDualHandleInput();
+
+        try
+        {
+            var inputJoy = new Joystick(_fallbackDi, guid);
+            try
+            {
+                inputJoy.SetCooperativeLevel(hwnd, CooperativeLevel.Background | CooperativeLevel.NonExclusive);
+            }
+            catch
+            {
+                try { inputJoy.Dispose(); } catch { /* ignore */ }
+                note = "dual-handle open failed (coop)";
+                return false;
+            }
+
+            try { inputJoy.Acquire(); }
+            catch
+            {
+                try { inputJoy.Dispose(); } catch { /* ignore */ }
+                note = "dual-handle open failed (acquire)";
+                return false;
+            }
+
+            // Prime one sample so overlay has data immediately.
+            try
+            {
+                inputJoy.Poll();
+                var state = inputJoy.GetCurrentState();
+                CacheInputFromState(state);
+            }
+            catch { /* first Poll optional */ }
+
+            lock (_gate)
+                _inputJoystick = inputJoy;
+            note = "dual-handle input";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            note = "dual-handle open failed: " + ex.Message;
+            return false;
+        }
+    }
+
+    private void CloseDualHandleInput()
+    {
+        Joystick? joy;
+        lock (_gate)
+        {
+            joy = _inputJoystick;
+            _inputJoystick = null;
+        }
+
+        if (joy is null) return;
+        lock (_inputGate)
+        {
+            try { joy.Unacquire(); } catch { /* ignore */ }
+            try { joy.Dispose(); } catch { /* ignore */ }
+        }
+    }
+
+    /// <summary>
+    /// Live axes/buttons/hat from the Dual-handle NonExclusive Poll joystick.
+    /// Does not touch <see cref="_diGate"/> so Exclusive SetParameters cannot stall input.
+    /// </summary>
+    public bool TryGetDualHandleInput(
+        out Dictionary<string, float> axes,
+        out bool[] buttons,
+        out int hat)
+    {
+        axes = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+        buttons = [];
+        hat = -1;
+
+        Joystick? joy;
+        lock (_gate) joy = _inputJoystick;
+        if (joy is null) return false;
+
+        if (!Monitor.TryEnter(_inputGate, 0))
+        {
+            lock (_gate)
+            {
+                if (_cachedAxes01 is null || _cachedAxes01.Count == 0)
+                    return false;
+                CopyCachedInputUnlocked(axes, out buttons, out hat);
+                return true;
+            }
+        }
+
+        try
+        {
+            try
+            {
+                joy.Poll();
+                var state = joy.GetCurrentState();
+                CacheInputFromState(state);
+            }
+            catch
+            {
+                try
+                {
+                    joy.Acquire();
+                    joy.Poll();
+                    var state = joy.GetCurrentState();
+                    CacheInputFromState(state);
+                }
+                catch
+                {
+                    lock (_gate)
+                    {
+                        if (_cachedAxes01 is null || _cachedAxes01.Count == 0)
+                            return false;
+                        CopyCachedInputUnlocked(axes, out buttons, out hat);
+                        return true;
+                    }
+                }
+            }
+
+            lock (_gate)
+                CopyCachedInputUnlocked(axes, out buttons, out hat);
+            return true;
+        }
+        finally
+        {
+            Monitor.Exit(_inputGate);
+        }
+    }
+
+    /// <summary>
+    /// Overlay source: dual-handle when active, otherwise Exclusive FFB handle (release path).
+    /// </summary>
+    public bool TryGetOverlayInput(
+        out Dictionary<string, float> axes,
+        out bool[] buttons,
+        out int hat)
+    {
+        if (DualHandleInputActive && TryGetDualHandleInput(out axes, out buttons, out hat))
+            return true;
+        return TryGetPhysicalInput(out axes, out buttons, out hat);
+    }
+
+    /// <summary>
     /// Physical FFB axis position as -1..1 (center 0). Required for game spring/damper
     /// auto-center to track the real rim - not the virtual G920 / DualSense steer.
-    /// Non-blocking: uses the same cache path as bindings (never waits on SetParameters).
     /// </summary>
     public bool TryGetPhysicalSteering(out float steeringCentered)
     {
         steeringCentered = 0f;
-        if (!TryGetPhysicalInput(out var axes, out _, out _))
+        // Prefer dual-handle / non-blocking overlay so spring auto-center tracks live rim.
+        if (DualHandleInputActive || ExperimentalNonBlockingRimReads)
+        {
+            if (!TryGetOverlayInput(out var axes, out _, out _))
+                return false;
+            if (!axes.TryGetValue("X", out var x01))
+                return false;
+            steeringCentered = Math.Clamp(x01 * 2f - 1f, -1f, 1f);
+            return true;
+        }
+
+        if (!TryReadPhysicalJoystickState(out var state))
             return false;
-        if (!axes.TryGetValue("X", out var x01))
-            return false;
-        steeringCentered = Math.Clamp(x01 * 2f - 1f, -1f, 1f);
+        steeringCentered = NormalizeAxisToCentered(state.X);
         return true;
     }
 
@@ -348,53 +566,6 @@ public sealed class FfbBridge : IDisposable
     public string CooperativeLevelLabel
     {
         get { lock (_gate) return string.IsNullOrEmpty(_coopLevel) ? "-" : _coopLevel; }
-    }
-
-    /// <summary>
-    /// Force Unacquire/Acquire + Poll when DI keeps returning the same axes (Fanatec
-    /// Exclusive input freeze). Safe to call from the bridge loop; no-ops if busy.
-    /// </summary>
-    public bool TryKickStaleInput()
-    {
-        if (!IsReady) return false;
-        if (!Monitor.TryEnter(_diGate, 15))
-            return false;
-
-        try
-        {
-            Joystick? joy;
-            lock (_gate) joy = _joystick;
-            if (joy is null) return false;
-
-            try
-            {
-                try { joy.Unacquire(); } catch { /* ignore */ }
-                joy.Acquire();
-                joy.Poll();
-                var state = joy.GetCurrentState();
-                CacheInputFromState(state);
-                return true;
-            }
-            catch
-            {
-                try
-                {
-                    joy.Acquire();
-                    joy.Poll();
-                    var state = joy.GetCurrentState();
-                    CacheInputFromState(state);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-        }
-        finally
-        {
-            Monitor.Exit(_diGate);
-        }
     }
 
     /// <summary>
@@ -435,9 +606,8 @@ public sealed class FfbBridge : IDisposable
             }
         }
 
-        // Prefer a live Poll. Wait briefly when the cache is going stale so Fanatec
-        // SetParameters cannot pin every binding (steer/pedals/buttons) to last sample.
-        var waitMs = cacheAge > 24 ? 8 : 0;
+        // Debug Test: brief wait when cache is stale. Release: never wait (TryEnter 0).
+        var waitMs = ExperimentalNonBlockingRimReads && cacheAge > 24 ? 8 : 0;
         if (!Monitor.TryEnter(_diGate, waitMs))
         {
             // Apply thread is busy - last sample is better than stalling the bridge.
@@ -474,6 +644,17 @@ public sealed class FfbBridge : IDisposable
         {
             Monitor.Exit(_diGate);
         }
+    }
+
+    private bool TryReadPhysicalJoystickState(out JoystickState state)
+    {
+        state = default!;
+        Joystick? joy;
+        lock (_gate) joy = _joystick;
+        if (joy is null) return false;
+
+        lock (_diGate)
+            return TryReadPhysicalJoystickStateUnlocked(out state);
     }
 
     private void CopyCachedInputUnlocked(
@@ -578,6 +759,14 @@ public sealed class FfbBridge : IDisposable
                 // the software spring path.
             }
         }
+    }
+
+    private static float NormalizeAxisToCentered(int x)
+    {
+        if (x < 0)
+            return Math.Clamp(x / 32767f, -1f, 1f);
+        if (x > 65535) x = 65535;
+        return (x / 65535f) * 2f - 1f;
     }
 
     /// <summary>Match InputHub DeviceState axis scale (0..1).</summary>
@@ -742,36 +931,72 @@ public sealed class FfbBridge : IDisposable
             }
         }
 
-        // Sample under _diGate, but never hold it across SetParameters. Fanatec USB
-        // updates can take tens/hundreds of ms; holding the gate froze every binding
-        // that rides the exclusive FFB joystick (steer + pedals + buttons).
-        if (joy is not null && Monitor.TryEnter(_diGate, 5))
+        if (ExperimentalUnlockedSetParameters)
         {
-            try { TryReadPhysicalJoystickStateUnlocked(out _); }
-            finally { Monitor.Exit(_diGate); }
-        }
-
-        string? setError = null;
-        var setOk = false;
-        try
-        {
-            setOk = TrySetMagnitude(effect, magnitude, out setError);
-        }
-        catch (Exception ex)
-        {
-            setError = ex.Message;
-        }
-
-        if (!setOk)
-        {
-            string? recreateError = null;
-            var recreatedOk = false;
-            if (joy is not null && Monitor.TryEnter(_diGate, 50))
+            // Debug Test: do not hold _diGate across SetParameters (input can Poll).
+            if (joy is not null && Monitor.TryEnter(_diGate, 5))
             {
-                try
+                try { TryReadPhysicalJoystickStateUnlocked(out _); }
+                finally { Monitor.Exit(_diGate); }
+            }
+
+            string? setError = null;
+            var setOk = false;
+            try { setOk = TrySetMagnitude(effect, magnitude, out setError); }
+            catch (Exception ex) { setError = ex.Message; }
+
+            if (!setOk)
+            {
+                string? recreateError = null;
+                var recreatedOk = false;
+                if (joy is not null && Monitor.TryEnter(_diGate, 50))
                 {
-                    // Recreate touches the joystick + effect objects - serialize with Poll.
-                    if (TryRecreateEffect(joy, magnitude, out var recreated, out recreateError))
+                    try
+                    {
+                        if (TryRecreateEffect(joy, magnitude, out var recreated, out recreateError))
+                        {
+                            lock (_gate)
+                            {
+                                try { _constantEffect?.Dispose(); } catch { /* ignore */ }
+                                _constantEffect = recreated;
+                            }
+                            _fastMagnitudeFlags = null;
+                            recreatedOk = true;
+                        }
+                    }
+                    finally { Monitor.Exit(_diGate); }
+                }
+
+                if (!recreatedOk)
+                {
+                    lock (_gate)
+                    {
+                        _lastError = string.IsNullOrEmpty(recreateError)
+                            ? $"Apply failed: {setError}"
+                            : $"Apply failed: {setError} | recreate: {recreateError}";
+                    }
+                    return;
+                }
+            }
+
+            if (joy is not null && Monitor.TryEnter(_diGate, 5))
+            {
+                try { TryReadPhysicalJoystickStateUnlocked(out _); }
+                finally { Monitor.Exit(_diGate); }
+            }
+        }
+        else
+        {
+            // Release path: serialize all DI joy/effect calls under _diGate.
+            lock (_diGate)
+            {
+                if (joy is not null)
+                    TryReadPhysicalJoystickStateUnlocked(out _);
+
+                if (!TrySetMagnitude(effect, magnitude, out var setError))
+                {
+                    string? recreateError = null;
+                    if (joy is not null && TryRecreateEffect(joy, magnitude, out var recreated, out recreateError))
                     {
                         lock (_gate)
                         {
@@ -779,31 +1004,22 @@ public sealed class FfbBridge : IDisposable
                             _constantEffect = recreated;
                         }
                         _fastMagnitudeFlags = null;
-                        recreatedOk = true;
+                    }
+                    else
+                    {
+                        lock (_gate)
+                        {
+                            _lastError = string.IsNullOrEmpty(recreateError)
+                                ? $"Apply failed: {setError}"
+                                : $"Apply failed: {setError} | recreate: {recreateError}";
+                        }
+                        return;
                     }
                 }
-                finally
-                {
-                    Monitor.Exit(_diGate);
-                }
-            }
 
-            if (!recreatedOk)
-            {
-                lock (_gate)
-                {
-                    _lastError = string.IsNullOrEmpty(recreateError)
-                        ? $"Apply failed: {setError}"
-                        : $"Apply failed: {setError} | recreate: {recreateError}";
-                }
-                return;
+                if (joy is not null)
+                    TryReadPhysicalJoystickStateUnlocked(out _);
             }
-        }
-
-        if (joy is not null && Monitor.TryEnter(_diGate, 5))
-        {
-            try { TryReadPhysicalJoystickStateUnlocked(out _); }
-            finally { Monitor.Exit(_diGate); }
         }
 
         lock (_gate)
@@ -1127,6 +1343,8 @@ public sealed class FfbBridge : IDisposable
 
     private void DetachEffectsOnly()
     {
+        CloseDualHandleInput();
+
         Effect? effect;
         Joystick? owned;
         Joystick? shared;

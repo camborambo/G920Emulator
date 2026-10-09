@@ -1,8 +1,41 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using G920Emulator.Core.Ffb;
 
 namespace G920Emulator.Core.Models;
+
+/// <summary>Result of loading a mapping profile, including recoverable corruption details.</summary>
+public sealed class ProfileLoadResult
+{
+    public required MappingProfile Profile { get; init; }
+
+    /// <summary>Raw target names removed because they are not valid <see cref="G920Control"/> values for this build.</summary>
+    public IReadOnlyList<string> SkippedTargets { get; init; } = [];
+
+    /// <summary>Set when the file could not be parsed at all and a fallback profile was used.</summary>
+    public string? FatalError { get; init; }
+
+    public bool HasIssues => SkippedTargets.Count > 0 || !string.IsNullOrEmpty(FatalError);
+
+    public string FormatUserMessage(string profileLabel)
+    {
+        var label = string.IsNullOrWhiteSpace(profileLabel) ? Profile.Name : profileLabel.Trim();
+        if (!string.IsNullOrEmpty(FatalError))
+        {
+            return
+                $"Profile \"{label}\" could not be read and was not loaded.\n\n" +
+                $"{FatalError}\n\n" +
+                "A default profile is active. Fix or replace the JSON, or create a new profile and rebind your controls.";
+        }
+
+        var targets = string.Join("\n", SkippedTargets.Select(t => "• " + t));
+        return
+            $"Profile \"{label}\" had invalid or unsupported binding targets for this version of G920 Emulator:\n\n" +
+            $"{targets}\n\n" +
+            "Those mappings were cleared so the app can start. Rebind the affected controls (for example Handbrake / NOS under Telemetry arcade inputs), then Save the profile.";
+    }
+}
 
 public enum ShifterMode
 {
@@ -78,12 +111,107 @@ public sealed class MappingProfile
         Bindings = G920ControlInfo.UiOrder.Select(t => new Binding { Target = t }).ToList(),
     };
 
-    public static MappingProfile Load(string path)
+    public static MappingProfile Load(string path) => LoadWithDiagnostics(path).Profile;
+
+    /// <summary>
+    /// Loads a profile JSON, skipping bindings/custom bindings whose <c>target</c> is not a known
+    /// <see cref="G920Control"/> (e.g. saved by a newer app build). Never throws for unknown enums.
+    /// </summary>
+    public static ProfileLoadResult LoadWithDiagnostics(string path)
     {
-        var json = File.ReadAllText(path);
-        var profile = JsonSerializer.Deserialize<MappingProfile>(json, JsonOptions) ?? CreateDefault();
-        profile.NormalizeBindings();
-        return profile;
+        string json;
+        try
+        {
+            json = File.ReadAllText(path);
+        }
+        catch (Exception ex)
+        {
+            var fallback = CreateDefault();
+            fallback.Name = Path.GetFileNameWithoutExtension(path);
+            return new ProfileLoadResult
+            {
+                Profile = fallback,
+                FatalError = ex.Message,
+            };
+        }
+
+        var skipped = StripUnknownControlTargets(ref json);
+        try
+        {
+            var profile = JsonSerializer.Deserialize<MappingProfile>(json, JsonOptions) ?? CreateDefault();
+            profile.NormalizeBindings();
+            return new ProfileLoadResult
+            {
+                Profile = profile,
+                SkippedTargets = skipped,
+            };
+        }
+        catch (Exception ex)
+        {
+            var fallback = CreateDefault();
+            fallback.Name = Path.GetFileNameWithoutExtension(path);
+            return new ProfileLoadResult
+            {
+                Profile = fallback,
+                SkippedTargets = skipped,
+                FatalError = ex.Message,
+            };
+        }
+    }
+
+    /// <summary>
+    /// Removes binding objects whose camelCase <c>target</c> string is not a known enum member,
+    /// so <see cref="JsonStringEnumConverter"/> cannot crash the process.
+    /// </summary>
+    private static List<string> StripUnknownControlTargets(ref string json)
+    {
+        var skipped = new List<string>();
+        JsonNode? root;
+        try
+        {
+            root = JsonNode.Parse(json);
+        }
+        catch
+        {
+            return skipped;
+        }
+
+        if (root is not JsonObject obj)
+            return skipped;
+
+        StripUnknownFromArray(obj["bindings"] as JsonArray, skipped);
+        StripUnknownFromArray(obj["customBindings"] as JsonArray, skipped);
+
+        // Preserve camelCase property names for the normal deserialize path.
+        json = root.ToJsonString(new JsonSerializerOptions
+        {
+            WriteIndented = false,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        });
+        return skipped;
+    }
+
+    private static void StripUnknownFromArray(JsonArray? array, List<string> skipped)
+    {
+        if (array is null) return;
+        for (var i = array.Count - 1; i >= 0; i--)
+        {
+            if (array[i] is not JsonObject binding)
+                continue;
+            var targetNode = binding["target"];
+            if (targetNode is null)
+                continue;
+            var raw = targetNode.GetValueKind() == JsonValueKind.String
+                ? targetNode.GetValue<string>()
+                : targetNode.ToString();
+            if (string.IsNullOrWhiteSpace(raw))
+                continue;
+            if (Enum.TryParse<G920Control>(raw, ignoreCase: true, out _))
+                continue;
+            if (!skipped.Contains(raw, StringComparer.OrdinalIgnoreCase))
+                skipped.Add(raw);
+            array.RemoveAt(i);
+        }
     }
 
     public void Save(string path)

@@ -24,9 +24,10 @@ public static class SimHubPacket
     public const int DefaultPort = 20778;
     /// <summary>
     /// SimHub's External Sim loop is 60 Hz. Faster packets are ignored.
+    /// Slider allows 1–60 so testers can trade smoothness vs load.
     /// </summary>
     public const int DefaultSendHz = 60;
-    public const int MinSendHz = 30;
+    public const int MinSendHz = 1;
     public const int MaxSendHz = 60;
 
     public static int ClampSendHz(int hz) =>
@@ -146,6 +147,13 @@ public static class SimHubPacket
         dest.Clear();
         if (string.IsNullOrEmpty(value))
             return;
+        // Gear is almost always a single ASCII char (N/R/1-6) - skip UTF-8 encoder.
+        if (value.Length == 1 && value[0] < 0x80 && dest.Length >= 2)
+        {
+            dest[0] = (byte)value[0];
+            dest[1] = 0;
+            return;
+        }
         var n = Encoding.UTF8.GetBytes(value.AsSpan(), dest[..^1]);
         dest[n] = 0;
     }

@@ -14,6 +14,13 @@ public interface IVirtualG920Device : IDisposable
     bool IsRunning { get; }
     bool IsDriverAvailable { get; }
     string? LastError { get; }
+
+    /// <summary>ms since the host last completed a joystick ReadReport (or -1 if never).</summary>
+    long HostInputReadAgeMs { get; }
+
+    /// <summary>Count of ERROR_NOT_READY from SubmitInputReport (ReadReport mode, no pending read).</summary>
+    long SubmitNotReadyCount { get; }
+
     bool Start(Func<byte[]> latestReportProvider, Action<FfbCommand>? onFfb = null);
     void Stop();
 
@@ -82,7 +89,14 @@ public sealed class BridgeService : IDisposable
     private uint _oemTypesSeenMask;
     private uint _oemTypesPlayingMask;
     private uint _oemLastEffectType;
-    private int[] _oemTypeTorqueDi = new int[OemFfbSharedMemory.TypeGainCount];
+    private readonly int[] _oemTypeTorqueDi = new int[OemFfbSharedMemory.TypeGainCount];
+    private long _lastOemDiagFormatTick;
+    private uint _lastOemDiagTypesPlaying;
+    private uint _lastOemDiagTypesSeen;
+    private string _lastOemTypesSeenText = "(none)";
+    private string _lastOemTypesPlayingText = "(none)";
+    private uint _lastOemTypesSeenMaskForText = uint.MaxValue;
+    private uint _lastOemTypesPlayingMaskForText = uint.MaxValue;
     private float _ffbRimSteer;
     private float _lastRim;
     private long _lastRimTick;
@@ -98,9 +112,13 @@ public sealed class BridgeService : IDisposable
     private byte[]? _healthLastReport;
     private long _healthReportFrozenSinceTick;
     private long _healthLastStaleNoteTick;
-    private long _healthLastStaleKickTick;
     private int _healthFrozenNotes;
     private FfbCooperativeMode _ffbCooperativeMode = FfbCooperativeMode.Exclusive;
+    private bool _ffbExperimentalInputFixes;
+    private bool _ffbExperimentalUnlockedSetParameters;
+    private bool _ffbExperimentalNonBlockingRimReads;
+    private bool _ffbExperimentalSoftCatchUpSteer;
+    private bool _ffbExperimentalDualHandleInput;
     /// <summary>Last live axes from the exclusive FFB base (InputHub does not Poll it).</summary>
     private Dictionary<string, float>? _lastFfbAxes01;
     private bool[]? _lastFfbButtons;
@@ -122,6 +140,8 @@ public sealed class BridgeService : IDisposable
     private readonly SimHubUdpSender _telemetryUdp = new();
     private readonly byte[] _telemetryPacket = SimHubPacket.CreateBuffer();
     private readonly ulong _telemetryEmitterId = SimHubRegistrationId();
+    /// <summary>Telemetry settings/status/frame only — never share with the input/_gate path.</summary>
+    private readonly object _telemetryGate = new();
     private TelemetrySettings _telemetrySettings = new();
     private TelemetryFrame _latestTelemetry;
     private ulong _telemetrySessionId;
@@ -131,12 +151,26 @@ public sealed class BridgeService : IDisposable
     private string _telemetryStatus = "Telemetry: off";
     /// <summary>0/1 - input thread skips telemetry queue when off (no synth/UDP/process scan).</summary>
     private int _telemetryEnabledFlag;
+    /// <summary>Min ms between input-thread telemetry enqueues (matches SendHz; not every 2 ms).</summary>
+    private int _telemetryEnqueuePeriodMs = 17;
+    private long _lastTelemetryEnqueueTick;
+    /// <summary>Cached arcade-bind presence for the current profile (avoid binding scans at 500 Hz).</summary>
+    private MappingProfile? _telemetryArcadeProfile;
+    private bool _telemetryHasHandbrakeBind;
+    private bool _telemetryHasNosBind;
     /// <summary>Latest sample for the telemetry side thread (never blocks HID/FFB).</summary>
     private MappedG920State? _telemetryQueuedMapped;
     private float _telemetryQueuedSteer;
     private int _telemetryQueuedHandbrake;
     private int _telemetryQueuedNos;
     private int _telemetryQueuedVersion;
+    /// <summary>Combined OEM type DI torque copied on the input thread (no SHM re-read / no alloc).</summary>
+    private readonly int[] _telemetryQueuedTypeDi = new int[OemFfbSharedMemory.TypeGainCount];
+    private readonly int[] _telemetryWorkingTypeDi = new int[OemFfbSharedMemory.TypeGainCount];
+    private int _telemetryQueuedOemPlaying;
+    private int _telemetryQueuedOemValid;
+    private string _telemetryStatusHostPort = "";
+    private int _telemetryStatusPps = -1;
 
     public InputHub InputHub => _inputHub;
     public FfbBridge Ffb => _ffb;
@@ -163,6 +197,7 @@ public sealed class BridgeService : IDisposable
             }
             _ffb.ApplyFromProfile(value);
             ApplyEffectGains(value);
+            InvalidateTelemetryArcadeCache();
         }
     }
 
@@ -189,8 +224,8 @@ public sealed class BridgeService : IDisposable
     /// <summary>Input / virtual-device health while the bridge runs (empty when OK).</summary>
     public string LinkStatus { get { lock (_gate) return _linkStatus; } }
 
-    public TelemetryFrame LatestTelemetry { get { lock (_gate) return _latestTelemetry; } }
-    public string TelemetryStatus { get { lock (_gate) return _telemetryStatus; } }
+    public TelemetryFrame LatestTelemetry { get { lock (_telemetryGate) return _latestTelemetry; } }
+    public string TelemetryStatus { get { lock (_telemetryGate) return _telemetryStatus; } }
     public double TelemetryPacketsPerSecond => _telemetryUdp.PacketsPerSecond;
 
     public void ConfigureTelemetry(TelemetrySettings settings)
@@ -200,7 +235,7 @@ public sealed class BridgeService : IDisposable
         var tuning = (settings.Tuning ?? TelemetryTuning.CreateDefault()).Clone();
         var host = string.IsNullOrWhiteSpace(settings.Host) ? SimHubPacket.DefaultHost : settings.Host.Trim();
         var port = settings.Port is < 1 or > 65535 ? SimHubPacket.DefaultPort : settings.Port;
-        lock (_gate)
+        lock (_telemetryGate)
         {
             _telemetrySettings = new TelemetrySettings
             {
@@ -216,6 +251,8 @@ public sealed class BridgeService : IDisposable
         }
 
         Volatile.Write(ref _telemetryEnabledFlag, settings.Enabled ? 1 : 0);
+        // Enqueue at SendHz on the input thread (was every ~2 ms while Telemetry was on).
+        Volatile.Write(ref _telemetryEnqueuePeriodMs, Math.Max(1, 1000 / hz));
 
         // UDP / DNS only when enabled - avoid host resolve cost while telemetry is off.
         if (settings.Enabled)
@@ -286,7 +323,13 @@ public sealed class BridgeService : IDisposable
         }
     }
 
-    public void BindFfbWindow(IntPtr hwnd) => _ffb.BindInputHub(_inputHub, hwnd);
+    private IntPtr _ffbHwnd;
+
+    public void BindFfbWindow(IntPtr hwnd)
+    {
+        _ffbHwnd = hwnd;
+        _ffb.BindInputHub(_inputHub, hwnd);
+    }
 
     public FfbDiagnostics GetFfbDiagnostics()
     {
@@ -364,7 +407,6 @@ public sealed class BridgeService : IDisposable
         _healthLastReport = null;
         _healthReportFrozenSinceTick = 0;
         _healthLastStaleNoteTick = 0;
-        _healthLastStaleKickTick = 0;
         _healthFrozenNotes = 0;
         lock (_gate) _linkStatus = "";
         if (BridgeHealthLog.IsEnabled)
@@ -494,21 +536,50 @@ public sealed class BridgeService : IDisposable
             return;
         }
 
-        // Baseline cache before exclusive attach, then pin so Poll never touches this joy.
-        _inputHub.CapturePinnedBaseline(profile.FfbSourceDeviceId);
-        _inputHub.PinFfbDevice(profile.FfbSourceDeviceId);
+        // Dual-handle (Debug Test): leave InputHub NonExclusive and unpinned so Poll stays
+        // live; FFB uses a standalone Exclusive joystick. Release path still pins + overlays.
+        var dualHandle = _ffbExperimentalDualHandleInput;
+        if (dualHandle)
+        {
+            _inputHub.PinFfbDevice(null);
+            // Ensure a NonExclusive InputHub session exists before Exclusive FFB opens.
+            _ = _inputHub.TryGetJoystick(profile.FfbSourceDeviceId, out _, out _);
+            _inputHub.RestoreNonExclusive(profile.FfbSourceDeviceId, _ffbHwnd);
+        }
+        else
+        {
+            // Baseline cache before exclusive attach, then pin so Poll never touches this joy.
+            _inputHub.CapturePinnedBaseline(profile.FfbSourceDeviceId);
+            _inputHub.PinFfbDevice(profile.FfbSourceDeviceId);
+        }
 
-        var preferNonExclusive = _ffbCooperativeMode == FfbCooperativeMode.NonExclusive;
+        // NonExclusive only when experimental debug bundle is on.
+        var preferNonExclusive = _ffbExperimentalInputFixes &&
+                                 _ffbCooperativeMode == FfbCooperativeMode.NonExclusive;
         if (_ffb.TryAttach(profile.FfbSourceDeviceId, preferNonExclusive, out var error))
         {
-            LastFfbStatus = preferNonExclusive
-                ? "FFB: attached (NonExclusive)."
-                : "FFB: attached (Exclusive).";
-            if (_ffb.TryGetPhysicalInput(out var axes, out var buttons, out var hat))
+            if (preferNonExclusive)
+                LastFfbStatus = "FFB: attached (experimental · NonExclusive).";
+            else if (dualHandle)
+                LastFfbStatus = "FFB: attached (experimental · dual-handle: Exclusive FFB + InputHub poll).";
+            else if (_ffbExperimentalInputFixes)
+                LastFfbStatus = "FFB: attached (experimental · Exclusive).";
+            else
+                LastFfbStatus = "FFB: attached to physical device.";
+
+            // Dual-handle: bindings come from InputHub Poll — do not cache Exclusive rim overlay.
+            if (!dualHandle &&
+                _ffb.TryGetOverlayInput(out var axes, out var buttons, out var hat))
             {
                 _lastFfbAxes01 = axes;
                 _lastFfbButtons = buttons;
                 _lastFfbHat = hat;
+            }
+            else if (dualHandle)
+            {
+                _lastFfbAxes01 = null;
+                _lastFfbButtons = null;
+                _lastFfbHat = -1;
             }
         }
         else
@@ -521,7 +592,26 @@ public sealed class BridgeService : IDisposable
         }
     }
 
-    /// <summary>Settings → physical FFB DirectInput coop (Exclusive vs NonExclusive).</summary>
+    /// <summary>Settings → Debug Test master + sub-options (all default off = last-release path).</summary>
+    public void SetFfbExperimentalOptions(
+        bool enabled,
+        bool unlockedSetParameters,
+        bool nonBlockingRimReads,
+        bool softCatchUpSteer,
+        bool dualHandleInput)
+    {
+        _ffbExperimentalInputFixes = enabled;
+        _ffbExperimentalUnlockedSetParameters = enabled && unlockedSetParameters;
+        _ffbExperimentalNonBlockingRimReads = enabled && nonBlockingRimReads;
+        _ffbExperimentalSoftCatchUpSteer = enabled && softCatchUpSteer;
+        _ffbExperimentalDualHandleInput = enabled && dualHandleInput;
+        _ffb.SetExperimentalInputOptions(
+            _ffbExperimentalUnlockedSetParameters,
+            _ffbExperimentalNonBlockingRimReads,
+            _ffbExperimentalDualHandleInput);
+    }
+
+    /// <summary>Settings → coop mode (only applied when Debug Test is on).</summary>
     public void SetFfbCooperativeMode(FfbCooperativeMode mode)
     {
         _ffbCooperativeMode = mode is FfbCooperativeMode.NonExclusive
@@ -637,9 +727,10 @@ public sealed class BridgeService : IDisposable
                 {
                     profile = _profile;
                     mapped = _mapper.Map(profile, devices);
-                    // Soften rim catch-up after Simucube SetParameters held the DI lock
-                    // (freeze → jump felt like a steering hitch).
-                    mapped.Steering = SoftCatchUpSteer(mapped.Steering);
+                    // Normal path: soft catch-up (same as previous releases). Debug Test can
+                    // uncheck it to A/B without the limiter.
+                    if (!_ffbExperimentalInputFixes || _ffbExperimentalSoftCatchUpSteer)
+                        mapped.Steering = SoftCatchUpSteer(mapped.Steering);
                     _latest = mapped;
                     _latestDevices = devices;
                     report = G920ReportBuilder.Build(mapped);
@@ -666,22 +757,9 @@ public sealed class BridgeService : IDisposable
                     frozenMs = now - _healthReportFrozenSinceTick;
                 }
 
-                // Always kick DI re-acquire when the virt report is stuck — not Debug-only.
-                // joy.cpl shows the device but axes never move until Poll starts changing again.
-                if (frozenMs >= 1000 &&
-                    now - _healthLastStaleKickTick >= 1500 &&
-                    _ffb.IsReady)
-                {
-                    _healthLastStaleKickTick = now;
-                    var kicked = _ffb.TryKickStaleInput();
-                    if (BridgeHealthLog.IsEnabled)
-                    {
-                        BridgeHealthLog.Note(
-                            $"STALE_KICK ok={kicked} ms={frozenMs} " +
-                            $"steer={mapped.Steering:0.00} thr={mapped.Throttle:0.00} " +
-                            $"brk={mapped.Brake:0.00} coop={_ffb.CooperativeLevelLabel}");
-                    }
-                }
+                // Do NOT Unacquire/Acquire on idle identical reports (STALE_KICK). That ran
+                // every ~1.5s at menu with pedals released, fought Fanatec Exclusive FFB
+                // (violent rim / stuck torque), and could hang DI teardown on exit.
 
                 if (BridgeHealthLog.IsEnabled)
                 {
@@ -729,8 +807,27 @@ public sealed class BridgeService : IDisposable
                             $"virtRunning={running} submitFail={_submitFailStreak} recover={_recoverCount} " +
                             $"steer={mapped.Steering:0.00} thr={mapped.Throttle:0.00} brk={mapped.Brake:0.00} " +
                             $"ffbCacheMs={_ffb.PhysicalInputCacheAgeMs} frozenMs={frozenMs} " +
+                            $"hostReadAgeMs={virt?.HostInputReadAgeMs ?? -1} " +
+                            $"notReady={virt?.SubmitNotReadyCount ?? 0} " +
                             $"coop={_ffb.CooperativeLevelLabel} " +
                             $"err={virt?.LastError ?? "-"} link={TruncateHealth(link)}");
+
+                        // Mapped input live but host not reading virtual G920 → game DI stale / wrong device.
+                        if (running &&
+                            virt is not null &&
+                            virt.HostInputReadAgeMs >= 1500 &&
+                            (mapped.Throttle > 0.05f || mapped.Brake > 0.05f ||
+                             Math.Abs(mapped.Steering) > 0.08f) &&
+                            now - _healthLastStaleNoteTick >= 750 &&
+                            _healthFrozenNotes < 40)
+                        {
+                            _healthFrozenNotes++;
+                            _healthLastStaleNoteTick = now;
+                            BridgeHealthLog.Note(
+                                $"HOST_STALE ms={virt.HostInputReadAgeMs} " +
+                                $"steer={mapped.Steering:0.00} thr={mapped.Throttle:0.00} " +
+                                $"brk={mapped.Brake:0.00} notReady={virt.SubmitNotReadyCount}");
+                        }
                     }
                 }
 
@@ -793,21 +890,25 @@ public sealed class BridgeService : IDisposable
                 // Physical DI apply runs on a side thread - never stall HID submits here.
                 var usedOem = false;
                 var oemStale = false;
+                OemFfbSharedMemory.Snapshot? oemForTelemetry = null;
                 if (OemFfbSharedMemory.TryRead(out var oemSnap, out var oemErr) && oemSnap.IsStale())
                 {
                     // The game's driver thread stopped publishing (exit/crash): never keep
                     // applying its last torque.
                     oemStale = true;
+                    oemSnap.FillCombinedTypeTorqueDi(_oemTypeTorqueDi);
+                    UpdateOemDiagStrings(oemSnap, playing: false, force: true);
                     lock (_gate)
                     {
                         _oemFfbTorque = 0;
                         _oemFfbPlaying = false;
-                        _oemFfbTypesPlaying = OemFfbSharedMemory.FormatTypeMask(0);
+                        _oemFfbTypesPlaying = _lastOemTypesPlayingText;
+                        _oemFfbTypesSeen = _lastOemTypesSeenText;
                         _oemTypesPlayingMask = 0;
                         _oemTypesSeenMask = oemSnap.TypesSeen | oemSnap.AuxTypesPlaying;
                         _oemLastEffectType = oemSnap.LastEffectType;
-                        _oemTypeTorqueDi = oemSnap.CombinedTypeTorqueDi();
-                        _oemFfbEffectsDetail = OemFfbSharedMemory.FormatOemEffects(oemSnap, playing: false);
+                        _oemFfbEffectsDetail = OemFfbSharedMemory.FormatOemEffects(
+                            _oemTypesSeenMask, 0, _oemTypeTorqueDi, oemSnap.LastEffectType);
                         _oemFfbStatus = $"OEM FFB: stale (no game publishing) seq={oemSnap.Sequence}";
                     }
                 }
@@ -822,22 +923,38 @@ public sealed class BridgeService : IDisposable
                     var combined = oemSnap.CombinedTorque;
                     var combinedPlaying = oemSnap.Playing || (oemSnap.AuxPlaying && !oemSnap.IsAuxStale());
                     var combinedTypes = oemSnap.CombinedTypesPlaying;
+                    var seenMask = oemSnap.TypesSeen | oemSnap.AuxTypesPlaying;
+                    oemSnap.FillCombinedTypeTorqueDi(_oemTypeTorqueDi);
+                    UpdateOemDiagStrings(oemSnap, combinedPlaying, force: false);
+                    oemForTelemetry = oemSnap;
                     lock (_gate)
                     {
                         _oemFfbTorque = combined;
                         _oemFfbPlaying = combinedPlaying;
                         _lastOemFfbSequence = oemSnap.Sequence;
                         _oemFfbDownloadCount = oemSnap.DownloadCount;
-                        _oemFfbTypesSeen = OemFfbSharedMemory.FormatTypeMask(oemSnap.TypesSeen | oemSnap.AuxTypesPlaying);
-                        _oemFfbTypesPlaying = OemFfbSharedMemory.FormatTypeMask(combinedTypes);
-                        _oemTypesSeenMask = oemSnap.TypesSeen | oemSnap.AuxTypesPlaying;
+                        _oemFfbTypesSeen = _lastOemTypesSeenText;
+                        _oemFfbTypesPlaying = _lastOemTypesPlayingText;
+                        _oemTypesSeenMask = seenMask;
                         _oemTypesPlayingMask = combinedTypes;
                         _oemLastEffectType = oemSnap.LastEffectType;
-                        _oemTypeTorqueDi = oemSnap.CombinedTypeTorqueDi();
-                        _oemFfbEffectsDetail = OemFfbSharedMemory.FormatOemEffects(oemSnap, combinedPlaying);
-                        _oemFfbStatus = combinedPlaying
-                            ? $"OEM FFB: playing seq={oemSnap.Sequence} dl={oemSnap.DownloadCount} rim={ffbSteer:+0.00;-0.00;0.00}"
-                            : $"OEM FFB: idle seq={oemSnap.Sequence} dl={oemSnap.DownloadCount} rim={ffbSteer:+0.00;-0.00;0.00}";
+                        // Effect table + status strings are UI-only - rebuild at ~10 Hz, not 500 Hz.
+                        if (now - _lastOemDiagFormatTick >= 100 ||
+                            _lastOemDiagTypesPlaying != combinedTypes ||
+                            _lastOemDiagTypesSeen != seenMask)
+                        {
+                            _lastOemDiagFormatTick = now;
+                            _lastOemDiagTypesPlaying = combinedTypes;
+                            _lastOemDiagTypesSeen = seenMask;
+                            _oemFfbEffectsDetail = OemFfbSharedMemory.FormatOemEffects(
+                                seenMask,
+                                combinedPlaying ? combinedTypes : 0u,
+                                _oemTypeTorqueDi,
+                                oemSnap.LastEffectType);
+                            _oemFfbStatus = combinedPlaying
+                                ? $"OEM FFB: playing seq={oemSnap.Sequence} dl={oemSnap.DownloadCount} rim={ffbSteer:+0.00;-0.00;0.00}"
+                                : $"OEM FFB: idle seq={oemSnap.Sequence} dl={oemSnap.DownloadCount} rim={ffbSteer:+0.00;-0.00;0.00}";
+                        }
                     }
 
                     if (_ffb.IsReady)
@@ -846,7 +963,7 @@ public sealed class BridgeService : IDisposable
                         var smoothed = _ffbSmoother.Process(
                             combined,
                             oemSnap.DownloadCount,
-                            oemSnap.TypesSeen | oemSnap.AuxTypesPlaying,
+                            seenMask,
                             combinedPlaying);
                         _ffb.NoteIncoming(combined);
                         QueuePhysicalFfbTorque(smoothed + centerTorque);
@@ -890,7 +1007,10 @@ public sealed class BridgeService : IDisposable
                 catch { /* add-on errors must not stop the bridge */ }
 
                 // Telemetry synth/UDP/process probe run on a side thread - never stall HID here.
-                QueueTelemetrySample(profile, devices, mapped, ffbSteer);
+                // Pass OEM mix already filled into _oemTypeTorqueDi (no second SHM read / combine).
+                QueueTelemetrySample(
+                    profile, devices, mapped, ffbSteer,
+                    oemForTelemetry, oemStale, oemErr is null && !oemStale);
             }
             catch
             {
@@ -1040,7 +1160,12 @@ public sealed class BridgeService : IDisposable
         if (string.IsNullOrWhiteSpace(ffbDeviceId))
             return devices;
 
-        if (_ffb.IsReady && _ffb.TryGetPhysicalInput(out var liveAxes, out var liveButtons, out var liveHat))
+        // Dual-handle: InputHub already Polls the FFB device NonExclusive — overlaying from
+        // the Exclusive FFB handle would reintroduce the Fanatec soft-freeze flatline.
+        if (_ffbExperimentalDualHandleInput)
+            return devices;
+
+        if (_ffb.IsReady && _ffb.TryGetOverlayInput(out var liveAxes, out var liveButtons, out var liveHat))
         {
             _lastFfbAxes01 = liveAxes;
             if (liveButtons.Length > 0)
@@ -1162,32 +1287,109 @@ public sealed class BridgeService : IDisposable
 
     /// <summary>
     /// Input-thread enqueue only. When telemetry is off this is a single flag check.
+    /// Rate-limited to SendHz (not every input frame). Sheds when the game stops reading
+    /// the virtual G920 so SimHub UDP cannot pile on during HOST_STALE.
+    /// Does not take <see cref="_gate"/> or touch OEM shared memory.
     /// </summary>
     private void QueueTelemetrySample(
         MappingProfile profile,
         IReadOnlyDictionary<string, DeviceState> devices,
         MappedG920State mapped,
-        float steering)
+        float steering,
+        OemFfbSharedMemory.Snapshot? oem,
+        bool oemStale,
+        bool oemLive)
     {
         if (Volatile.Read(ref _telemetryEnabledFlag) == 0)
             return;
 
-        var handbrakeHeld = MapperEngine.IsPressed(profile, devices, G920Control.TelemetryHandbrake);
-        var nosHeld = MapperEngine.IsPressed(profile, devices, G920Control.TelemetryNos);
+        // Game DI quiet → drop telemetry load so HID/submit can recover.
+        var hostAge = _virtualDevice?.HostInputReadAgeMs ?? -1;
+        if (hostAge >= 250)
+            return;
+
+        var periodMs = Volatile.Read(ref _telemetryEnqueuePeriodMs);
+        var now = Environment.TickCount64;
+        var last = Volatile.Read(ref _lastTelemetryEnqueueTick);
+        if (last != 0 && now - last < periodMs)
+            return;
+        Volatile.Write(ref _lastTelemetryEnqueueTick, now);
+
+        EnsureTelemetryArcadeCache(profile);
+        var handbrakeHeld = _telemetryHasHandbrakeBind &&
+                            MapperEngine.IsPressed(profile, devices, G920Control.TelemetryHandbrake);
+        var nosHeld = _telemetryHasNosBind &&
+                      MapperEngine.IsPressed(profile, devices, G920Control.TelemetryNos);
         Volatile.Write(ref _telemetryQueuedMapped, mapped);
         Volatile.Write(ref _telemetryQueuedSteer, steering);
         Volatile.Write(ref _telemetryQueuedHandbrake, handbrakeHeld ? 1 : 0);
         Volatile.Write(ref _telemetryQueuedNos, nosHeld ? 1 : 0);
+
+        if (oemLive && oem is { } snap && !oemStale)
+        {
+            // Copy from the already-filled input-thread buffer (stable until next enqueue).
+            _oemTypeTorqueDi.AsSpan().CopyTo(_telemetryQueuedTypeDi);
+            var playing = (snap.Playing || (snap.AuxPlaying && !snap.IsAuxStale())) && !snap.IsStale();
+            Volatile.Write(ref _telemetryQueuedOemPlaying, playing ? 1 : 0);
+            Volatile.Write(ref _telemetryQueuedOemValid, 1);
+        }
+        else
+        {
+            _telemetryQueuedTypeDi.AsSpan().Clear();
+            Volatile.Write(ref _telemetryQueuedOemPlaying, 0);
+            Volatile.Write(ref _telemetryQueuedOemValid, 0);
+        }
         Interlocked.Increment(ref _telemetryQueuedVersion);
+    }
+
+    private void UpdateOemDiagStrings(in OemFfbSharedMemory.Snapshot snap, bool playing, bool force)
+    {
+        var seen = snap.TypesSeen | snap.AuxTypesPlaying;
+        var types = playing ? snap.CombinedTypesPlaying : 0u;
+        if (!force &&
+            seen == _lastOemTypesSeenMaskForText &&
+            types == _lastOemTypesPlayingMaskForText)
+            return;
+        _lastOemTypesSeenMaskForText = seen;
+        _lastOemTypesPlayingMaskForText = types;
+        _lastOemTypesSeenText = OemFfbSharedMemory.FormatTypeMask(seen);
+        _lastOemTypesPlayingText = OemFfbSharedMemory.FormatTypeMask(types);
+    }
+
+    private void InvalidateTelemetryArcadeCache()
+    {
+        _telemetryArcadeProfile = null;
+        _telemetryHasHandbrakeBind = false;
+        _telemetryHasNosBind = false;
+    }
+
+    private void EnsureTelemetryArcadeCache(MappingProfile profile)
+    {
+        if (ReferenceEquals(_telemetryArcadeProfile, profile))
+            return;
+        _telemetryArcadeProfile = profile;
+        _telemetryHasHandbrakeBind = HasArcadeSources(profile, G920Control.TelemetryHandbrake);
+        _telemetryHasNosBind = HasArcadeSources(profile, G920Control.TelemetryNos);
+    }
+
+    private static bool HasArcadeSources(MappingProfile profile, G920Control target)
+    {
+        foreach (var b in profile.Bindings)
+        {
+            if (b.Target == target && b.Sources is { Count: > 0 })
+                return true;
+        }
+        return false;
     }
 
     /// <summary>
     /// Synth + UDP + game-process probe. Kept off the input thread so SimHub I/O and
-    /// Process.GetProcessesByName cannot delay virtual G920 submits (Simucube hitch).
+    /// Process.GetProcessesByName cannot delay virtual G920 submits. Uses
+    /// <see cref="_telemetryGate"/> only — never <see cref="_gate"/>.
     /// </summary>
     private void RunTelemetryLoop(CancellationToken token)
     {
-        try { Thread.CurrentThread.Priority = ThreadPriority.Normal; }
+        try { Thread.CurrentThread.Priority = ThreadPriority.BelowNormal; }
         catch { /* best-effort */ }
 
         var lastVersion = 0;
@@ -1197,11 +1399,11 @@ public sealed class BridgeService : IDisposable
             sw.Restart();
 
             TelemetrySettings settings;
-            lock (_gate) settings = _telemetrySettings;
+            lock (_telemetryGate) settings = _telemetrySettings;
 
             if (!settings.Enabled || Volatile.Read(ref _telemetryEnabledFlag) == 0)
             {
-                lock (_gate) _telemetryStatus = "Telemetry: off";
+                lock (_telemetryGate) _telemetryStatus = "Telemetry: off";
                 Thread.Sleep(50);
                 continue;
             }
@@ -1223,6 +1425,8 @@ public sealed class BridgeService : IDisposable
             var steering = Volatile.Read(ref _telemetryQueuedSteer);
             var handbrakeHeld = Volatile.Read(ref _telemetryQueuedHandbrake) != 0;
             var nosHeld = Volatile.Read(ref _telemetryQueuedNos) != 0;
+            var oemValid = Volatile.Read(ref _telemetryQueuedOemValid) != 0;
+            var oemPlaying = Volatile.Read(ref _telemetryQueuedOemPlaying) != 0;
 
             if (mapped is null)
             {
@@ -1250,28 +1454,41 @@ public sealed class BridgeService : IDisposable
 
             try
             {
-                OemFfbSharedMemory.Snapshot? oem = null;
-                if (OemFfbSharedMemory.TryRead(out var snap, out _) && !snap.IsStale())
-                    oem = snap;
-
-                var knownGame = GameProcessProbe.IsKnownGameRunning();
+                // Skip process enumeration while OEM FFB is live (session already true).
+                var knownGame = oemPlaying || GameProcessProbe.IsKnownGameRunning();
+                ReadOnlySpan<int> typeDi = ReadOnlySpan<int>.Empty;
+                if (oemValid)
+                {
+                    _telemetryQueuedTypeDi.AsSpan().CopyTo(_telemetryWorkingTypeDi);
+                    typeDi = _telemetryWorkingTypeDi;
+                }
                 var frame = _telemetrySynth.Update(
-                    mapped, steering, oem, knownGame, dtSec, handbrakeHeld, nosHeld);
+                    mapped, steering, typeDi, oemPlaying, knownGame, dtSec, handbrakeHeld, nosHeld);
 
                 _telemetrySessionTime += dtSec;
                 _telemetryPackets++;
-                EngineVibrationScaleBridge.Publish(settings.Tuning.EngineVibrationScale);
+                // EngineVibrationScaleBridge.Publish only from ConfigureTelemetry (not per packet).
                 SimHubPacket.Write(
                     _telemetryPacket, frame, _telemetryEmitterId, _telemetrySessionId,
                     _telemetryPackets, _telemetrySessionTime);
                 var sent = _telemetryUdp.TrySend(_telemetryPacket);
-                lock (_gate)
+                var pps = (int)_telemetryUdp.PacketsPerSecond;
+                lock (_telemetryGate)
                 {
                     _latestTelemetry = frame;
                     var err = _telemetryUdp.LastError;
-                    _telemetryStatus = !sent && !string.IsNullOrWhiteSpace(err)
-                        ? $"Telemetry: {err}"
-                        : $"Telemetry: {_telemetryUdp.PacketsPerSecond:0} pkt/s → {settings.Host}:{settings.Port}";
+                    if (!sent && !string.IsNullOrWhiteSpace(err))
+                    {
+                        _telemetryStatus = $"Telemetry: {err}";
+                        _telemetryStatusPps = -1;
+                    }
+                    else if (pps != _telemetryStatusPps ||
+                             !string.Equals(_telemetryStatusHostPort, $"{settings.Host}:{settings.Port}", StringComparison.Ordinal))
+                    {
+                        _telemetryStatusPps = pps;
+                        _telemetryStatusHostPort = $"{settings.Host}:{settings.Port}";
+                        _telemetryStatus = $"Telemetry: {pps} pkt/s → {_telemetryStatusHostPort}";
+                    }
                 }
             }
             catch

@@ -70,18 +70,27 @@ public static class OemFfbSharedMemory
         public uint CombinedTypesPlaying =>
             TypesPlaying | (AuxPlaying && !IsAuxStale() ? AuxTypesPlaying : 0u);
 
-        public int[] CombinedTypeTorqueDi()
+        /// <summary>Fill combined game+aux DI torque into <paramref name="dest"/> (no alloc).</summary>
+        public void FillCombinedTypeTorqueDi(Span<int> dest)
         {
-            var result = new int[TypeGainCount];
+            var n = Math.Min(TypeGainCount, dest.Length);
             var auxLive = AuxPlaying && !IsAuxStale();
-            for (var i = 0; i < TypeGainCount; i++)
+            for (var i = 0; i < n; i++)
             {
                 var g = TypeTorque is { Length: > 0 } && i < TypeTorque.Length ? TypeTorque[i] : 0;
                 var a = auxLive && AuxTypeTorque is { Length: > 0 } && i < AuxTypeTorque.Length
                     ? AuxTypeTorque[i]
                     : 0;
-                result[i] = g + a;
+                dest[i] = g + a;
             }
+            for (var i = n; i < dest.Length; i++)
+                dest[i] = 0;
+        }
+
+        public int[] CombinedTypeTorqueDi()
+        {
+            var result = new int[TypeGainCount];
+            FillCombinedTypeTorqueDi(result);
             return result;
         }
 
@@ -127,8 +136,8 @@ public static class OemFfbSharedMemory
                 LastFlags: _view.ReadUInt32(Offset.LastFlags),
                 TickMs: _view.ReadUInt64(Offset.TickMs),
                 AuxTickMs: _view.ReadUInt64(Offset.AuxTickMs),
-                TypeTorque: ReadInt32Array(_view, Offset.TypeTorque, TypeGainCount),
-                AuxTypeTorque: ReadInt32Array(_view, Offset.AuxTypeTorque, TypeGainCount),
+                TypeTorque: ReadInt32Array(_view, Offset.TypeTorque, TypeGainCount, aux: false),
+                AuxTypeTorque: ReadInt32Array(_view, Offset.AuxTypeTorque, TypeGainCount, aux: true),
                 GamePid: ReadUInt32If(_view, Offset.GamePid),
                 AuxPid: ReadUInt32If(_view, Offset.AuxPid));
             return true;
@@ -313,19 +322,38 @@ public static class OemFfbSharedMemory
         sb.Append("  ").Append(key.PadRight(15)).Append(value).Append(Environment.NewLine);
     }
 
-    public static string FormatOemEffects(in Snapshot snap, bool playing) =>
-        FormatOemEffects(
+    public static string FormatOemEffects(in Snapshot snap, bool playing)
+    {
+        Span<int> combined = stackalloc int[TypeGainCount];
+        if (playing)
+            snap.FillCombinedTypeTorqueDi(combined);
+        else
+            combined.Clear();
+        return FormatOemEffects(
             snap.TypesSeen | snap.AuxTypesPlaying,
             playing ? snap.CombinedTypesPlaying : 0u,
-            playing ? snap.CombinedTypeTorqueDi() : [],
+            combined,
             snap.LastEffectType);
+    }
 
-    private static int[] ReadInt32Array(MemoryMappedViewAccessor view, int offset, int count)
+    [ThreadStatic] private static int[]? t_typeTorqueBuf;
+    [ThreadStatic] private static int[]? t_auxTypeTorqueBuf;
+
+    private static int[] ReadInt32Array(MemoryMappedViewAccessor view, int offset, int count, bool aux)
     {
-        var arr = new int[count];
+        // Reuse per-thread buffers across TryRead calls. Callers must not retain Snapshot
+        // arrays across another TryRead on the same thread (telemetry copies what it needs).
+        ref var slot = ref aux ? ref t_auxTypeTorqueBuf : ref t_typeTorqueBuf;
+        if (slot is null || slot.Length < count)
+            slot = new int[count];
+        var arr = slot;
+
         var bytes = count * sizeof(int);
         if (view.Capacity < offset + bytes)
+        {
+            Array.Clear(arr, 0, count);
             return arr;
+        }
         for (var i = 0; i < count; i++)
             arr[i] = view.ReadInt32(offset + i * sizeof(int));
         return arr;
@@ -336,11 +364,15 @@ public static class OemFfbSharedMemory
 
     private static void EnsureOpen()
     {
+        // Hot path: input + telemetry both touch shared memory. Avoid taking Gate when open.
+        if (Volatile.Read(ref _view) is not null)
+            return;
+
         lock (Gate)
         {
             if (_view is not null) return;
             _mmf = MemoryMappedFile.OpenExisting(MapName, MemoryMappedFileRights.ReadWrite);
-            _view = _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite);
+            Volatile.Write(ref _view, _mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.ReadWrite));
             _lastSteerTick = Stopwatch.GetTimestamp();
             _steeringVel = 0f;
         }
@@ -352,7 +384,7 @@ public static class OemFfbSharedMemory
         {
             _view?.Dispose();
             _mmf?.Dispose();
-            _view = null;
+            Volatile.Write(ref _view, null);
             _mmf = null;
         }
     }

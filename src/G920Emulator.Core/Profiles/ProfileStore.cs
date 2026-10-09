@@ -281,11 +281,13 @@ public sealed class ProfileStore
 
     public bool Exists(string profileName) => File.Exists(GetPath(profileName));
 
-    public MappingProfile Load(string profileName)
+    public MappingProfile Load(string profileName) => LoadWithDiagnostics(profileName).Profile;
+
+    public ProfileLoadResult LoadWithDiagnostics(string profileName)
     {
-        var profile = MappingProfile.Load(GetPath(profileName));
-        ApplyLinkedFfbProfile(profile);
-        return profile;
+        var result = MappingProfile.LoadWithDiagnostics(GetPath(profileName));
+        ApplyLinkedFfbProfile(result.Profile);
+        return result;
     }
 
     public void Save(MappingProfile profile, string profileName)
@@ -525,7 +527,9 @@ public sealed class ProfileStore
             var json = File.ReadAllText(SettingsPath);
             var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions)
                    ?? new AppSettings();
-            if (MigrateHidHideSettings(settings, json))
+            var migrated = MigrateHidHideSettings(settings, json);
+            migrated |= MigrateFfbExperimentalOptions(settings, json);
+            if (migrated)
                 SaveSettings(settings);
             settings.NormalizeHidHide();
             settings.NormalizeFfbCooperative();
@@ -581,20 +585,36 @@ public sealed class ProfileStore
         return false;
     }
 
-    public MappingProfile LoadLastOrDefault()
+    /// <summary>
+    /// Align Debug Test knobs with the known-good release path. v2 clears the old
+    /// “master on = unlocked + non-blocking bundle” migration.
+    /// </summary>
+    private static bool MigrateFfbExperimentalOptions(AppSettings settings, string json)
+    {
+        if (settings.FfbExperimentalOptionsVersion >= AppSettings.CurrentFfbExperimentalOptionsVersion)
+            return false;
+
+        // Always land on release defaults (Debug Test off). Enable is opt-in afterward.
+        settings.ApplyFfbExperimentalReleaseDefaults(enableDebugTest: false);
+        return true;
+    }
+
+    public MappingProfile LoadLastOrDefault() => LoadLastOrDefaultWithDiagnostics().Profile;
+
+    public ProfileLoadResult LoadLastOrDefaultWithDiagnostics()
     {
         var settings = LoadSettings();
         if (!string.IsNullOrWhiteSpace(settings.LastProfileName) && Exists(settings.LastProfileName))
-            return Load(settings.LastProfileName);
+            return LoadWithDiagnostics(settings.LastProfileName);
 
         var first = ListProfiles().FirstOrDefault();
         if (first is not null)
-            return Load(first);
+            return LoadWithDiagnostics(first);
 
         var created = MappingProfile.CreateDefault();
         created.FfbProfileName = "Raw";
         ApplyLinkedFfbProfile(created);
-        return created;
+        return new ProfileLoadResult { Profile = created };
     }
 
     private static string Sanitize(string name)
@@ -648,10 +668,45 @@ public sealed class AppSettings
     public bool UnloadHidHideConfigWhenStopped { get; set; }
 
     /// <summary>
-    /// Physical FFB base DirectInput coop level. Default Exclusive for strongest forces.
-    /// Use NonExclusive if pedals/steer on that base freeze while FFB is playing.
+    /// Settings → Debug Test master switch. Default off = last-release FFB/input path.
+    /// Sub-options below are ignored unless this is on.
+    /// </summary>
+    public bool FfbExperimentalInputFixes { get; set; }
+
+    /// <summary>
+    /// Only used when <see cref="FfbExperimentalInputFixes"/> is on.
+    /// Exclusive = strongest FFB; NonExclusive = shared acquire if axes freeze on the base.
     /// </summary>
     public FfbCooperativeMode FfbCooperativeMode { get; set; } = FfbCooperativeMode.Exclusive;
+
+    /// <summary>Debug Test: run SetParameters outside the DI lock so Poll can proceed.</summary>
+    public bool FfbExperimentalUnlockedSetParameters { get; set; }
+
+    /// <summary>Debug Test: never stall rim/axis reads behind a slow FFB apply.</summary>
+    public bool FfbExperimentalNonBlockingRimReads { get; set; }
+
+    /// <summary>
+    /// When Debug Test is on: soft steering catch-up (matches previous releases when true).
+    /// When Debug Test is off, soft catch-up is always applied regardless of this flag.
+    /// </summary>
+    public bool FfbExperimentalSoftCatchUpSteer { get; set; } = true;
+
+    /// <summary>
+    /// Debug Test: second NonExclusive Poll handle on the FFB device while FFB stays Exclusive.
+    /// A/B for mid-race soft freeze (Exclusive GetCurrentState flatline).
+    /// </summary>
+    public bool FfbExperimentalDualHandleInput { get; set; }
+
+    /// <summary>True after Debug Test sub-options have been written (or migrated from the old master-only flag).</summary>
+    public bool FfbExperimentalOptionsMigrated { get; set; }
+
+    /// <summary>
+    /// Bump when Debug Test defaults/semantics change so we can re-apply release defaults once.
+    /// v2 = Enable only reveals; defaults = Exclusive / locked SP / blocking rim / soft catch-up on.
+    /// </summary>
+    public int FfbExperimentalOptionsVersion { get; set; }
+
+    public const int CurrentFfbExperimentalOptionsVersion = 2;
 
     [JsonIgnore]
     public bool AppliesHidHideOnStart => HidHideApplyMode != HidHideApplyMode.Off;
@@ -668,6 +723,25 @@ public sealed class AppSettings
     {
         if (FfbCooperativeMode is not (FfbCooperativeMode.Exclusive or FfbCooperativeMode.NonExclusive))
             FfbCooperativeMode = FfbCooperativeMode.Exclusive;
+        // Master off: keep stored knobs at release defaults so Enable only reveals (no behavior change).
+        if (!FfbExperimentalInputFixes)
+            ApplyFfbExperimentalReleaseDefaults(enableDebugTest: false);
+    }
+
+    /// <summary>
+    /// Known-good path from previous releases: Exclusive coop, locked SetParameters,
+    /// blocking rim reads (TryEnter 0), soft steering catch-up on.
+    /// </summary>
+    public void ApplyFfbExperimentalReleaseDefaults(bool enableDebugTest = false)
+    {
+        FfbExperimentalInputFixes = enableDebugTest;
+        FfbCooperativeMode = FfbCooperativeMode.Exclusive;
+        FfbExperimentalUnlockedSetParameters = false;
+        FfbExperimentalNonBlockingRimReads = false;
+        FfbExperimentalSoftCatchUpSteer = true;
+        FfbExperimentalDualHandleInput = false;
+        FfbExperimentalOptionsMigrated = true;
+        FfbExperimentalOptionsVersion = AppSettings.CurrentFfbExperimentalOptionsVersion;
     }
 
     /// <summary>

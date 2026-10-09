@@ -21,10 +21,16 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- On bridge Start, disable Device Manager power-saving (“Allow the computer to turn off this device…”) for **WinUHid / VHF** nodes so Windows cannot sleep the virtual G920 while the app stays Running. Best-effort (needs elevation).
 - Telemetry synth, UDP send, and game-process probe run on a **side thread** (same idea as Simucube FFB apply). When Telemetry is off, the input loop skips that work entirely so SimHub I/O cannot stall virtual G920 reports.
-- Fanatec (and other exclusive-FFB bases used as bind sources): physical axis cache no longer freezes while `SetParameters` runs — DI gate is not held across the USB round-trip, and rim reads no longer block the input loop. Stops mid-race “last throttle/steer stuck” when the wheel is the only binding source.
-- Debug bridge-health log now records `steer`/`thr`/`brk`, FFB cache age, and `STALE_INPUT` when the virtual report stops changing.
-- Settings → General: **Physical FFB** cooperative mode — **Exclusive** (default, strongest forces) or **NonExclusive** (if Exclusive freezes pedals/steer on the same base). Re-attaches FFB when changed while the bridge is running. Auto `STALE_KICK` still re-acquires the DI handle if the mapped report stays identical for ≥1s.
+- Telemetry-on path no longer contends with HID/FFB on `BridgeService`’s main lock or double-reads OEM shared memory; process probe interval is 5s. (Freeze A/B: issue tracked with Telemetry enabled.)
+- Telemetry-on further lightened after Fanatec `HOST_STALE` (game stops reading Col01 while FFB continues): input thread enqueues at **SendHz** (not every ~2 ms), caches arcade-bind presence, and sheds samples when `hostReadAge ≥ 250 ms`.
+- Telemetry/OEM hot path: no per-frame `CombinedTypeTorqueDi` / effect-table string allocs (reuse buffers, throttle FFB diag text ~10 Hz), skip game-process probe while OEM is playing, avoid per-packet Engine-scale file writes and status-string rebuilds, ASCII gear packet fast-path, Telemetry UI meters only while that tab/overlay is visible.
+- Debug bridge-health log records `steer`/`thr`/`brk`, FFB cache age, and `STALE_INPUT` when the virtual report stops changing (Debug session only).
+- Settings → **Debug Test** tab: Enable only reveals knobs; defaults match the last stable release (Exclusive, locked SetParameters, blocking rim reads, soft catch-up on). **Default** restores that path. Sub-options are for A/B only; re-attaches FFB when Enable/coop/dual-handle changes. Debug capture records effective + stored Debug Test flags.
+- Debug Test → **Dual-handle input** (opt-in): standalone Exclusive FFB joystick while InputHub keeps NonExclusive Poll (unpinned). Fixes the Fanatec case where sharing Exclusive on InputHub + a second Poll handle still flatlined game input; FFB forces stay Exclusive.
+- Debug bridge-health: `hostReadAgeMs` / `notReady` / `HOST_STALE` when mapped pedals move but the game stops reading the virtual G920 (distinguishes emulator soft-freeze from game DI/host stall).
+- Input profiles with unknown binding targets (e.g. saved by a newer build) no longer crash on launch: invalid rows are skipped and a **Profile needs attention** dialog asks you to rebind and Save.
 
 ## [0.2.7] - 2026-10-07
 
@@ -39,7 +45,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Simulated G-force for SimHub (`LocalSurgeMs2` / `LocalSwayMs2` / `LocalHeaveMs2`) and a live **G-force circle** on the Telemetry tab.
 - **Telemetry Debug Overlay** (Settings): topmost live SimHub UDP packet (gear, speed/RPM, pedals, G-force, FFB→SimHub scales).
 - FFB **Bind** dialog **Set as Default**: snap value + hardware button that restores that slider while driving (saved on the input profile).
-- Telemetry UDP send rate slider **30-60 Hz** (60 is SimHub's External Sim max).
+- Telemetry UDP send rate slider **1-60 Hz** (60 is SimHub's External Sim max).
 
 ### Changed
 

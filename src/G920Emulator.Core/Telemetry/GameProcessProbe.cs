@@ -17,7 +17,8 @@ public static class GameProcessProbe
         if (now < _nextTick)
             return _cached;
 
-        _nextTick = now + 1000;
+        // Process enumeration is expensive; 5s is plenty for session/live detection.
+        _nextTick = now + 5000;
         try
         {
             foreach (var name in SimHubPacket.KnownGameProcessNames)

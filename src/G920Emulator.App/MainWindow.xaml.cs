@@ -57,6 +57,9 @@ public partial class MainWindow : Window
     private volatile bool _bridgeBusy;
     private int _livePreviewPollInFlight;
     private bool _minimizeToTray;
+    private bool _ffbExperimentalInputFixesApplied;
+    private FfbCooperativeMode _ffbCooperativeModeApplied = FfbCooperativeMode.Exclusive;
+    private bool _ffbExperimentalDualHandleApplied;
     private WindowState _restoreWindowState = WindowState.Normal;
     private TrayIcon? _trayIcon;
     private DebugOverlayWindow? _debugOverlay;
@@ -72,6 +75,8 @@ public partial class MainWindow : Window
     private double _telemetryLastRpmRedline = TelemetryTuning.DefaultRpmRedline;
     /// <summary>Previous Diff Ratio so we can scale gear max speeds when it changes.</summary>
     private double _telemetryLastDiffRatio = TelemetryTuning.DefaultDiffRatio;
+    /// <summary>Shown once after the window loads if the last profile had invalid bindings.</summary>
+    private ProfileLoadResult? _pendingProfileLoadWarning;
 
     public MainWindow()
     {
@@ -93,7 +98,10 @@ public partial class MainWindow : Window
         FfbDeviceCombo.ItemsSource = _devices;
 
         _bridge.AttachVirtualDevice(_virtual);
-        _profile = _profiles.LoadLastOrDefault();
+        var startupLoad = _profiles.LoadLastOrDefaultWithDiagnostics();
+        _profile = startupLoad.Profile;
+        if (startupLoad.HasIssues)
+            _pendingProfileLoadWarning = startupLoad;
         LoadProfileIntoUi(_profile);
         RefreshSavedProfilesCombo(_profile.Name);
         RefreshFfbProfilesCombo(_profile.FfbProfileName);
@@ -117,6 +125,7 @@ public partial class MainWindow : Window
             UpdateDependencyUi();
             RefreshDebugSessionUi();
             _ = CheckForGitHubUpdateAsync(force: false);
+            ShowPendingProfileLoadWarning();
         };
         Activated += (_, _) =>
         {
@@ -388,9 +397,26 @@ public partial class MainWindow : Window
         if (!settings.CheckForUpdates)
             HideUpdateBanner();
 
+        var prevExperimental = _ffbExperimentalInputFixesApplied;
+        var prevCoop = _ffbCooperativeModeApplied;
+        var prevDual = _ffbExperimentalDualHandleApplied;
+        _bridge.SetFfbExperimentalOptions(
+            settings.FfbExperimentalInputFixes,
+            settings.FfbExperimentalUnlockedSetParameters,
+            settings.FfbExperimentalNonBlockingRimReads,
+            settings.FfbExperimentalSoftCatchUpSteer,
+            settings.FfbExperimentalDualHandleInput);
         _bridge.SetFfbCooperativeMode(settings.FfbCooperativeMode);
-        // Re-acquire physical FFB so Exclusive ↔ NonExclusive takes effect without full Stop.
-        if (_bridge.IsRunning)
+        _ffbExperimentalInputFixesApplied = settings.FfbExperimentalInputFixes;
+        _ffbCooperativeModeApplied = settings.FfbCooperativeMode;
+        _ffbExperimentalDualHandleApplied =
+            settings.FfbExperimentalInputFixes && settings.FfbExperimentalDualHandleInput;
+
+        // Re-attach when Enable / coop / dual-handle changes (opens or closes the Poll handle).
+        var ffbTestChanged = prevExperimental != settings.FfbExperimentalInputFixes ||
+                             prevCoop != settings.FfbCooperativeMode ||
+                             prevDual != _ffbExperimentalDualHandleApplied;
+        if (ffbTestChanged && _bridge.IsRunning)
             _ = Task.Run(() => _bridge.TryAttachFfb(out _));
     }
 
@@ -1484,6 +1510,10 @@ public partial class MainWindow : Window
     private void ApplyTelemetryLive()
     {
         if (TelemetryStatusText is null)
+            return;
+        // Skip heavy meter/string work when the Telemetry tab and overlay are both hidden.
+        var overlayOn = _telemetryDebugOverlay is { IsVisible: true };
+        if (TelemetryTabRadio?.IsChecked != true && !overlayOn)
             return;
         TelemetryStatusText.Text = _bridge.TelemetryStatus;
         var t = _bridge.LatestTelemetry;
@@ -3261,15 +3291,16 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog() != true)
             return;
 
-        var imported = MappingProfile.Load(dialog.FileName);
-        if (string.IsNullOrWhiteSpace(imported.Name))
-            imported.Name = Path.GetFileNameWithoutExtension(dialog.FileName);
+        var imported = MappingProfile.LoadWithDiagnostics(dialog.FileName);
+        if (string.IsNullOrWhiteSpace(imported.Profile.Name))
+            imported.Profile.Name = Path.GetFileNameWithoutExtension(dialog.FileName);
 
-        LoadProfileIntoUi(imported);
-        var name = PromptForName("Import profile - save as", imported.Name) ?? imported.Name;
+        LoadProfileIntoUi(imported.Profile);
+        var name = PromptForName("Import profile - save as", imported.Profile.Name) ?? imported.Profile.Name;
         _profiles.Save(_profile, name);
         RefreshSavedProfilesCombo(name);
         StatusText.Text = $"Imported and saved '{name}'";
+        NotifyProfileLoadIssues(imported, name);
     }
 
     private void SavedProfilesCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -3281,19 +3312,40 @@ public partial class MainWindow : Window
         try
         {
             // Load + LoadProfileIntoUi both ApplyLinkedFfbProfile (linked FFB gains/feel).
-            var loaded = _profiles.Load(name);
-            LoadProfileIntoUi(loaded);
+            var loaded = _profiles.LoadWithDiagnostics(name);
+            LoadProfileIntoUi(loaded.Profile);
             UpdateAppSettings(s =>
             {
                 s.LastProfileName = name;
-                s.LastFfbProfileName = loaded.FfbProfileName;
+                s.LastFfbProfileName = loaded.Profile.FfbProfileName;
             });
-            StatusText.Text = $"Loaded profile '{name}' (FFB '{loaded.FfbProfileName}')";
+            StatusText.Text = $"Loaded profile '{name}' (FFB '{loaded.Profile.FfbProfileName}')";
+            NotifyProfileLoadIssues(loaded, name);
         }
         catch (Exception ex)
         {
             MessageBox.Show(ex.Message, "Load profile", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
+    }
+
+    private void ShowPendingProfileLoadWarning()
+    {
+        var pending = _pendingProfileLoadWarning;
+        _pendingProfileLoadWarning = null;
+        if (pending is null) return;
+        NotifyProfileLoadIssues(pending, pending.Profile.Name);
+    }
+
+    private void NotifyProfileLoadIssues(ProfileLoadResult result, string profileLabel)
+    {
+        if (!result.HasIssues) return;
+        StatusText.Text = $"Profile '{profileLabel}' had invalid bindings — rebind and Save.";
+        MessageBox.Show(
+            this,
+            result.FormatUserMessage(profileLabel),
+            "Profile needs attention",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
     }
 
     private void AutoSaveCurrent()

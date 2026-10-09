@@ -53,11 +53,27 @@ public sealed class VirtualG920Device : IVirtualG920Device
     private byte _lastHostReportId;
     private string _lastHostWriteHex = "";
     private string _hostPathHint = "";
+    private long _hostInputReadTick;
+    private long _submitNotReadyCount;
 
     public bool IsRunning => _running;
     public bool IsDriverAvailable { get; private set; }
     public bool IsPreviewMode => _previewMode;
     public string? LastError { get; private set; }
+
+    /// <inheritdoc />
+    public long HostInputReadAgeMs
+    {
+        get
+        {
+            var tick = Interlocked.Read(ref _hostInputReadTick);
+            if (tick == 0) return -1;
+            return Math.Max(0, Environment.TickCount64 - tick);
+        }
+    }
+
+    /// <inheritdoc />
+    public long SubmitNotReadyCount => Interlocked.Read(ref _submitNotReadyCount);
 
     public float SampleFfbTorque(float steeringCentered) =>
         _hidppFfb.ComputeTorque(steeringCentered);
@@ -98,6 +114,8 @@ public sealed class VirtualG920Device : IVirtualG920Device
         _nativeTeardown = null;
         _reportProvider = latestReportProvider;
         _onFfb = onFfb;
+        Interlocked.Exchange(ref _hostInputReadTick, 0);
+        Interlocked.Exchange(ref _submitNotReadyCount, 0);
         _hidppFfb.Reset();
         _hostWriteCount = 0;
         _lastHostReportId = 0;
@@ -208,10 +226,18 @@ public sealed class VirtualG920Device : IVirtualG920Device
                 Thread.Sleep(100);
             }
 
+            // Stop Windows from selectively suspending VHF/WinUHid (kills virtual G920 on idle).
+            try { _ = WinUHidPowerPolicy.EnsurePowerManagementOff(); }
+            catch { /* best-effort */ }
+
             // After PnP settles, confirm we are NOT on Logitech's filter (required for FFB).
             _ = Task.Run(() =>
             {
                 Thread.Sleep(900);
+                // Re-apply after Col01/VHF children finish enumerating.
+                try { _ = WinUHidPowerPolicy.EnsurePowerManagementOff(); }
+                catch { /* best-effort */ }
+
                 if (LogiJoyHidBinder.IsCol01BoundToLogitech())
                 {
                     LogiJoyHidBinder.TryRemoveLogitechCol01();
@@ -223,6 +249,11 @@ public sealed class VirtualG920Device : IVirtualG920Device
                         ? "Microsoft HID path · virtual Col01 present"
                         : "WARNING: virtual Col01 not present - games will not see a wheel";
                 }
+
+                if (!string.IsNullOrWhiteSpace(WinUHidPowerPolicy.LastStatus))
+                    _hostPathHint = string.IsNullOrWhiteSpace(_hostPathHint)
+                        ? WinUHidPowerPolicy.LastStatus
+                        : _hostPathHint + " · " + WinUHidPowerPolicy.LastStatus;
 
                 G920OemRegistration.EnsureRegistered();
             });
@@ -279,10 +310,14 @@ public sealed class VirtualG920Device : IVirtualG920Device
 
             // In ReadReport mode WinUHid returns ERROR_NOT_READY when no HID read is pending
             // (throttle window / host reading slower than us). _lastReport is served by the
-            // ReadReport callback instead, so this is not a failure.
+            // ReadReport callback instead, so this is not a failure — but a long streak with
+            // no ReadReport completions means the game/host stopped polling the virtual G920.
             var err = Marshal.GetLastWin32Error();
             if (err == ErrorNotReady)
+            {
+                Interlocked.Increment(ref _submitNotReadyCount);
                 return true;
+            }
 
             LastError = $"WinUHidSubmitInputReport failed ({err}).";
             return false;
@@ -342,6 +377,7 @@ public sealed class VirtualG920Device : IVirtualG920Device
             }
 
             // ReportId 0 (or unknown): any valid input report - use joystick state.
+            Interlocked.Exchange(ref _hostInputReadTick, Environment.TickCount64);
             var report = _reportProvider?.Invoke() ?? _lastReport;
             WinUHidNative.WinUHidCompleteReadEvent(device, evtPtr, report, (uint)report.Length);
             return;
