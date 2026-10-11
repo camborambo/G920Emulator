@@ -1,0 +1,85 @@
+﻿DirectInput game controllers (AttachedOnly) as seen by this process.
+Includes the virtual G920 when the bridge is running.
+If a physical FFB base still appears here while HidHide is on, games may see it too
+(this process is usually whitelisted - compare with hidhide.txt app-list).
+
+Count: 9
+
+[1] FANATEC Podium Wheel Base DD1
+    Product: FANATEC Podium Wheel Base DD1
+    InstanceId: 86846c80-c496-11f1-8001-444553540000
+    ProductId:  00040eb7-0000-0000-0000-504944564944
+    FFB: True  axes=5 buttons=32 hats=1
+    VirtualG920: False
+
+[2] Simucube 2 Sport
+    Product: Simucube 2 Sport
+    InstanceId: 5a5254d0-3510-11f1-8001-444553540000
+    ProductId:  0d6116d0-0000-0000-0000-504944564944
+    FFB: True  axes=8 buttons=128 hats=0
+    VirtualG920: False
+
+[3] Virtual HID Framework (VHF) HID device
+    Product: Virtual HID Framework (VHF) HID device
+    InstanceId: 86846c80-c496-11f1-8002-444553540000
+    ProductId:  00040eb7-0000-0000-0000-504944564944
+    FFB: True  axes=0 buttons=0 hats=0
+    VirtualG920: False
+
+[4] vJoy Device
+    Product: vJoy Device
+    InstanceId: 0c6a2c30-53a5-11f1-8002-444553540000
+    ProductId:  bead1234-0000-0000-0000-504944564944
+    FFB: True  axes=8 buttons=128 hats=1
+    VirtualG920: False
+
+[5] BASH PRO Shifter
+    Product: BASH PRO Shifter
+    InstanceId: 49737ed0-34ef-11f1-8001-444553540000
+    ProductId:  68732341-0000-0000-0000-504944564944
+    FFB: False  axes=0 buttons=13 hats=0
+    VirtualG920: False
+
+[6] Generic   USB  Joystick  
+    Product: Generic   USB  Joystick  
+    InstanceId: bfb2be30-34ea-11f1-8012-444553540000
+    ProductId:  00060079-0000-0000-0000-504944564944
+    FFB: False  axes=5 buttons=12 hats=1
+    VirtualG920: False
+
+[7] HBP Handbrake
+    Product: HBP Handbrake
+    InstanceId: bfb0e970-34ea-11f1-800e-444553540000
+    ProductId:  001f346e-0000-0000-0000-504944564944
+    FFB: False  axes=4 buttons=128 hats=0
+    VirtualG920: False
+
+[8] Heusinkveld Sim Pedals Ultimate
+    Product: Heusinkveld Sim Pedals Ultimate
+    InstanceId: bfabe060-34ea-11f1-8002-444553540000
+    ProductId:  100330b7-0000-0000-0000-504944564944
+    FFB: False  axes=3 buttons=0 hats=0
+    VirtualG920: False
+
+[9] SimHub Controller Remapper Bridge
+    Product: SimHub Controller Remapper Bridge
+    InstanceId: bfb75210-34ea-11f1-801c-444553540000
+    ProductId:  97788888-0000-0000-0000-504944564944
+    FFB: False  axes=6 buttons=128 hats=1
+    VirtualG920: False
+
+FFB-capable devices: 4
+  - FANATEC Podium Wheel Base DD1
+  - Simucube 2 Sport
+  - Virtual HID Framework (VHF) HID device
+  - vJoy Device
+
+=== Competing FFB vs HidHide ===
+This process is HidHide-whitelisted, so it STILL lists hidden devices (including vJoy).
+That does not mean games see them. Authoritative check: joy.cpl (not whitelisted).
+If vJoy is absent from joy.cpl, Unbound cannot use it for FFB.
+Steam may stay running; OEM torque is accepted only from the game process.
+  FFB device visible here: FANATEC Podium Wheel Base DD1 (expected if hidden + emulator whitelisted; confirm absent from joy.cpl).
+  FFB device visible here: Simucube 2 Sport (expected if hidden + emulator whitelisted; confirm absent from joy.cpl).
+  FFB device visible here: Virtual HID Framework (VHF) HID device (expected if hidden + emulator whitelisted; confirm absent from joy.cpl).
+  WARN no VID_1234&PID_BEAD / HIDCLASS hide entry found - verify in joy.cpl that vJoy is absent.

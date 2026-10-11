@@ -1,0 +1,20 @@
+﻿Game FFB analysis (NFS Unbound race signature)
+Generated: 2026-10-09T22:20:28.7140567-05:00
+
+Expected in-race OEM sequence (working):
+  GetEffectStatus → DestroyEffect (boot Sine) → Triangle create/start → CF stream
+  MIX shows non-zero cf / periodic / damper (not spring alone with zero rumble).
+Menus often show Spring-only; that is normal.
+Unbound: Accessibility → Controls → Controller Vibration must be On.
+
+Unbound SESSION lines: 0
+Steam SESSION HOST (DI ok; AuxTorque only): 1
+Triangle full-creates (0x3FF): 0
+GetEffectStatus calls: 7
+MIX spring-only mask (0x0080) after Unbound: 0
+MIX richer playing mask after Unbound: 0
+MIX with non-zero cf/periodic/damper after Unbound: 0
+
+Last Triangle create: (none in this log)
+
+VERDICT: No Unbound activity in this log yet.

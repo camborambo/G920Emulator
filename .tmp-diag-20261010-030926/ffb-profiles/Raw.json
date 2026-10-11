@@ -1,0 +1,37 @@
+{
+  "name": "Raw",
+  "ffbGain": 1,
+  "ffbInvert": false,
+  "softCatchUpSteer": false,
+  "effectGains": {
+    "constantForce": 1,
+    "rampForce": 1,
+    "periodic": 1,
+    "springForce": 1,
+    "damperForce": 1,
+    "inertiaForce": 1,
+    "frictionForce": 1,
+    "customForce": 1
+  },
+  "outputFeel": {
+    "smoothingMs": 0,
+    "reconstructionMs": 50,
+    "peakSoftStart": 1,
+    "bootEaseIn": false,
+    "softStartMs": 0,
+    "deadband": 0,
+    "maxSlewPerSecond": 0,
+    "maxSpikeStep": 0,
+    "magnitudeEpsilon": 0,
+    "forceCenterSpring": false,
+    "centerSpringStrength": 0.3,
+    "centerSpringRange": 0.25,
+    "centerSpringDeadzone": 0,
+    "invertConstantForce": false,
+    "damperVelocityScale": 1,
+    "damperDeadbandScale": 1,
+    "springCoefficientScale": 1,
+    "frictionCoefficientScale": 1,
+    "hasTorqueShaping": false
+  }
+}

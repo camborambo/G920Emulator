@@ -1,0 +1,34 @@
+{
+  "name": "new forza",
+  "ffbGain": 0.45,
+  "ffbInvert": true,
+  "softCatchUpSteer": false,
+  "effectGains": {
+    "constantForce": 1,
+    "rampForce": 1,
+    "periodic": 1,
+    "springForce": 1,
+    "damperForce": 1,
+    "inertiaForce": 1,
+    "frictionForce": 1,
+    "customForce": 1
+  },
+  "outputFeel": {
+    "smoothingMs": 9.142857142857142,
+    "peakSoftStart": 1,
+    "bootEaseIn": true,
+    "softStartMs": 0,
+    "deadband": 0.004,
+    "maxSlewPerSecond": 30,
+    "maxSpikeStep": 0,
+    "magnitudeEpsilon": 12,
+    "forceCenterSpring": false,
+    "centerSpringStrength": 0.3,
+    "centerSpringRange": 0.25,
+    "centerSpringDeadzone": 0,
+    "invertConstantForce": false,
+    "damperVelocityScale": 1,
+    "damperDeadbandScale": 1,
+    "hasTorqueShaping": true
+  }
+}

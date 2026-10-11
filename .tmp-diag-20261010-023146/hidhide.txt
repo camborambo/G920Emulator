@@ -1,0 +1,19 @@
+﻿HidHideCLI: C:\Program Files\Nefarius Software Solutions\HidHide\x64\HidHideCLI.exe
+
+### --cloak-state
+--cloak-on
+
+### --inv-state
+--inv-off
+
+### --app-list
+--app-reg "C:\Program Files\Heusinkveld\SmartControl\SmartControl.exe"
+--app-reg "C:\Program Files\Nefarius Software Solutions\HidHide\x64\HidHideCLI.exe"
+--app-reg "C:\Program Files\Nefarius Software Solutions\HidHide\x64\HidHideClient.exe"
+--app-reg "C:\Program Files\SimucubeTuner\sc-tuner.exe"
+--app-reg "C:\Program Files (x86)\SimHub\SimHubWPF.exe"
+--app-reg "C:\Program Files (x86)\Steam\steamapps\common\ForzaHorizon6\forzahorizon6.exe"
+--app-reg "C:\Users\sarra\Desktop\G920Emulator\G920Emulator.exe"
+
+### --dev-list
+--dev-hide "HID\VID_16D0&PID_0D61&MI_00\8&3d93871&0&0000"

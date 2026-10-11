@@ -1,0 +1,4 @@
+﻿OEMForceFeedback registration for Logitech G920 VID_046D&PID_C262
+Expected CLSID: {A920FFB0-E7DB-4329-8C13-A966D84A289F} → g920ffb.dll
+
+Key not found: HKLM\SYSTEM\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_046D&PID_C262

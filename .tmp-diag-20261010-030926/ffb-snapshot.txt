@@ -1,0 +1,73 @@
+﻿FFB snapshot at export time
+Generated: 2026-10-10T03:09:28.8186221-05:00
+
+=== OEM shared memory (g920ffb.dll → bridge) ===
+Torque (game): 0.000  Aux: 0.000  Combined: 0.000
+Playing: False  AuxPlaying: False
+Sequence: 5506767
+DownloadCount: 402197
+TypesSeen: ConstantForce,Sine,Spring,Damper (0x0189)
+TypesPlaying (game): (none) (0x0000)
+TypesPlaying (aux):  (none) (0x0000)
+TypesPlaying (combined): (none) (0x0000)
+MIX
+  cf                0.00
+  periodic          0.00
+  spring            0.00
+  damper            0.00
+  other             0.00
+  last           ConstantForce
+
+  Type            State     Torque
+  ConstantForce   seen        0.00
+  RampForce       idle        0.00
+  Square          idle        0.00
+  Sine            seen        0.00
+  Triangle        idle        0.00
+  SawtoothUp      idle        0.00
+  SawtoothDown    idle        0.00
+  Spring          seen        0.00
+  Damper          seen        0.00
+  Inertia         idle        0.00
+  Friction        idle        0.00
+  CustomForce     idle        0.00
+LastEffectType: 0 (ConstantForce)  LastFlags: 0x000003FF
+TickMs: 18781609  AuxTickMs: 0  Stale: False
+
+Read guide:
+  Combined TypesPlaying = Spring only → virtual G920 is not getting CF/rumble from any host.
+  Combined includes Constant/Sine/Triangle → effects are on the emulator path; check physical apply.
+  Aux non-zero while game is Spring-only → Steam/overlay layered rumble under the game channel.
+
+=== Active FFB profile / gains ===
+Input profile: Default
+FFB profile: Raw
+Master: 1  Invert: False  Soft catch-up: off
+FFB source: Simucube 2 Sport
+Effect gains: CF=1 Spring=1 Damper=1 Friction=1 Inertia=1 Periodic=1 Ramp=1
+Feel: smooth=0ms recon=21ms idleGate=on (slider) peak=1 bootEaseIn=off dead=0 slew=0 spike=0 eps=0
+OEM mix: invertCF=False dampVel=1 dampDead=1 springCoeff=1 frictionCoeff=1
+Force center spring: False strength=0.3 range=0.25 deadzone=0
+
+=== Physical FFB attach (bridge) ===
+Attached: False  Vendor: Generic
+Device: (none) ()
+Coop: Background|Exclusive (shared input handle)
+Axis: Simucube · Cartesian|ObjectOffsets X=0 (X)
+Status: FFB: not attached.
+Last error: (none)
+Incoming: +0.02 (191044 updates)
+Applied mag: 0  applyCount=8613
+CF pacing: off (not attached)  targetMag=0 pacedApply=8606 pacedSkip=172920
+Idle smooth: on (slider)
+Rim: -0.07
+TestOverride: False  AutoCenterTest: False
+
+
+Debug Test (Settings)
+  Enabled: no (normal / release path)
+  Cooperative level (effective): Exclusive
+  Dual-handle input (effective): off
+  Unlocked SetParameters (effective): off
+  Non-blocking rim reads (effective): off
+  CF pacing on Fanatec (effective): off
