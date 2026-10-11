@@ -42,7 +42,9 @@ Gear packing:
 
 ## Force-feedback path (game → physical base)
 
-**Contract:** the game must see and target the **virtual G920 only**. Physical bases, vJoy, and pads are HidHide’d from the game. Which wheel base is attached on the emulator side is an output choice - it must not change what the game sends.
+**Contract:** the game must see and target the **virtual G920 only**. Physical bases, vJoy, and pads are HidHide’d from the game. Which wheel base is attached on the emulator side is an **output** choice only.
+
+**Important:** many titles (especially **Forza Horizon**) author **different FFB mixes per device class**. Because the game always sees a G920 OEM wheel, you get the **G920-authored** signals (often sparse Constant Force), not a Fanatec-native spring-led mix — even when playing back on a Fanatec or Simucube base. See [force-feedback.md — How games author FFB](force-feedback.md#how-games-author-ffb-forza-vs-nfs-g920-vs-dd).
 
 Games that support a Logitech G920 via DirectInput OEM do **not** rely on Logitech HID++ WriteReports for our virtual device. Instead:
 
@@ -53,7 +55,7 @@ Games that support a Logitech G920 via DirectInput OEM do **not** rely on Logite
    - **AuxTorque** - Steam/overlay only, layered under the game channel so helpers cannot wipe spring/road forces
 4. **BridgeService** writes physical rim angle into that shared memory (required for spring/damper), reads **combined** torque, optionally applies **output feel** / **torque shaping** from the FFB profile, and **FfbBridge** applies it as a constant-force effect on the selected physical base (master gain + invert). Physical DI apply runs on a **side thread** so a slow base cannot stall virtual G920 axis submits.
 
-**Validated FFB bases:** Fanatec Podium Wheel Base DD2 (NFS Heat / Unbound) and Simucube (NFS Unbound). See [compatibility](compatibility.md).
+**Validated FFB bases:** Fanatec Podium Wheel Base DD2 (NFS Heat / Unbound) and Simucube (NFS Unbound; Forza Horizon on G920 OEM path). See [compatibility](compatibility.md).
 
 Verbose OEM / HID++ file logging is off until the UI **Debug** session is active; after **Stop debug**, **Export log…** builds the support zip. Leave Debug off for normal play - high-rate games write the OEM log from the game process; use short captures only.
 

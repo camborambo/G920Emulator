@@ -197,8 +197,9 @@ public partial class FfbEffectBindWindow : Window
     {
         "Master" or "Constant" or "Spring" or "Damper" or "Friction" or "Inertia"
             or "Periodic" or "Ramp" or "Custom" or "PeakSoft" or "Spike"
-            or "CenterStrength" or "CenterRange" or "DampVel" or "DampDead" => DefaultEditKind.Percent,
-        "Smoothing" or "Slew" or "Epsilon" => DefaultEditKind.Integer,
+            or "CenterStrength" or "CenterRange" or "DampVel" or "DampDead"
+            or "SpringCoeff" or "FrictionCoeff" => DefaultEditKind.Percent,
+        "Smoothing" or "CfPace" or "Reconstruction" or "GapHold" or "Slew" or "Epsilon" => DefaultEditKind.Integer,
         "Deadband" or "CenterDeadzone" => DefaultEditKind.Decimal,
         _ => DefaultEditKind.Decimal,
     };

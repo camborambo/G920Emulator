@@ -96,6 +96,12 @@ public enum G920Control
     FfbDampDeadMinus,
     FfbDampDeadPlus,
     FfbDampDeadDefault,
+    FfbSpringCoeffMinus,
+    FfbSpringCoeffPlus,
+    FfbSpringCoeffDefault,
+    FfbFrictionCoeffMinus,
+    FfbFrictionCoeffPlus,
+    FfbFrictionCoeffDefault,
     /// <summary>Input-profile only: hold for arcade handbrake speed dump (telemetry). Not a virtual G920 control.</summary>
     TelemetryHandbrake,
     /// <summary>Input-profile only: hold for arcade NOS / turbo boost (telemetry). Not a virtual G920 control.</summary>
@@ -106,6 +112,15 @@ public enum G920Control
     TelemetryGearDown,
     /// <summary>Input-profile only: rising edge = reset sequential gear to 1 (telemetry arcade). Not a virtual G920 control.</summary>
     TelemetryGearReset,
+    FfbReconstructionMinus,
+    FfbReconstructionPlus,
+    FfbReconstructionDefault,
+    FfbCfPaceMinus,
+    FfbCfPacePlus,
+    FfbCfPaceDefault,
+    FfbGapHoldMinus,
+    FfbGapHoldPlus,
+    FfbGapHoldDefault,
 }
 
 public static class G920ControlInfo
@@ -178,6 +193,9 @@ public static class G920ControlInfo
         new("Ramp", "Effect gains", "Ramp", G920Control.FfbRampMinus, G920Control.FfbRampPlus, G920Control.FfbRampDefault, 0.01, 0.05),
         new("Custom", "Effect gains", "Custom", G920Control.FfbCustomMinus, G920Control.FfbCustomPlus, G920Control.FfbCustomDefault, 0.01, 0.05),
         new("Smoothing", "Output feel", "Smoothing", G920Control.FfbSmoothingMinus, G920Control.FfbSmoothingPlus, G920Control.FfbSmoothingDefault, 1, 5),
+        new("CfPace", "Output feel", "Device pace", G920Control.FfbCfPaceMinus, G920Control.FfbCfPacePlus, G920Control.FfbCfPaceDefault, 1, 2),
+        new("Reconstruction", "Output feel", "Interpolate", G920Control.FfbReconstructionMinus, G920Control.FfbReconstructionPlus, G920Control.FfbReconstructionDefault, 1, 5),
+        new("GapHold", "Output feel", "Gap fill", G920Control.FfbGapHoldMinus, G920Control.FfbGapHoldPlus, G920Control.FfbGapHoldDefault, 1, 5),
         new("PeakSoft", "Output feel", "Peak soft", G920Control.FfbPeakSoftMinus, G920Control.FfbPeakSoftPlus, G920Control.FfbPeakSoftDefault, 0.01, 0.05),
         new("Deadband", "Torque shaping", "Force deadzone", G920Control.FfbDeadbandMinus, G920Control.FfbDeadbandPlus, G920Control.FfbDeadbandDefault, 0.001, 0.005),
         new("Slew", "Torque shaping", "Slew rate", G920Control.FfbSlewMinus, G920Control.FfbSlewPlus, G920Control.FfbSlewDefault, 1, 5),
@@ -188,6 +206,8 @@ public static class G920ControlInfo
         new("CenterDeadzone", "Centering", "Deadzone", G920Control.FfbCenterDeadzoneMinus, G920Control.FfbCenterDeadzonePlus, G920Control.FfbCenterDeadzoneDefault, 0.001, 0.005),
         new("DampVel", "Advanced Settings", "Damper velocity", G920Control.FfbDampVelMinus, G920Control.FfbDampVelPlus, G920Control.FfbDampVelDefault, 0.01, 0.05),
         new("DampDead", "Advanced Settings", "Damper deadzone", G920Control.FfbDampDeadMinus, G920Control.FfbDampDeadPlus, G920Control.FfbDampDeadDefault, 0.01, 0.05),
+        new("SpringCoeff", "Advanced Settings", "Spring coeff", G920Control.FfbSpringCoeffMinus, G920Control.FfbSpringCoeffPlus, G920Control.FfbSpringCoeffDefault, 0.05, 0.25),
+        new("FrictionCoeff", "Advanced Settings", "Friction coeff", G920Control.FfbFrictionCoeffMinus, G920Control.FfbFrictionCoeffPlus, G920Control.FfbFrictionCoeffDefault, 0.05, 0.25),
     ];
 
     public static readonly G920Control[] FfbNudgeControls = BuildNudgeControls();
@@ -386,6 +406,15 @@ public static class G920ControlInfo
         G920Control.FfbSmoothingMinus => "Smoothing −",
         G920Control.FfbSmoothingPlus => "Smoothing +",
         G920Control.FfbSmoothingDefault => "Smoothing default",
+        G920Control.FfbCfPaceMinus => "Device pace −",
+        G920Control.FfbCfPacePlus => "Device pace +",
+        G920Control.FfbCfPaceDefault => "Device pace default",
+        G920Control.FfbReconstructionMinus => "Interpolate −",
+        G920Control.FfbReconstructionPlus => "Interpolate +",
+        G920Control.FfbReconstructionDefault => "Interpolate default",
+        G920Control.FfbGapHoldMinus => "Gap fill −",
+        G920Control.FfbGapHoldPlus => "Gap fill +",
+        G920Control.FfbGapHoldDefault => "Gap fill default",
         G920Control.FfbPeakSoftMinus => "Peak soft −",
         G920Control.FfbPeakSoftPlus => "Peak soft +",
         G920Control.FfbPeakSoftDefault => "Peak soft default",
@@ -419,6 +448,12 @@ public static class G920ControlInfo
         G920Control.FfbDampDeadMinus => "Damper deadzone −",
         G920Control.FfbDampDeadPlus => "Damper deadzone +",
         G920Control.FfbDampDeadDefault => "Damper deadzone default",
+        G920Control.FfbSpringCoeffMinus => "Spring coeff −",
+        G920Control.FfbSpringCoeffPlus => "Spring coeff +",
+        G920Control.FfbSpringCoeffDefault => "Spring coeff default",
+        G920Control.FfbFrictionCoeffMinus => "Friction coeff −",
+        G920Control.FfbFrictionCoeffPlus => "Friction coeff +",
+        G920Control.FfbFrictionCoeffDefault => "Friction coeff default",
         G920Control.TelemetryHandbrake => "Handbrake (telemetry)",
         G920Control.TelemetryNos => "NOS / Turbo (telemetry)",
         G920Control.TelemetryGearUp => "Gear up (telemetry)",

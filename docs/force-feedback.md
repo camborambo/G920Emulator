@@ -59,6 +59,7 @@ Timing and shaping follow DirectInput semantics:
 - `DIEFFECT.dwGain` defaults to 10000, and a game-sent 0 is honored.
 - `StartEffect` with `DIES_SOLO` stops the other effects.
 - Damper/inertia velocity is rim units per second, smoothed over ~15 ms; ±10000 corresponds to 3 rim units/s. Friction has a small velocity deadband so it doesn't chatter at rest.
+- Spring (position conditions) evaluates against an EMA-smoothed rim metric (light τ when Interpolate is on). Always on — not gated on vehicle speed; constant/periodic forces ignore that metric. Spring torque itself is not separately filtered; sparse-CF grain can be softened via Output feel Interpolate / Gap fill / Device pace.
 - If the driver thread stops publishing for more than 250 ms (game exited or crashed), the bridge sends zero torque instead of holding the last value.
 - Multi-axis spring/damper downloads: the driver picks the strongest condition axis (largest \|coeff\|) so a zeroed first axis does not mute the wheel.
 - **Polarity:** shared-memory torque is app convention (`+` = right). Spring/damper are evaluated from the physical rim in that space. Constant / ramp / periodic magnitudes are converted from DI device sense → app before publish (so CF resists the turn instead of amplifying it). Condition effects ignore `DIEFFECT` direction.
@@ -66,6 +67,40 @@ Timing and shaping follow DirectInput semantics:
 ### Physical apply
 
 `FfbBridge` collapses the mixed torque to one DirectInput **constant force** on the selected base, sharing the `InputHub` joystick acquire (avoids dual exclusive acquire failures on Fanatec and similar).
+
+**Unified unpaced core (all bases):** Physical CF uses the release unpaced apply path by default (Fanatec, Simucube, Generic, …). Optional Output feel sliders soften sparse OEM streams when needed:
+
+| Control | Default | Notes |
+|---------|---------|--------|
+| **Device pace** | **0 (off)** | How often the mixed force is sent to the wheel (ms). Try 2–5 if forces feel stepped. |
+| **Interpolate** | **0 (off)** | Blend window (ms) on the mixed force for sparse updates. |
+| **Gap fill** | **0 (off)** | Hold last force across update gaps when Interpolate &gt; 0. |
+
+Each slider adds its effect independently when set above 0. Interpolate / Gap fill / Smoothing / Peak soft / torque shaping adjust the mixed force; Device pace rates how often that mix is sent to the base. Apply-path EMA stays off. `FFB_TUNE` logs `devicePace` / `interpolate` / `gapFill` / `shmRecon`. Settings → **Debug Test** → **CF pacing on Fanatec** still forces a 3 ms pace when Device pace feel is off (legacy A/B). Offline: `tools/IdleSmoothReplay`.
+
+## How games author FFB (Forza vs NFS, G920 vs DD)
+
+Games do **not** send one universal force stream. They pick an effect mix (and update rate) from the **device class they think they are talking to**. With the emulator, that device is always the **virtual G920** — your physical Fanatec / Simucube / etc. is only the playback base.
+
+### Findings (Forza Horizon on virtual G920)
+
+Validated while chasing “grainy” idle / light-steer feel on **Simucube** with FH5/FH6:
+
+1. **Device profile matters more than the base brand.** Forza (and similar titles) author different DirectInput mixes for a Logitech G920 OEM wheel than for a native Fanatec / high-end DD path. Hiding the real base and presenting a G920 means you get the **G920-authored** mix, not the Fanatec-native one.
+2. **G920 path → sparse Constant Force.** On the virtual G920, Forza’s road/tire feel is often a **low-rate CF stream** (tens of Hz, stepped magnitudes) rather than a dense spring/damper blend. On a high-bandwidth DD that faithfully plays every step, that reads as **grain / stair-steps**, especially at idle and slow steering.
+3. **Native DD / Fanatec path → softer, spring-led mix.** Side-by-side captures (Fanatec base used natively vs same game through G920 Emulator) show the game (or its Fanatec profile) leaning on **spring / condition-heavy** forces with a smoother envelope. That is why a Fanatec can feel fine in Forza while the same title through the emulator feels grainy on Simucube — the **signals differ**, not just the motor.
+4. **NFS Unbound / Heat differ again.** Unbound tends to download a richer mix (Triangle / periodic + CF + damper, with Controllers → Vibration on). Menus may show Spring-only; in-race MIX should show non-zero CF/periodic/damper. That path usually feels less “stepped” on Raw than Forza’s G920 CF stream.
+5. **What the emulator can and cannot do.** We faithfully mix and play whatever the game downloads on the virtual G920. We **cannot** make Forza send its Fanatec-native profile while the game still sees a G920. Optional **Device pace** / **Interpolate** / **Gap fill** only reshape the G920 mix after the fact (defaults off = Raw / unpaced core for every base).
+
+### Practical takeaway
+
+| Symptom | Likely cause | What to try |
+|---------|--------------|-------------|
+| Grainy idle / light steer in Forza on a DD | Sparse G920 CF from the game | Output feel: Device pace ~2–5, Interpolate tens of ms, Gap fill if needed |
+| Fanatec native feels fine, emulator grainy | Different game device profile | Expected; soften with Output feel, or accept G920 mix |
+| NFS Unbound weak rumble | Controller Vibration off / spring-only menus | Accessibility → Vibration On; check in-race MIX in Debug export |
+
+Leave status-bar **Debug** off for normal Forza play (per-frame OEM downloads); use short captures when comparing mixes.
 
 ## Sliders (saved on the FFB profile)
 
@@ -94,7 +129,7 @@ Scale each DirectInput effect type **in the mixer** before summing (0% mutes tha
 
 ### Advanced Settings
 
-UI: Force Feedback → **Advanced Settings**. Boot ease-in / Invert FFB / soft steering catch-up apply on the emulator side; the CF/damper rows below are applied inside `g920ffb.dll` while evaluating effects (before shared-memory torque is published).
+UI: Force Feedback → **Advanced Settings**. Boot ease-in / Invert FFB / soft steering catch-up apply on the emulator side; the CF/damper/coefficient rows below are applied inside `g920ffb.dll` while evaluating effects (before shared-memory torque is published).
 
 | Control | Default | NFS Unbound / Heat | Notes |
 |---------|---------|--------------------|--------|
@@ -104,6 +139,8 @@ UI: Force Feedback → **Advanced Settings**. Boot ease-in / Invert FFB / soft s
 | **Invert Constant Force** | off | off | Extra CF flip only - driver already converts DI CF → app polarity (`+` = right). Independent of Invert FFB |
 | **Damper velocity** | 100% (25–200%) | **200%** | Scales rim velocity before damper/inertia condition eval (not Fanatec NDP/DPR) |
 | **Damper deadzone** | 100% | **~33%** | Scales damper deadband before eval |
+| **Spring coeff** | 100% (0–200%) | 100% | Scale spring coefficients only (saturation unchanged) — stronger near center sooner |
+| **Friction coeff** | 100% (0–200%) | 100% | Scale friction coefficients; higher can feel gritty/backlashing |
 
 ### Output feel
 
@@ -112,6 +149,9 @@ Applied **after** Advanced Settings mix scales (emulator side):
 | Slider | Range | Off | Notes |
 |--------|-------|-----|--------|
 | **Smoothing** | 0-40 ms | **0** | Low-pass time constant. Try ~8-15 on some DD bases if FFB feels harsh |
+| **Device pace** | 0-34 ms | **0** | Send period for the mixed force; 0 = every update (`cfPacePeriodMs`) |
+| **Interpolate** | 0-100 ms | **0** | Mix blend window (`reconstructionMs`) |
+| **Gap fill** | 0-200 ms | **0** | Hold across gaps when Interpolate &gt; 0 (`idleGapHoldMs`) |
 | **Peak soft** | 0-100% | **0** (off) | Soft-knee for strong peaks. 0 = off; slide up for more compression (maps to knee at 100%→50% \|torque\|) |
 
 FFB debug Left / Right / Center / Pulse skip this path.

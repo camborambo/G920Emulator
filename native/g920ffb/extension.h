@@ -60,6 +60,12 @@ struct G920FfbSharedState
 	INT32 AuxTypeTorque[G920FFB_TYPE_GAIN_COUNT];
 	UINT32 GamePid; // process publishing Torque
 	UINT32 AuxPid;  // process publishing AuxTorque (Steam / overlay)
+	// Condition coefficient multipliers (appended; 0 = unset → 1.0).
+	// Scale coeffs without changing saturation — stronger near center sooner.
+	UINT16 SpringCoeffScale;    // 10000 = 1.0, up to 20000 = 2.0
+	UINT16 FrictionCoeffScale;  // 10000 = 1.0, up to 20000 = 2.0
+	// Idle smooth τ in ms (0 = off). App-written; rim EMA in mixer (CF idle LPF is emulator-side).
+	UINT16 ReconstructionMs;
 };
 #pragma pack(pop)
 

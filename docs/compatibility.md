@@ -30,8 +30,12 @@ Same DirectInput constant-force path for all of these:
 |------|--------|-------|-----|--------|
 | Need for Speed Heat | **Tested** | Virtual G920 | OEM path used | Gears 1-6 = buttons 13-18. **Reverse: default button 19** (LGS / Driving Force Shifter). |
 | Need for Speed Unbound | **Tested** | Virtual G920 | OEM path (multi-instance mixer + SHM v7) on Fanatec DD2 and Simucube | ConstantForce, Spring, Sine, Damper, Triangle. Gears 1-6 = 13-18. **Reverse: Bind Gear R → button 12**. Centering spring needs physical rim angle. **Controller Vibration must be On** (Accessibility → Controls) or race rumble magnitudes stay 0. |
-| Forza Horizon 5 | **Tested** | Virtual G920 | OEM path on **Simucube** | FFB compatible with Simucube. Requires **test signing off** to launch (see below). Leave status-bar **Debug** off during normal play. |
-| Forza Horizon 6 | **Tested** | Virtual G920 | OEM path on **Simucube** | FFB compatible with Simucube. Requires **test signing off** to launch (see below). Leave status-bar **Debug** off during normal play. |
+| Forza Horizon 5 | **Tested** | Virtual G920 | OEM path on **Simucube** | Usable FFB. Forza authors a **G920-class** mix (often sparse CF) — can feel grainy on DDs vs native Fanatec. Optional Output feel (Device pace / Interpolate / Gap fill). **Test signing off** to launch (see below). Leave **Debug** off for normal play. |
+| Forza Horizon 6 | **Tested** | Virtual G920 | OEM path on **Simucube** | Same as FH5: G920 OEM signals ≠ Fanatec-native mix. Optional Output feel for sparse-CF grain. **Test signing off** to launch. Leave **Debug** off for normal play. |
+
+### Forza Horizon — device profiles and FFB feel
+
+Forza picks effects from the **wheel type it detects**. Through the emulator that is always a Logitech G920, so you get Forza’s **G920 OEM stream** (typically stepped / low-rate Constant Force), not the smoother spring-led mix it may send to a native Fanatec DD. Playing that G920 mix on Simucube or Fanatec can feel grainy at idle even when the same title feels fine on a native Fanatec path — the **game signals differ**. Soften with Force Feedback → Output feel if needed. Details: [force-feedback.md](force-feedback.md#how-games-author-ffb-forza-vs-nfs-g920-vs-dd).
 
 ### Forza Horizon series (test signing)
 

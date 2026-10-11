@@ -2,7 +2,7 @@
 
 **Use any wheel, pedals, H-shifter, or controller as a Logitech G920** - including games that only offer a G920 / Logitech wheel profile.
 
-G920 Emulator is a Windows app that creates a **virtual Logitech G920** (`VID 046D` / `PID C262`) on your PC. You bind your physical DirectInput devices to that virtual wheel, hide the real hardware from games with HidHide, and optionally forward **force feedback** to your Fanatec, Simucube, Simagic, Moza, or other DirectInput FFB base.
+G920 Emulator is a **hobby project**: a Windows app that creates a **virtual Logitech G920** (`VID 046D` / `PID C262`) on your PC. You bind your physical DirectInput devices to that virtual wheel, hide the real hardware from games with HidHide, and optionally forward **force feedback** to your Fanatec, Simucube, Simagic, Moza, or other DirectInput FFB base.
 
 ```
 Physical devices  →  G920 Emulator  →  Virtual G920  →  Game
@@ -33,6 +33,8 @@ Game FFB effects  →  g920ffb.dll    →  Physical base
 **Gear R:** Heat uses default button **19**. Unbound needs Bind Gear R → **12**. Full matrix: [compatibility](docs/compatibility.md).
 
 **Unbound tip:** Accessibility → Controls → **Controller Vibration** must be **On**, or the game streams spring-only (walls/rumble stay at magnitude 0).
+
+**Forza tip:** The game authors a **G920-class** FFB mix (often sparse Constant Force) when it sees the virtual G920 — not the same signals as a native Fanatec DD path. That can feel grainy on high-end bases; optional Force Feedback → Output feel (**Device pace** / **Interpolate** / **Gap fill**) softens it. Details: [force-feedback.md](docs/force-feedback.md#how-games-author-ffb-forza-vs-nfs-g920-vs-dd).
 
 ### After WinUHid is installed (important)
 
@@ -173,4 +175,4 @@ Report bugs and ask questions on [GitHub Issues](https://github.com/camborambo/G
 
 ## License
 
-Project code in this repository is available for use with the project. WinUHid remains under its upstream license.
+This is a **hobby project**. Source is public for personal, **non-commercial** use only — see [LICENSE](LICENSE). You may read, modify, and run it yourself; you may **not** use it for commercial purposes. Third-party components bundled with releases (for example WinUHid) remain under their upstream licenses.

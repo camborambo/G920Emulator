@@ -9,6 +9,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
+- Output feel optional **Device pace**, **Interpolate** (full-path INT-like blend, not idle-only), and **Gap fill** — each slider adds its effect when &gt; 0 (defaults off). Offline replay: `tools/IdleSmoothReplay`.
 - Debug session logs **FFB_TUNE** lines to `g920emulator-bridge-health.log` when effect gains / output feel are applied (values + shared-memory readback) so exports can prove slider changes reached `g920ffb`.
 - Telemetry **Max gears** in the Gearing card (1–10): UDP `MaxGears` → SimHub `CarSettings_MaxGears`, shows that many gear ratio / top-speed rows (paddles can use 7–10 for speed sim; H-shifter still 1–6). Gear tops use the [Blocklayer](https://www.blocklayer.com/rpm-gear) formula MPH = (tire × ShiftAt) / (336 × gear × diff) for all gears including 7–10; absolute speed ceiling raised to 1600 km/h so tall overdrive is not clipped through AbsoluteRpmMax. After updating, **Remove registration** → restart SimHub → **Register with SimHub** again if the packet layout changed.
 - Telemetry **Arcade buttons → Sequential shifter** (opt-in): bind **Gear up** / **Gear down** / **Gear reset** on the input profile for sequential/paddle boxes that do not map to H-pattern gears. Pattern is **R → 1 → Max gears**; Reset jumps to **1**. When enabled, H-pattern and bumper-paddle gear inference are ignored.
@@ -20,6 +21,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- Docs: **Forza device-profile findings** — games author different FFB mixes per device class; virtual G920 gets sparse CF (grain on DDs) vs native Fanatec spring-led mix. Documented in `docs/force-feedback.md`, compatibility, architecture, user guide, README.
+- **Unified FFB core:** unpaced physical CF apply is the default for **all** vendors (including Simucube / generic). Device pace and Interpolate are opt-in Output feel sliders only (defaults 0), not vendor-gated always-on. Debug Test → CF pacing on Fanatec remains a 3 ms override when feel Device pace is off.
+- Renamed Output feel **CF pace** → **Device pace**, **Idle smooth** → **Interpolate**, **Gap hold** → **Gap fill** (mix adjustments; JSON keys unchanged).
+- Interpolate / Gap fill apply as mix adjustments only (no idle rim-settle mute). Force Feedback tooltips describe effect only (no third-party product references).
+- Gap fill defaults to **0 (off)** and shows/disables as off while Interpolate is off (was a misleading 80 ms default).
+- Output feel **Device pace** and **Gap fill** Bind buttons (− / + / Set as Default), matching Interpolate.
 - Telemetry **Downshift settle** (Speed dynamics): after a downshift, speed bleeds toward that gear’s max instead of snapping. Separate from Coast / Brake; 0 = off. (Restores the old Gear settle path that had been hard-pinned.)
 - FFB label clarity: **Force deadzone** (was Deadband; not Fanatec DEA), **Slew rate** (Simucube-style), **DI chatter** (was DI epsilon), **Damper velocity** / **Damper deadzone** (was Damp vel / Damp dead). Bind ids unchanged.
 - **Damper velocity** max capped at **200%** (was 400%) to match Master / effect gains; legacy values above 200% clamp down.
@@ -33,6 +40,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- **Forza / sparse-CF grain (optional):** Output feel **Device pace** + **Interpolate** (full-path INT) + **Gap fill** can soften stepped OEM CF on DDs. Defaults off — unified unpaced core. Live push + SHM (`FFB_TUNE` `devicePace` / `interpolate` / `gapFill`). Apply-path EMA off. Advanced Settings **Spring coeff** / **Friction coeff** (0–200%).
 - **Peak soft** slider: **0 = off**, slide up for more peak compression (was inverted: 100% = off, lower = stronger).
 - **Spike cap:** limit is a per-second |Δtorque| cap (like Slew), not a raw per-call clamp. Slider goes to **0 = off** (was stuck at 5% minimum with “off” only at 100%). Legacy 100% migrates to 0. On the ~500 Hz OEM path, lowering the slider no longer turns into hard stair-steps that feel more rugged on DD bases.
 - **HidHide Hide bound devices only:** each **Start** syncs the hide list to the active profile — hides bound devices (match by DirectInput instance/product GUID and VID/PID) and **unhides** other gaming devices left hidden from a previous full-rig / Hide-all session. Wheel-only profiles no longer leave pedals/shifters cloaked after you switch profiles (or manually unhide them in HidHide Client).

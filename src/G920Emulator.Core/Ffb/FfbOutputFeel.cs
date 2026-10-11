@@ -1,5 +1,12 @@
 namespace G920Emulator.Core.Ffb;
 
+/// <summary>Legacy profile field only — Idle mode dropdown removed; INT path is always used when Interpolate &gt; 0.</summary>
+public enum IdleSmoothMode
+{
+    Ema = 0,
+    Interpolate = 1,
+}
+
 /// <summary>
 /// User-tunable output shaping applied after the game's DI effects are mixed.
 /// Defaults leave the mix untouched (exact game feedback).
@@ -11,6 +18,26 @@ public sealed class FfbOutputFeel
     /// Useful range ~0-40.
     /// </summary>
     public double SmoothingMs { get; set; }
+
+    /// <summary>
+    /// Interpolate blend window in ms (0 = off). Softens sparse updates on the mixed force.
+    /// </summary>
+    public double ReconstructionMs { get; set; }
+
+    /// <summary>
+    /// Gap fill: max ms to hold the last sample when Interpolate &gt; 0.
+    /// 0 = off / blend only. Range 0–200.
+    /// </summary>
+    public double IdleGapHoldMs { get; set; }
+
+    /// <summary>Ignored legacy JSON field (dropdown removed).</summary>
+    public IdleSmoothMode IdleSmoothMode { get; set; } = IdleSmoothMode.Interpolate;
+
+    /// <summary>
+    /// Device pace: physical update period in ms (0 = every update).
+    /// Typical useful range 2–5 when enabled.
+    /// </summary>
+    public double CfPacePeriodMs { get; set; }
 
     /// <summary>
     /// Soft-knee starts at this |torque| (0.50-1.00). 1.00 = off (no peak compression).
@@ -90,9 +117,24 @@ public sealed class FfbOutputFeel
     /// </summary>
     public double DamperDeadbandScale { get; set; } = 1.0;
 
+    /// <summary>
+    /// Spring coefficient multiplier (1.0 = off). Scales DI spring coefficients
+    /// without changing saturation — stronger near center sooner.
+    /// </summary>
+    public double SpringCoefficientScale { get; set; } = 1.0;
+
+    /// <summary>
+    /// Friction coefficient multiplier (1.0 = off). Higher can feel
+    /// gritty/backlashing on some bases; lower weakens friction.
+    /// </summary>
+    public double FrictionCoefficientScale { get; set; } = 1.0;
+
     public void Clamp()
     {
         SmoothingMs = Math.Clamp(SmoothingMs, 0, 40);
+        ReconstructionMs = Math.Clamp(ReconstructionMs, 0, 100);
+        IdleGapHoldMs = Math.Clamp(IdleGapHoldMs, 0, 200);
+        CfPacePeriodMs = Math.Clamp(CfPacePeriodMs, 0, 34);
         PeakSoftStart = Math.Clamp(PeakSoftStart, 0.5, 1.0);
         SoftStartMs = Math.Clamp(SoftStartMs, 0, 2000);
         if (SoftStartMs > 0.001)
@@ -112,6 +154,8 @@ public sealed class FfbOutputFeel
         CenterSpringDeadzone = Math.Clamp(CenterSpringDeadzone, 0, 0.05);
         DamperVelocityScale = Math.Clamp(DamperVelocityScale, 0.25, 2.0);
         DamperDeadbandScale = Math.Clamp(DamperDeadbandScale, 0.1, 1.0);
+        SpringCoefficientScale = Math.Clamp(SpringCoefficientScale, 0, 2.0);
+        FrictionCoefficientScale = Math.Clamp(FrictionCoefficientScale, 0, 2.0);
     }
 
     /// <summary>

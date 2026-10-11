@@ -3,6 +3,8 @@
 volatile LONG CEffect::s_InvertConstantForce = 0;
 volatile LONG CEffect::s_DamperVelScale = 10000;
 volatile LONG CEffect::s_DamperDeadbandScale = 10000;
+volatile LONG CEffect::s_SpringCoeffScale = 10000;
+volatile LONG CEffect::s_FrictionCoeffScale = 10000;
 
 CEffect::CEffect()
 {
@@ -68,6 +70,22 @@ LONG CEffect::EvalCondition(const DICONDITION& Cond, LONG Metric)
 	if (force > sat) force = sat;
 	if (force < -sat) force = -sat;
 	return (LONG)force;
+}
+
+VOID CEffect::ScaleConditionCoefficients(DICONDITION& Cond, LONG scale10000)
+{
+	// Multiply coefficients only — saturation / deadband unchanged so the force
+	// ramps sooner near center without raising the ceiling.
+	if (scale10000 <= 0 || scale10000 == 10000)
+		return;
+	LONGLONG pos = ((LONGLONG)Cond.lPositiveCoefficient * scale10000) / 10000;
+	LONGLONG neg = ((LONGLONG)Cond.lNegativeCoefficient * scale10000) / 10000;
+	if (pos > 10000) pos = 10000;
+	if (pos < -10000) pos = -10000;
+	if (neg > 10000) neg = 10000;
+	if (neg < -10000) neg = -10000;
+	Cond.lPositiveCoefficient = (LONG)pos;
+	Cond.lNegativeCoefficient = (LONG)neg;
 }
 
 VOID CEffect::CalcTorque(LONG* Torque, LONG AxisPos, LONG AxisVel)
@@ -158,8 +176,12 @@ VOID CEffect::CalcForce(ULONG Duration, ULONG CurrentPos, LONG AxisPos, LONG Axi
 	switch (Type)
 	{
 	case SPRING:
-		Magnitude = EvalCondition(DiCondition, AxisPos);
+	{
+		DICONDITION cond = DiCondition;
+		ScaleConditionCoefficients(cond, s_SpringCoeffScale);
+		Magnitude = EvalCondition(cond, AxisPos);
 		break;
+	}
 
 	case DAMPER:
 	{
@@ -212,7 +234,9 @@ VOID CEffect::CalcForce(ULONG Duration, ULONG CurrentPos, LONG AxisPos, LONG Axi
 		LONG metric = 0;
 		if (AxisVel > kFrictionDeadband) metric = 10000;
 		else if (AxisVel < -kFrictionDeadband) metric = -10000;
-		Magnitude = EvalCondition(DiCondition, metric);
+		DICONDITION cond = DiCondition;
+		ScaleConditionCoefficients(cond, s_FrictionCoeffScale);
+		Magnitude = EvalCondition(cond, metric);
 		break;
 	}
 

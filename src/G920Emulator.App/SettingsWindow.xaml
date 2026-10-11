@@ -206,9 +206,12 @@
                 <CheckBox x:Name="FfbNonBlockingRimReadsCheck" Content="Non-blocking rim reads"
                           Checked="Setting_Changed" Unchecked="Setting_Changed"
                           ToolTip="Off = normal/release (TryEnter 0 + cache). On = A/B brief wait when cache is stale."/>
+                <CheckBox x:Name="FfbCfPacingOnFanatecCheck" Content="CF pacing on Fanatec"
+                          Checked="Setting_Changed" Unchecked="Setting_Changed"
+                          ToolTip="Off = normal. On = force about 3 ms Device pace on Fanatec when Device pace is 0 (for testing)."/>
                 <Button Style="{StaticResource AppButton}" Content="Default"
                         HorizontalAlignment="Left" Margin="0,14,0,0" Click="FfbExperimentalDefault_Click"
-                        ToolTip="Turn Debug Test off and restore release defaults (Exclusive, dual-handle off, locked SetParameters)."/>
+                        ToolTip="Turn Debug Test off and restore normal defaults."/>
                 <TextBlock Opacity="0.6" FontSize="12" TextWrapping="Wrap" Margin="0,10,0,0"
                            Text="Re-attaches FFB when Enable, cooperative level, or Dual-handle input changes."/>
               </StackPanel>

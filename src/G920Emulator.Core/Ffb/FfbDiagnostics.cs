@@ -20,6 +20,15 @@ public sealed class FfbDiagnostics
     public int IncomingUpdateCount { get; init; }
     public int ApplyCount { get; init; }
 
+    /// <summary>Effective device-pace policy (0 = unpaced core).</summary>
+    public string CfPacing { get; init; } = "off";
+    public int CfPacingTargetMagnitude { get; init; }
+    public int CfPacingSkipCount { get; init; }
+    public int CfPacingApplyCount { get; init; }
+
+    /// <summary>Full-path Interpolate (INT-like) from Output feel; off when 0.</summary>
+    public string IdleSmooth { get; init; } = "off";
+
     // Populated by BridgeService from the virtual G920 HID++ emulator.
     public int HidppWriteCount { get; set; }
     public int HidppDownloadCount { get; set; }

@@ -58,6 +58,9 @@ public sealed class FfbProfile
                Math.Abs(g.RampForce - 1) < 0.001 &&
                Math.Abs(g.CustomForce - 1) < 0.001 &&
                f.SmoothingMs <= 0.001 &&
+               f.ReconstructionMs <= 0.001 &&
+               f.IdleGapHoldMs <= 0.5 &&
+               f.CfPacePeriodMs <= 0.001 &&
                f.PeakSoftStart >= 0.999 &&
                !f.BootEaseIn &&
                f.SoftStartMs <= 0.001 &&
@@ -68,7 +71,9 @@ public sealed class FfbProfile
                !f.ForceCenterSpring &&
                !f.InvertConstantForce &&
                Math.Abs(f.DamperVelocityScale - 1.0) < 0.001 &&
-               Math.Abs(f.DamperDeadbandScale - 1.0) < 0.001;
+               Math.Abs(f.DamperDeadbandScale - 1.0) < 0.001 &&
+               Math.Abs(f.SpringCoefficientScale - 1.0) < 0.001 &&
+               Math.Abs(f.FrictionCoefficientScale - 1.0) < 0.001;
     }
 
     public const string NfsUnboundHeatProfileName = "Need For Speed Unbound / Heat";

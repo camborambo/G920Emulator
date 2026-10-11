@@ -173,6 +173,9 @@ public static class OemFfbSharedMemory
         return true;
     }
 
+    /// <summary>Last rim velocity written to SHM (−1..1 DI metric). For Interpolate / spring rim EMA.</summary>
+    public static float LastSteeringVel => _steeringVel;
+
     public static void WriteSteering(float steeringCentered)
     {
         try
@@ -256,8 +259,9 @@ public static class OemFfbSharedMemory
     /// <summary>
     /// Writes OEM mix options (CF invert, damper velocity/deadband scales) for <c>g920ffb.dll</c>.
     /// Scales use the same 10000 = 1.0 convention as type gains.
+    /// <paramref name="interpolateMs"/> is Output feel Interpolate τ (0 = off).
     /// </summary>
-    public static bool WriteMixOptions(FfbOutputFeel? feel)
+    public static bool WriteMixOptions(FfbOutputFeel? feel, double interpolateMs = 0)
     {
         feel ??= FfbOutputFeel.CreateDefault();
         feel.Clamp();
@@ -270,6 +274,10 @@ public static class OemFfbSharedMemory
             _view.Write(Offset.MixFlags, flags);
             _view.Write(Offset.DamperVelScale, ToDiScale(feel.DamperVelocityScale));
             _view.Write(Offset.DamperDeadbandScale, ToDiScale(feel.DamperDeadbandScale));
+            _view.Write(Offset.SpringCoeffScale, ToDiScale(feel.SpringCoefficientScale));
+            _view.Write(Offset.FrictionCoeffScale, ToDiScale(feel.FrictionCoefficientScale));
+            // Mixer rim EMA for condition effects (same τ as Interpolate when enabled).
+            _view.Write(Offset.ReconstructionMs, (ushort)Math.Clamp((int)Math.Round(interpolateMs), 0, 100));
             return true;
         }
         catch (FileNotFoundException) { Close(); return false; }
@@ -277,11 +285,20 @@ public static class OemFfbSharedMemory
     }
 
     /// <summary>Read back OEM mix options (for Debug verify).</summary>
-    public static bool TryReadMixOptions(out uint mixFlags, out ushort damperVelScale, out ushort damperDeadbandScale)
+    public static bool TryReadMixOptions(out uint mixFlags, out ushort damperVelScale, out ushort damperDeadbandScale) =>
+        TryReadMixOptions(out mixFlags, out damperVelScale, out damperDeadbandScale, out _);
+
+    /// <summary>Read back OEM mix options including Interpolate τ written to SHM.</summary>
+    public static bool TryReadMixOptions(
+        out uint mixFlags,
+        out ushort damperVelScale,
+        out ushort damperDeadbandScale,
+        out ushort reconstructionMs)
     {
         mixFlags = 0;
         damperVelScale = 0;
         damperDeadbandScale = 0;
+        reconstructionMs = 0;
         try
         {
             EnsureOpen();
@@ -289,6 +306,7 @@ public static class OemFfbSharedMemory
             mixFlags = _view.ReadUInt32(Offset.MixFlags);
             damperVelScale = _view.ReadUInt16(Offset.DamperVelScale);
             damperDeadbandScale = _view.ReadUInt16(Offset.DamperDeadbandScale);
+            reconstructionMs = _view.ReadUInt16(Offset.ReconstructionMs);
             return true;
         }
         catch (FileNotFoundException) { Close(); return false; }
@@ -456,6 +474,9 @@ public static class OemFfbSharedMemory
         public const int AuxTypeTorque = 180; // INT32[16] → ends 244
         public const int GamePid = 244;
         public const int AuxPid = 248;
-        public const int Size = 252;
+        public const int SpringCoeffScale = 252;   // UINT16, 10000 = 1.0
+        public const int FrictionCoeffScale = 254; // UINT16, 10000 = 1.0
+        public const int ReconstructionMs = 256;  // UINT16, ms (0 = off)
+        public const int Size = 258;
     }
 }

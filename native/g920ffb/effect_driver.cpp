@@ -1,4 +1,5 @@
 #include "effect_driver.h"
+#include <math.h>
 #include <stdlib.h>
 
 // One mixer thread per process. Unbound constructs multiple IDirectInputEffectDriver
@@ -734,6 +735,8 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 		Shared->MixFlags = 0;
 		Shared->DamperVelScale = 10000;
 		Shared->DamperDeadbandScale = 10000;
+		Shared->SpringCoeffScale = 10000;
+		Shared->FrictionCoeffScale = 10000;
 		for (int g = 0; g < G920FFB_TYPE_GAIN_COUNT; g++)
 		{
 			Shared->TypeTorque[g] = 0;
@@ -751,10 +754,18 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 			Shared->DamperVelScale = 10000;
 		if (Shared->DamperDeadbandScale == 0)
 			Shared->DamperDeadbandScale = 10000;
+		if (Shared->SpringCoeffScale == 0)
+			Shared->SpringCoeffScale = 10000;
+		if (Shared->FrictionCoeffScale == 0)
+			Shared->FrictionCoeffScale = 10000;
 	}
 
 	UINT32 Seq = Shared->Sequence;
 	DWORD lastMixLogMs = 0;
+	// Rim EMA when ReconstructionMs > 0 (condition effects only). Idle grain is
+	// sparse CF — filtered on the emulator Idle smooth path, not spring here.
+	static float s_axisPosSmooth = 0.f;
+	static BOOL s_axisPosSmoothInit = FALSE;
 	for (;;)
 	{
 		LONG TorqueDi = 0;
@@ -768,12 +779,38 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 		UINT32 bestDownloads = 0;
 		LONG typeTorque[G920FFB_TYPE_GAIN_COUNT] = {};
 
-		LONG AxisPos = (LONG)(Shared->Steering * 10000.0f);
+		LONG AxisPosRaw = (LONG)(Shared->Steering * 10000.0f);
 		LONG AxisVel = (LONG)(Shared->SteeringVel * 10000.0f);
-		if (AxisPos > 10000) AxisPos = 10000;
-		if (AxisPos < -10000) AxisPos = -10000;
+		if (AxisPosRaw > 10000) AxisPosRaw = 10000;
+		if (AxisPosRaw < -10000) AxisPosRaw = -10000;
 		if (AxisVel > 10000) AxisVel = 10000;
 		if (AxisVel < -10000) AxisVel = -10000;
+
+		// ReconstructionMs: 0 = off; else τ for rim EMA (Idle smooth slider).
+		const float reconTauMs = Shared->ReconstructionMs > 100
+			? 100.f
+			: (float)Shared->ReconstructionMs;
+
+		LONG AxisPos = AxisPosRaw;
+		if (reconTauMs <= 0.5f)
+		{
+			s_axisPosSmooth = (float)AxisPosRaw;
+			s_axisPosSmoothInit = TRUE;
+		}
+		else if (!s_axisPosSmoothInit)
+		{
+			s_axisPosSmooth = (float)AxisPosRaw;
+			s_axisPosSmoothInit = TRUE;
+		}
+		else
+		{
+			// Mixer Sleep(2) ≈ 2 ms per tick. Always EMA (no catch-up snap).
+			const float alpha = 1.f - expf(-2.f / reconTauMs);
+			s_axisPosSmooth += ((float)AxisPosRaw - s_axisPosSmooth) * alpha;
+			AxisPos = (LONG)lroundf(s_axisPosSmooth);
+			if (AxisPos > 10000) AxisPos = 10000;
+			if (AxisPos < -10000) AxisPos = -10000;
+		}
 
 		UINT16 typeGain[G920FFB_TYPE_GAIN_COUNT];
 		for (int g = 0; g < G920FFB_TYPE_GAIN_COUNT; g++)
@@ -796,6 +833,14 @@ STDAPI_(DWORD) WINAPI EffectProc(LPVOID)
 			if (ds == 0) ds = 10000;
 			if (ds > 10000) ds = 10000;
 			CEffect::s_DamperDeadbandScale = (LONG)ds;
+			UINT16 sc = Shared->SpringCoeffScale;
+			if (sc == 0) sc = 10000;
+			if (sc > 20000) sc = 20000;
+			CEffect::s_SpringCoeffScale = (LONG)sc;
+			UINT16 fc = Shared->FrictionCoeffScale;
+			if (fc == 0) fc = 10000;
+			if (fc > 20000) fc = 20000;
+			CEffect::s_FrictionCoeffScale = (LONG)fc;
 		}
 
 		EnterCriticalSection(&CriticalSection);

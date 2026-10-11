@@ -57,10 +57,13 @@ public:
 	static volatile LONG s_InvertConstantForce;   // 0/1
 	static volatile LONG s_DamperVelScale;         // 10000 = 1.0
 	static volatile LONG s_DamperDeadbandScale;    // 10000 = 1.0
+	static volatile LONG s_SpringCoeffScale;       // 10000 = 1.0
+	static volatile LONG s_FrictionCoeffScale;     // 10000 = 1.0
 
 private:
 	// Duration 0 = infinite. CurrentPos = ms into the current iteration.
 	LONG ApplyEnvelope(LONG Magnitude, ULONG Duration, ULONG CurrentPos) const;
 	VOID CalcForce(ULONG Duration, ULONG CurrentPos, LONG AxisPos, LONG AxisVel, LONG* NormalLevel);
 	static LONG EvalCondition(const DICONDITION& Cond, LONG Metric);
+	static VOID ScaleConditionCoefficients(DICONDITION& Cond, LONG scale10000);
 };

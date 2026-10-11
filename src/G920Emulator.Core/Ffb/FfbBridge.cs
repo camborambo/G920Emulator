@@ -19,6 +19,21 @@ public sealed class FfbBridge : IDisposable
     // Infinite duration (DIEFFECT.dwDuration = -1 / 0xFFFFFFFF).
     private const int InfiniteDuration = -1;
 
+    /// <summary>
+    /// Suggested Device pace period (ms) when enabling Output feel → Device pace.
+    /// Default core is unpaced (period 0) for every vendor.
+    /// </summary>
+    public const int DefaultCfPacePeriodMs = 3;
+    /// <summary>Legacy alias — Interpolate default is off (0); use profile slider.</summary>
+    public const float IdleSmoothMs = 0f;
+    /// <summary>Alias for <see cref="IdleSmoothMs"/>.</summary>
+    public const float DefaultReconstructionMs = IdleSmoothMs;
+    /// <summary>|Δmagnitude| that snaps reconstruction (crashes only — lower values
+    /// re-grained fast idle turns that should stay filtered).</summary>
+    private const int CfReconstructionJump = 7500;
+    /// <summary>Coast gain when OEM target is unchanged between mixer ticks.</summary>
+    private const float CfReconstructionCoast = 0.85f;
+
     private readonly object _gate = new();
     /// <summary>Serializes all DirectInput joy/effect calls (DI is not thread-safe).</summary>
     private readonly object _diGate = new();
@@ -55,6 +70,21 @@ public sealed class FfbBridge : IDisposable
     private Task? _testAutoCenterTask;
     private int _incomingCount;
     private int _applyCount;
+    private int _paceTargetMagnitude;
+    private float _paceReconstructedMagnitude;
+    private bool _paceReconInit;
+    private int _pacePrevTargetMagnitude;
+    /// <summary>OEM target velocity (DI magnitude units per ms) for gap fill.</summary>
+    private float _paceTargetVelPerMs;
+    private long _lastPaceApplyTickMs;
+    private int _paceSkipCount;
+    private int _paceApplyCount;
+    /// <summary>Output reconstruction EMA τ (ms) on paced path. 0 = pace only. Usually 0 (smoother owns Interpolate).</summary>
+    private float _reconstructionTauMs;
+    /// <summary>Device-pace period (ms). 0 = unpaced release core. From Output feel.</summary>
+    private int _cfPacePeriodMs;
+    /// <summary>Last Interpolate ms from Output feel (diag only; smoother owns the filter).</summary>
+    private float _idleSmoothMs;
     private bool _disposed;
     /// <summary>Latest rim axes from the exclusive FFB joy (0..1). Refreshed under _diGate.</summary>
     private Dictionary<string, float>? _cachedAxes01;
@@ -70,6 +100,8 @@ public sealed class FfbBridge : IDisposable
     private bool _experimentalNonBlockingRimReads;
     /// <summary>Debug Test: second NonExclusive Poll handle while FFB stays Exclusive (default off).</summary>
     private bool _experimentalDualHandleInput;
+    /// <summary>Debug Test: apply CF device-update pacing on Fanatec too (default off).</summary>
+    private bool _experimentalCfPacingOnFanatec;
 
     private enum WheelVendor
     {
@@ -91,6 +123,66 @@ public sealed class FfbBridge : IDisposable
     public bool IsReady
     {
         get { lock (_gate) return _constantEffect is not null; }
+    }
+
+    /// <summary>
+    /// True when Device pace is active — apply loop must keep ticking so
+    /// the latest OEM target is slipped between queue updates. Opt-in via Output feel
+    /// → Device pace (or Debug Test → CF pacing on Fanatec as a 3 ms override).
+    /// </summary>
+    public bool UsesCfPacing
+    {
+        get { lock (_gate) return _constantEffect is not null && ShouldPaceCfUnlocked(); }
+    }
+
+    /// <summary>
+    /// Interpolate / Gap fill apply on every vendor when set (0 = off = unified core).
+    /// </summary>
+    public bool UsesInterpolate => true;
+
+    /// <summary>Diagnostics: effective CF pacing policy for the attached base.</summary>
+    public string CfPacingLabel
+    {
+        get { lock (_gate) return CfPacingLabelUnlocked(); }
+    }
+
+    private string CfPacingLabelUnlocked()
+    {
+        if (_constantEffect is null)
+            return "off (not attached)";
+        var period = PacePeriodMsUnlocked();
+        if (period <= 0)
+            return "off";
+        var note = _cfPacePeriodMs <= 0 && _experimentalCfPacingOnFanatec
+            ? "debug override"
+            : "feel";
+        return $"on ({note} · {period}ms)";
+    }
+
+    private bool ShouldPaceCfUnlocked() => PacePeriodMsUnlocked() > 0;
+
+    private int PacePeriodMsUnlocked()
+    {
+        if (_cfPacePeriodMs > 0)
+            return _cfPacePeriodMs;
+        // Debug Test legacy: force 3 ms pace when feel Device pace is off.
+        if (_experimentalCfPacingOnFanatec)
+            return DefaultCfPacePeriodMs;
+        return 0;
+    }
+
+    /// <summary>Output feel → Device pace period (ms). 0 = unpaced core.</summary>
+    public void SetCfPacePeriodMs(float ms)
+    {
+        lock (_gate)
+            _cfPacePeriodMs = (int)Math.Clamp(Math.Round(ms), 0, 34);
+    }
+
+    /// <summary>Output feel → Interpolate ms (for diagnostics; <see cref="FfbOutputSmoother"/> applies it).</summary>
+    public void SetInterpolateMs(float ms)
+    {
+        lock (_gate)
+            _idleSmoothMs = Math.Clamp(ms, 0f, 100f);
     }
 
     public double Gain { get; set; } = 1.0;
@@ -122,13 +214,15 @@ public sealed class FfbBridge : IDisposable
     public void SetExperimentalInputOptions(
         bool unlockedSetParameters,
         bool nonBlockingRimReads,
-        bool dualHandleInput)
+        bool dualHandleInput,
+        bool cfPacingOnFanatec)
     {
         lock (_gate)
         {
             _experimentalUnlockedSetParameters = unlockedSetParameters;
             _experimentalNonBlockingRimReads = nonBlockingRimReads;
             _experimentalDualHandleInput = dualHandleInput;
+            _experimentalCfPacingOnFanatec = cfPacingOnFanatec;
         }
     }
 
@@ -344,6 +438,14 @@ public sealed class FfbBridge : IDisposable
                 _lastMagnitude = 0;
                 _lastAppliedMagnitude = int.MinValue;
                 _lastApplyUtc = null;
+                _paceTargetMagnitude = 0;
+                _paceReconstructedMagnitude = 0;
+                _paceReconInit = false;
+                _pacePrevTargetMagnitude = 0;
+                _paceTargetVelPerMs = 0;
+                _lastPaceApplyTickMs = 0;
+                _paceSkipCount = 0;
+                _paceApplyCount = 0;
             }
 
             // Dual-handle: InputHub (unpinned) is the NonExclusive Poll path — no second
@@ -887,6 +989,7 @@ public sealed class FfbBridge : IDisposable
     {
         Effect? effect;
         Joystick? joy;
+        var pacing = false;
         lock (_gate)
         {
             if (!fromTest && _testOverride)
@@ -895,6 +998,7 @@ public sealed class FfbBridge : IDisposable
             joy = _joystick;
             if (effect is null)
                 return;
+            pacing = ShouldPaceCfUnlocked();
         }
 
         // App convention: positive torque = right. DirectInput X on Fanatec/Simucube/Moza
@@ -905,7 +1009,14 @@ public sealed class FfbBridge : IDisposable
 
         var magnitude = (int)Math.Clamp(Math.Round(-torque * 10000), -10000, 10000);
 
-        // Optional feel: skip tiny DI chatter (Fanatec grind). Always allow return-to-zero.
+        if (pacing)
+        {
+            ApplyTorquePaced(effect, joy, torque, magnitude, fromTest);
+            return;
+        }
+
+        // Unpaced release path (default for every vendor).
+        // Optional feel: skip tiny DI chatter. Always allow return-to-zero.
         var eps = MagnitudeEpsilon;
         if (!fromTest && eps > 0 &&
             _lastAppliedMagnitude != int.MinValue &&
@@ -931,9 +1042,166 @@ public sealed class FfbBridge : IDisposable
             }
         }
 
+        if (!PushMagnitudeToDevice(effect, joy, magnitude, out var pushError))
+        {
+            lock (_gate) { _lastError = pushError; }
+            return;
+        }
+
+        lock (_gate)
+        {
+            _lastCommandTorque = torque;
+            _lastMagnitude = magnitude;
+            _lastAppliedMagnitude = magnitude;
+            _lastApplyUtc = DateTime.UtcNow;
+            _applyCount++;
+            _lastError = null;
+        }
+    }
+
+    /// <summary>
+    /// Paced CF: slip SetParameters at the feel Device pace period while optionally
+    /// reconstructing OEM torque (apply-path EMA usually off — Interpolate owns that).
+    /// </summary>
+    private void ApplyTorquePaced(Effect effect, Joystick? joy, float torque, int targetMagnitude, bool fromTest)
+    {
+        var now = Environment.TickCount64;
+        int sendMagnitude;
+        lock (_gate)
+        {
+            _lastCommandTorque = torque;
+            _paceTargetMagnitude = targetMagnitude;
+            var paceMs = Math.Max(1, PacePeriodMsUnlocked());
+
+            var elapsed = _lastPaceApplyTickMs == 0
+                ? long.MaxValue
+                : now - _lastPaceApplyTickMs;
+
+            // FFB debug Left/Right: snap, no reconstruction lag.
+            if (fromTest)
+            {
+                if (elapsed < paceMs &&
+                    _lastAppliedMagnitude != int.MinValue &&
+                    Math.Abs(targetMagnitude - _lastAppliedMagnitude) < 30)
+                {
+                    _paceSkipCount++;
+                    return;
+                }
+
+                sendMagnitude = targetMagnitude;
+                _paceReconstructedMagnitude = targetMagnitude;
+                _paceReconInit = true;
+                _pacePrevTargetMagnitude = targetMagnitude;
+                _paceTargetVelPerMs = 0;
+            }
+            else
+            {
+                if (!_paceReconInit)
+                {
+                    _paceReconstructedMagnitude = targetMagnitude;
+                    _pacePrevTargetMagnitude = targetMagnitude;
+                    _paceTargetVelPerMs = 0;
+                    _paceReconInit = true;
+                }
+
+                var jump = Math.Abs(targetMagnitude - _paceReconstructedMagnitude) >= CfReconstructionJump;
+                if (jump)
+                {
+                    _paceReconstructedMagnitude = targetMagnitude;
+                    _paceTargetVelPerMs = 0;
+                }
+                else
+                {
+                    var dtMs = (float)Math.Clamp(elapsed == long.MaxValue ? paceMs : elapsed, 1, 40);
+                    var tau = _reconstructionTauMs;
+                    if (tau <= 0.5f)
+                    {
+                        // Reconstruction off: pace only, snap to OEM target.
+                        _paceReconstructedMagnitude = targetMagnitude;
+                        _paceTargetVelPerMs = 0;
+                    }
+                    else
+                    {
+                        var alpha = 1f - MathF.Exp(-dtMs / tau);
+
+                        // Track OEM target velocity when the mix steps; coast when it holds.
+                        var targetDelta = targetMagnitude - _pacePrevTargetMagnitude;
+                        if (Math.Abs(targetDelta) >= CfReconstructionJump)
+                        {
+                            _paceTargetVelPerMs = 0;
+                        }
+                        else if (targetDelta != 0)
+                        {
+                            var instantVel = targetDelta / dtMs;
+                            _paceTargetVelPerMs += (instantVel - _paceTargetVelPerMs) * Math.Clamp(alpha * 1.4f, 0.05f, 1f);
+                        }
+                        else
+                        {
+                            // Decay velocity estimate while target holds (avoid runaway coast).
+                            _paceTargetVelPerMs *= MathF.Exp(-dtMs / (tau * 1.25f));
+                        }
+
+                        _paceReconstructedMagnitude += (targetMagnitude - _paceReconstructedMagnitude) * alpha;
+                        // Fill gaps between OEM ticks (Tuner Reconstruction role).
+                        // Applies to the whole mix output (incl. idle spring).
+                        _paceReconstructedMagnitude += _paceTargetVelPerMs * dtMs * (CfReconstructionCoast * alpha);
+                    }
+                }
+
+                _paceReconstructedMagnitude = Math.Clamp(_paceReconstructedMagnitude, -10000f, 10000f);
+                sendMagnitude = (int)Math.Clamp(Math.Round(_paceReconstructedMagnitude), -10000, 10000);
+                _pacePrevTargetMagnitude = targetMagnitude;
+
+                if (!jump && elapsed < paceMs)
+                {
+                    _paceSkipCount++;
+                    return;
+                }
+
+                if (sendMagnitude == _lastMagnitude &&
+                    _lastApplyUtc is { } lastApply &&
+                    (DateTime.UtcNow - lastApply).TotalMilliseconds < 100)
+                {
+                    _lastPaceApplyTickMs = now;
+                    return;
+                }
+
+                var eps = MagnitudeEpsilon;
+                if (eps > 0 &&
+                    _lastAppliedMagnitude != int.MinValue &&
+                    Math.Abs(sendMagnitude - _lastAppliedMagnitude) < eps &&
+                    !(sendMagnitude == 0 && _lastAppliedMagnitude != 0))
+                {
+                    _lastMagnitude = _lastAppliedMagnitude;
+                    _lastPaceApplyTickMs = now;
+                    return;
+                }
+            }
+        }
+
+        if (!PushMagnitudeToDevice(effect, joy, sendMagnitude, out var pushError))
+        {
+            lock (_gate) { _lastError = pushError; }
+            return;
+        }
+
+        lock (_gate)
+        {
+            _lastMagnitude = sendMagnitude;
+            _lastAppliedMagnitude = sendMagnitude;
+            _lastPaceApplyTickMs = Environment.TickCount64;
+            _lastApplyUtc = DateTime.UtcNow;
+            _applyCount++;
+            _paceApplyCount++;
+            _lastError = null;
+        }
+    }
+
+    private bool PushMagnitudeToDevice(Effect effect, Joystick? joy, int magnitude, out string? error)
+    {
+        error = null;
         if (ExperimentalUnlockedSetParameters)
         {
-            // Debug Test: do not hold _diGate across SetParameters (input can Poll).
             if (joy is not null && Monitor.TryEnter(_diGate, 5))
             {
                 try { TryReadPhysicalJoystickStateUnlocked(out _); }
@@ -969,13 +1237,10 @@ public sealed class FfbBridge : IDisposable
 
                 if (!recreatedOk)
                 {
-                    lock (_gate)
-                    {
-                        _lastError = string.IsNullOrEmpty(recreateError)
-                            ? $"Apply failed: {setError}"
-                            : $"Apply failed: {setError} | recreate: {recreateError}";
-                    }
-                    return;
+                    error = string.IsNullOrEmpty(recreateError)
+                        ? $"Apply failed: {setError}"
+                        : $"Apply failed: {setError} | recreate: {recreateError}";
+                    return false;
                 }
             }
 
@@ -984,53 +1249,41 @@ public sealed class FfbBridge : IDisposable
                 try { TryReadPhysicalJoystickStateUnlocked(out _); }
                 finally { Monitor.Exit(_diGate); }
             }
+
+            return true;
         }
-        else
+
+        lock (_diGate)
         {
-            // Release path: serialize all DI joy/effect calls under _diGate.
-            lock (_diGate)
+            if (joy is not null)
+                TryReadPhysicalJoystickStateUnlocked(out _);
+
+            if (!TrySetMagnitude(effect, magnitude, out var setError))
             {
-                if (joy is not null)
-                    TryReadPhysicalJoystickStateUnlocked(out _);
-
-                if (!TrySetMagnitude(effect, magnitude, out var setError))
+                string? recreateError = null;
+                if (joy is not null && TryRecreateEffect(joy, magnitude, out var recreated, out recreateError))
                 {
-                    string? recreateError = null;
-                    if (joy is not null && TryRecreateEffect(joy, magnitude, out var recreated, out recreateError))
+                    lock (_gate)
                     {
-                        lock (_gate)
-                        {
-                            try { _constantEffect?.Dispose(); } catch { /* ignore */ }
-                            _constantEffect = recreated;
-                        }
-                        _fastMagnitudeFlags = null;
+                        try { _constantEffect?.Dispose(); } catch { /* ignore */ }
+                        _constantEffect = recreated;
                     }
-                    else
-                    {
-                        lock (_gate)
-                        {
-                            _lastError = string.IsNullOrEmpty(recreateError)
-                                ? $"Apply failed: {setError}"
-                                : $"Apply failed: {setError} | recreate: {recreateError}";
-                        }
-                        return;
-                    }
+                    _fastMagnitudeFlags = null;
                 }
-
-                if (joy is not null)
-                    TryReadPhysicalJoystickStateUnlocked(out _);
+                else
+                {
+                    error = string.IsNullOrEmpty(recreateError)
+                        ? $"Apply failed: {setError}"
+                        : $"Apply failed: {setError} | recreate: {recreateError}";
+                    return false;
+                }
             }
+
+            if (joy is not null)
+                TryReadPhysicalJoystickStateUnlocked(out _);
         }
 
-        lock (_gate)
-        {
-            _lastCommandTorque = torque;
-            _lastMagnitude = magnitude;
-            _lastAppliedMagnitude = magnitude;
-            _lastApplyUtc = DateTime.UtcNow;
-            _applyCount++;
-            _lastError = null;
-        }
+        return true;
     }
 
     /// <summary>
@@ -1297,6 +1550,16 @@ public sealed class FfbBridge : IDisposable
     {
         Gain = profile.FfbGain;
         Invert = profile.FfbInvert;
+        // Reconstruction LPF is applied in FfbOutputSmoother; keep paced apply without
+        // a second EMA/coast (stacked lag hunts with Forza spring at idle).
+        SetReconstructionMs(0);
+    }
+
+    /// <summary>Reconstruction filter τ in ms (0 = off). Drives paced-output EMA.</summary>
+    public void SetReconstructionMs(float ms)
+    {
+        lock (_gate)
+            _reconstructionTauMs = Math.Clamp(ms, 0f, 100f);
     }
 
     public FfbDiagnostics GetDiagnostics()
@@ -1322,6 +1585,13 @@ public sealed class FfbBridge : IDisposable
                 TestAutoCenterActive = _testAutoCenter,
                 IncomingUpdateCount = _incomingCount,
                 ApplyCount = _applyCount,
+                CfPacing = CfPacingLabelUnlocked(),
+                CfPacingTargetMagnitude = _paceTargetMagnitude,
+                CfPacingSkipCount = _paceSkipCount,
+                CfPacingApplyCount = _paceApplyCount,
+                IdleSmooth = _idleSmoothMs > 0.5f
+                    ? $"on ({_idleSmoothMs:0}ms)"
+                    : "off",
             };
         }
     }

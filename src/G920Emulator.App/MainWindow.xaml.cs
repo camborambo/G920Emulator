@@ -410,7 +410,8 @@ public partial class MainWindow : Window
             settings.FfbExperimentalInputFixes,
             settings.FfbExperimentalUnlockedSetParameters,
             settings.FfbExperimentalNonBlockingRimReads,
-            settings.FfbExperimentalDualHandleInput);
+            settings.FfbExperimentalDualHandleInput,
+            settings.FfbExperimentalCfPacingOnFanatec);
         _bridge.SetFfbCooperativeMode(settings.FfbCooperativeMode);
         _ffbExperimentalInputFixesApplied = settings.FfbExperimentalInputFixes;
         _ffbCooperativeModeApplied = settings.FfbCooperativeMode;
@@ -3811,8 +3812,9 @@ public partial class MainWindow : Window
     {
         "Master" or "Constant" or "Spring" or "Damper" or "Friction" or "Inertia"
             or "Periodic" or "Ramp" or "Custom" or "PeakSoft" or "Spike"
-            or "CenterStrength" or "CenterRange" or "DampVel" or "DampDead" => $"{value:P0}",
-        "Smoothing" or "Slew" or "Epsilon" => $"{value:0}",
+            or "CenterStrength" or "CenterRange" or "DampVel" or "DampDead"
+            or "SpringCoeff" or "FrictionCoeff" => $"{value:P0}",
+        "Smoothing" or "CfPace" or "Reconstruction" or "GapHold" or "Slew" or "Epsilon" => $"{value:0}",
         "Deadband" or "CenterDeadzone" => $"{value:0.###}",
         _ => value.ToString("0.##"),
     };
@@ -3952,6 +3954,9 @@ public partial class MainWindow : Window
         G920Control.FfbCustomMinus or G920Control.FfbCustomPlus or G920Control.FfbCustomDefault => GainCustomSlider,
         G920Control.FfbMasterMinus or G920Control.FfbMasterPlus or G920Control.FfbMasterDefault => GainSlider,
         G920Control.FfbSmoothingMinus or G920Control.FfbSmoothingPlus or G920Control.FfbSmoothingDefault => FeelSmoothingSlider,
+        G920Control.FfbCfPaceMinus or G920Control.FfbCfPacePlus or G920Control.FfbCfPaceDefault => FeelCfPaceSlider,
+        G920Control.FfbReconstructionMinus or G920Control.FfbReconstructionPlus or G920Control.FfbReconstructionDefault => FeelReconstructionSlider,
+        G920Control.FfbGapHoldMinus or G920Control.FfbGapHoldPlus or G920Control.FfbGapHoldDefault => FeelGapHoldSlider,
         G920Control.FfbPeakSoftMinus or G920Control.FfbPeakSoftPlus or G920Control.FfbPeakSoftDefault => FeelPeakSoftSlider,
         G920Control.FfbDeadbandMinus or G920Control.FfbDeadbandPlus or G920Control.FfbDeadbandDefault => FeelDeadbandSlider,
         G920Control.FfbSlewMinus or G920Control.FfbSlewPlus or G920Control.FfbSlewDefault => FeelSlewSlider,
@@ -3962,6 +3967,8 @@ public partial class MainWindow : Window
         G920Control.FfbCenterDeadzoneMinus or G920Control.FfbCenterDeadzonePlus or G920Control.FfbCenterDeadzoneDefault => CenterDeadzoneSlider,
         G920Control.FfbDampVelMinus or G920Control.FfbDampVelPlus or G920Control.FfbDampVelDefault => DamperVelScaleSlider,
         G920Control.FfbDampDeadMinus or G920Control.FfbDampDeadPlus or G920Control.FfbDampDeadDefault => DamperDeadbandScaleSlider,
+        G920Control.FfbSpringCoeffMinus or G920Control.FfbSpringCoeffPlus or G920Control.FfbSpringCoeffDefault => SpringCoeffScaleSlider,
+        G920Control.FfbFrictionCoeffMinus or G920Control.FfbFrictionCoeffPlus or G920Control.FfbFrictionCoeffDefault => FrictionCoeffScaleSlider,
         _ => null,
     };
 
@@ -3977,6 +3984,9 @@ public partial class MainWindow : Window
         G920Control.FfbCustomMinus or G920Control.FfbCustomPlus or G920Control.FfbCustomDefault => GainCustomValueText,
         G920Control.FfbMasterMinus or G920Control.FfbMasterPlus or G920Control.FfbMasterDefault => GainValueText,
         G920Control.FfbSmoothingMinus or G920Control.FfbSmoothingPlus or G920Control.FfbSmoothingDefault => FeelSmoothingValueText,
+        G920Control.FfbCfPaceMinus or G920Control.FfbCfPacePlus or G920Control.FfbCfPaceDefault => FeelCfPaceValueText,
+        G920Control.FfbReconstructionMinus or G920Control.FfbReconstructionPlus or G920Control.FfbReconstructionDefault => FeelReconstructionValueText,
+        G920Control.FfbGapHoldMinus or G920Control.FfbGapHoldPlus or G920Control.FfbGapHoldDefault => FeelGapHoldValueText,
         G920Control.FfbPeakSoftMinus or G920Control.FfbPeakSoftPlus or G920Control.FfbPeakSoftDefault => FeelPeakSoftValueText,
         G920Control.FfbDeadbandMinus or G920Control.FfbDeadbandPlus or G920Control.FfbDeadbandDefault => FeelDeadbandValueText,
         G920Control.FfbSlewMinus or G920Control.FfbSlewPlus or G920Control.FfbSlewDefault => FeelSlewValueText,
@@ -3987,6 +3997,8 @@ public partial class MainWindow : Window
         G920Control.FfbCenterDeadzoneMinus or G920Control.FfbCenterDeadzonePlus or G920Control.FfbCenterDeadzoneDefault => CenterDeadzoneValueText,
         G920Control.FfbDampVelMinus or G920Control.FfbDampVelPlus or G920Control.FfbDampVelDefault => DamperVelScaleValueText,
         G920Control.FfbDampDeadMinus or G920Control.FfbDampDeadPlus or G920Control.FfbDampDeadDefault => DamperDeadbandScaleValueText,
+        G920Control.FfbSpringCoeffMinus or G920Control.FfbSpringCoeffPlus or G920Control.FfbSpringCoeffDefault => SpringCoeffScaleValueText,
+        G920Control.FfbFrictionCoeffMinus or G920Control.FfbFrictionCoeffPlus or G920Control.FfbFrictionCoeffDefault => FrictionCoeffScaleValueText,
         _ => null,
     };
 
@@ -4086,10 +4098,12 @@ public partial class MainWindow : Window
     }
 
     private bool AreFeelControlsReady() =>
-        FeelSmoothingSlider is not null && FeelPeakSoftSlider is not null &&
+        FeelSmoothingSlider is not null && FeelReconstructionSlider is not null && FeelPeakSoftSlider is not null &&
+        FeelGapHoldSlider is not null && FeelGapHoldValueText is not null &&
+        FeelCfPaceSlider is not null && FeelCfPaceValueText is not null &&
         FeelDeadbandSlider is not null && FeelSlewSlider is not null && FeelSpikeSlider is not null &&
         FeelEpsilonSlider is not null &&
-        FeelSmoothingValueText is not null && FeelPeakSoftValueText is not null &&
+        FeelSmoothingValueText is not null && FeelReconstructionValueText is not null && FeelPeakSoftValueText is not null &&
         FeelDeadbandValueText is not null && FeelSlewValueText is not null && FeelSpikeValueText is not null &&
         FeelEpsilonValueText is not null &&
         BootEaseInCheck is not null &&
@@ -4097,7 +4111,9 @@ public partial class MainWindow : Window
         CenterDeadzoneSlider is not null && CenterStrengthValueText is not null &&
         CenterRangeValueText is not null && CenterDeadzoneValueText is not null && CenterSpringPanel is not null &&
         InvertConstantForceCheck is not null && DamperVelScaleSlider is not null && DamperDeadbandScaleSlider is not null &&
-        DamperVelScaleValueText is not null && DamperDeadbandScaleValueText is not null;
+        DamperVelScaleValueText is not null && DamperDeadbandScaleValueText is not null &&
+        SpringCoeffScaleSlider is not null && FrictionCoeffScaleSlider is not null &&
+        SpringCoeffScaleValueText is not null && FrictionCoeffScaleValueText is not null;
 
     private void ForceCenterCheck_Changed(object sender, RoutedEventArgs e)
     {
@@ -4145,6 +4161,9 @@ public partial class MainWindow : Window
         try
         {
             FeelSmoothingSlider.Value = feel.SmoothingMs;
+            FeelCfPaceSlider.Value = feel.CfPacePeriodMs;
+            FeelReconstructionSlider.Value = feel.ReconstructionMs;
+            FeelGapHoldSlider.Value = feel.IdleGapHoldMs;
             FeelPeakSoftSlider.Value = PeakSoftStartToUiStrength(feel.PeakSoftStart);
             BootEaseInCheck.IsChecked = feel.BootEaseIn;
             FeelDeadbandSlider.Value = feel.Deadband;
@@ -4158,6 +4177,8 @@ public partial class MainWindow : Window
             InvertConstantForceCheck.IsChecked = feel.InvertConstantForce;
             DamperVelScaleSlider.Value = feel.DamperVelocityScale;
             DamperDeadbandScaleSlider.Value = feel.DamperDeadbandScale;
+            SpringCoeffScaleSlider.Value = feel.SpringCoefficientScale;
+            FrictionCoeffScaleSlider.Value = feel.FrictionCoefficientScale;
             SyncFeelLabels();
         }
         finally
@@ -4172,6 +4193,9 @@ public partial class MainWindow : Window
         _profile.FfbOutputFeel ??= FfbOutputFeel.CreateDefault();
         var f = _profile.FfbOutputFeel;
         f.SmoothingMs = FeelSmoothingSlider.Value;
+        f.CfPacePeriodMs = FeelCfPaceSlider.Value;
+        f.ReconstructionMs = FeelReconstructionSlider.Value;
+        f.IdleGapHoldMs = FeelGapHoldSlider.Value;
         f.PeakSoftStart = PeakSoftUiStrengthToStart(FeelPeakSoftSlider.Value);
         f.BootEaseIn = BootEaseInCheck.IsChecked == true;
         f.SoftStartMs = 0;
@@ -4186,6 +4210,8 @@ public partial class MainWindow : Window
         f.InvertConstantForce = InvertConstantForceCheck.IsChecked == true;
         f.DamperVelocityScale = DamperVelScaleSlider.Value;
         f.DamperDeadbandScale = DamperDeadbandScaleSlider.Value;
+        f.SpringCoefficientScale = SpringCoeffScaleSlider.Value;
+        f.FrictionCoefficientScale = FrictionCoeffScaleSlider.Value;
         f.Clamp();
     }
 
@@ -4193,6 +4219,19 @@ public partial class MainWindow : Window
     {
         if (!AreFeelControlsReady()) return;
         FeelSmoothingValueText.Text = $"{FeelSmoothingSlider.Value:0} ms";
+        FeelCfPaceValueText.Text = FeelCfPaceSlider.Value <= 0.5
+            ? "off"
+            : $"{FeelCfPaceSlider.Value:0} ms";
+        FeelReconstructionValueText.Text = FeelReconstructionSlider.Value <= 0.5
+            ? "off"
+            : $"{FeelReconstructionSlider.Value:0} ms";
+        // Gap fill only applies with Interpolate — show off and disable when Interpolate is off.
+        var interpolateOn = FeelReconstructionSlider.Value > 0.5;
+        FeelGapHoldSlider.IsEnabled = interpolateOn;
+        FeelGapHoldValueText.Opacity = interpolateOn ? 1 : 0.45;
+        FeelGapHoldValueText.Text = !interpolateOn || FeelGapHoldSlider.Value <= 0.5
+            ? "off"
+            : $"{FeelGapHoldSlider.Value:0} ms";
         FeelPeakSoftValueText.Text = FeelPeakSoftSlider.Value <= 0.001
             ? "off"
             : $"{FeelPeakSoftSlider.Value:P0}";
@@ -4215,6 +4254,8 @@ public partial class MainWindow : Window
             : $"{CenterDeadzoneSlider.Value:P1}";
         DamperVelScaleValueText.Text = $"{DamperVelScaleSlider.Value:P0}";
         DamperDeadbandScaleValueText.Text = $"{DamperDeadbandScaleSlider.Value:P0}";
+        SpringCoeffScaleValueText.Text = $"{SpringCoeffScaleSlider.Value:P0}";
+        FrictionCoeffScaleValueText.Text = $"{FrictionCoeffScaleSlider.Value:P0}";
         CenterSpringPanel.IsEnabled = ForceCenterCheck.IsChecked == true;
         CenterSpringPanel.Opacity = CenterSpringPanel.IsEnabled ? 1.0 : 0.5;
     }
@@ -4249,6 +4290,9 @@ public partial class MainWindow : Window
         if (ReferenceEquals(label, GainRampValueText)) { slider = GainRampSlider; kind = FfbValueEditKind.Percent01to2; return true; }
         if (ReferenceEquals(label, GainCustomValueText)) { slider = GainCustomSlider; kind = FfbValueEditKind.Percent01to2; return true; }
         if (ReferenceEquals(label, FeelSmoothingValueText)) { slider = FeelSmoothingSlider; kind = FfbValueEditKind.Milliseconds; return true; }
+        if (ReferenceEquals(label, FeelCfPaceValueText)) { slider = FeelCfPaceSlider; kind = FfbValueEditKind.Milliseconds; return true; }
+        if (ReferenceEquals(label, FeelReconstructionValueText)) { slider = FeelReconstructionSlider; kind = FfbValueEditKind.Milliseconds; return true; }
+        if (ReferenceEquals(label, FeelGapHoldValueText)) { slider = FeelGapHoldSlider; kind = FfbValueEditKind.Milliseconds; return true; }
         if (ReferenceEquals(label, FeelPeakSoftValueText)) { slider = FeelPeakSoftSlider; kind = FfbValueEditKind.Percent0to1; return true; }
         if (ReferenceEquals(label, FeelDeadbandValueText)) { slider = FeelDeadbandSlider; kind = FfbValueEditKind.Deadband; return true; }
         if (ReferenceEquals(label, FeelSlewValueText)) { slider = FeelSlewSlider; kind = FfbValueEditKind.SlewPerSec; return true; }
@@ -4259,6 +4303,8 @@ public partial class MainWindow : Window
         if (ReferenceEquals(label, CenterDeadzoneValueText)) { slider = CenterDeadzoneSlider; kind = FfbValueEditKind.Deadband; return true; }
         if (ReferenceEquals(label, DamperVelScaleValueText)) { slider = DamperVelScaleSlider; kind = FfbValueEditKind.Percent01to2; return true; }
         if (ReferenceEquals(label, DamperDeadbandScaleValueText)) { slider = DamperDeadbandScaleSlider; kind = FfbValueEditKind.Percent0to1; return true; }
+        if (ReferenceEquals(label, SpringCoeffScaleValueText)) { slider = SpringCoeffScaleSlider; kind = FfbValueEditKind.Percent01to2; return true; }
+        if (ReferenceEquals(label, FrictionCoeffScaleValueText)) { slider = FrictionCoeffScaleSlider; kind = FfbValueEditKind.Percent01to2; return true; }
         slider = null!;
         kind = default;
         return false;

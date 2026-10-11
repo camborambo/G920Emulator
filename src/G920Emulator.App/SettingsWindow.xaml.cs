@@ -61,6 +61,7 @@ public partial class SettingsWindow : Window
             FfbDualHandleInputCheck.IsChecked = s.FfbExperimentalDualHandleInput;
             FfbUnlockedSetParametersCheck.IsChecked = s.FfbExperimentalUnlockedSetParameters;
             FfbNonBlockingRimReadsCheck.IsChecked = s.FfbExperimentalNonBlockingRimReads;
+            FfbCfPacingOnFanatecCheck.IsChecked = s.FfbExperimentalCfPacingOnFanatec;
             UpdateFfbExperimentalOptionsVisible();
         }
         finally
@@ -127,6 +128,7 @@ public partial class SettingsWindow : Window
             FfbDualHandleInputCheck.IsChecked = false;
             FfbUnlockedSetParametersCheck.IsChecked = false;
             FfbNonBlockingRimReadsCheck.IsChecked = false;
+            FfbCfPacingOnFanatecCheck.IsChecked = false;
         }
         finally
         {
@@ -180,6 +182,7 @@ public partial class SettingsWindow : Window
         settings.FfbExperimentalDualHandleInput = FfbDualHandleInputCheck.IsChecked == true;
         settings.FfbExperimentalUnlockedSetParameters = FfbUnlockedSetParametersCheck.IsChecked == true;
         settings.FfbExperimentalNonBlockingRimReads = FfbNonBlockingRimReadsCheck.IsChecked == true;
+        settings.FfbExperimentalCfPacingOnFanatec = FfbCfPacingOnFanatecCheck.IsChecked == true;
         settings.FfbExperimentalOptionsMigrated = true;
         settings.FfbExperimentalOptionsVersion = AppSettings.CurrentFfbExperimentalOptionsVersion;
         settings.NormalizeHidHide();

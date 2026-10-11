@@ -246,6 +246,8 @@ public static class DiagnosticsExporter
             sb.AppendLine("  OEM status: " + d.OemFfbStatus);
             sb.AppendLine($"  Rim (spring): {d.FfbRimSteer:+0.00;-0.00;0.00}");
             sb.AppendLine($"  Apply count: {d.ApplyCount}  last mag: {d.LastMagnitude}");
+            sb.AppendLine($"  Device pace: {d.CfPacing}  targetMag={d.CfPacingTargetMagnitude} pacedApply={d.CfPacingApplyCount} pacedSkip={d.CfPacingSkipCount}");
+            sb.AppendLine($"  Interpolate: {d.IdleSmooth}");
             sb.AppendLine($"  Host writes: {d.HostWriteCount}  last: {d.LastHostWriteHex}");
         }
     }
@@ -452,12 +454,14 @@ public static class DiagnosticsExporter
                 $"Effect gains: CF={g.ConstantForce:0.##} Spring={g.SpringForce:0.##} Damper={g.DamperForce:0.##} " +
                 $"Friction={g.FrictionForce:0.##} Inertia={g.InertiaForce:0.##} Periodic={g.Periodic:0.##} Ramp={g.RampForce:0.##}");
             var f = live.OutputFeel ?? FfbOutputFeel.CreateDefault();
+            var interpolate = live.Ffb?.IdleSmooth ?? "off";
             sb.AppendLine(
-                $"Feel: smooth={f.SmoothingMs:0}ms peak={f.PeakSoftStart:0.##} bootEaseIn={(f.BootEaseIn ? "on" : "off")} " +
+                $"Feel: smooth={f.SmoothingMs:0}ms devicePace={f.CfPacePeriodMs:0}ms interpolate={f.ReconstructionMs:0}ms gapFill={f.IdleGapHoldMs:0}ms interpolateGate={interpolate} peak={f.PeakSoftStart:0.##} bootEaseIn={(f.BootEaseIn ? "on" : "off")} " +
                 $"dead={f.Deadband:0.###} slew={f.MaxSlewPerSecond:0} spike={f.MaxSpikeStep:0.##} eps={f.MagnitudeEpsilon:0}");
             sb.AppendLine(
                 $"OEM mix: invertCF={f.InvertConstantForce} dampVel={f.DamperVelocityScale:0.##} " +
-                $"dampDead={f.DamperDeadbandScale:0.##}");
+                $"dampDead={f.DamperDeadbandScale:0.##} springCoeff={f.SpringCoefficientScale:0.##} " +
+                $"frictionCoeff={f.FrictionCoefficientScale:0.##}");
             sb.AppendLine(
                 $"Force center spring: {f.ForceCenterSpring} strength={f.CenterSpringStrength:0.##} " +
                 $"range={f.CenterSpringRange:0.##} deadzone={f.CenterSpringDeadzone:0.###}");
@@ -475,6 +479,8 @@ public static class DiagnosticsExporter
             sb.AppendLine($"Last error: {d.LastError ?? "(none)"}");
             sb.AppendLine($"Incoming: {d.LastIncomingTorque:+0.00;-0.00;0.00} ({d.IncomingUpdateCount} updates)");
             sb.AppendLine($"Applied mag: {d.LastMagnitude}  applyCount={d.ApplyCount}");
+            sb.AppendLine($"Device pace: {d.CfPacing}  targetMag={d.CfPacingTargetMagnitude} pacedApply={d.CfPacingApplyCount} pacedSkip={d.CfPacingSkipCount}");
+            sb.AppendLine($"Interpolate: {d.IdleSmooth}");
             sb.AppendLine($"Rim: {d.FfbRimSteer:+0.00;-0.00;0.00}");
             sb.AppendLine($"TestOverride: {d.TestOverrideActive}  AutoCenterTest: {d.TestAutoCenterActive}");
         }
@@ -509,6 +515,7 @@ public static class DiagnosticsExporter
         var dualHandle = settings.FfbExperimentalInputFixes && settings.FfbExperimentalDualHandleInput;
         var unlocked = settings.FfbExperimentalInputFixes && settings.FfbExperimentalUnlockedSetParameters;
         var nonBlocking = settings.FfbExperimentalInputFixes && settings.FfbExperimentalNonBlockingRimReads;
+        var cfFanatec = settings.FfbExperimentalInputFixes && settings.FfbExperimentalCfPacingOnFanatec;
         sb.AppendLine("  Cooperative level (effective): " + coop);
         sb.AppendLine("  Dual-handle input (effective): " +
                       (dualHandle
@@ -516,12 +523,14 @@ public static class DiagnosticsExporter
                           : "off"));
         sb.AppendLine("  Unlocked SetParameters (effective): " + (unlocked ? "on" : "off"));
         sb.AppendLine("  Non-blocking rim reads (effective): " + (nonBlocking ? "on" : "off"));
+        sb.AppendLine("  CF pacing on Fanatec (effective): " + (cfFanatec ? "on" : "off"));
         if (settings.FfbExperimentalInputFixes)
         {
             sb.AppendLine("  Stored coop: " + settings.FfbCooperativeMode);
             sb.AppendLine("  Stored dual-handle input: " + settings.FfbExperimentalDualHandleInput);
             sb.AppendLine("  Stored unlocked SetParameters: " + settings.FfbExperimentalUnlockedSetParameters);
             sb.AppendLine("  Stored non-blocking rim reads: " + settings.FfbExperimentalNonBlockingRimReads);
+            sb.AppendLine("  Stored CF pacing on Fanatec: " + settings.FfbExperimentalCfPacingOnFanatec);
         }
     }
 

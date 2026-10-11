@@ -702,6 +702,11 @@ public sealed class AppSettings
     /// </summary>
     public bool FfbExperimentalDualHandleInput { get; set; }
 
+    /// <summary>
+    /// Debug Test: enable CF device-update pacing on Fanatec (normally unpaced). Default off.
+    /// </summary>
+    public bool FfbExperimentalCfPacingOnFanatec { get; set; }
+
     /// <summary>True after Debug Test sub-options have been written (or migrated from the old master-only flag).</summary>
     public bool FfbExperimentalOptionsMigrated { get; set; }
 
@@ -709,10 +714,11 @@ public sealed class AppSettings
     /// Bump when Debug Test defaults/semantics change so we can re-apply release defaults once.
     /// v2 = Enable only reveals; defaults = Exclusive / locked SP / blocking rim.
     /// v3 = soft steering catch-up moved to Force Feedback profile (no longer a Debug Test knob).
+    /// v4 = CF pacing on Fanatec Debug Test knob (default off).
     /// </summary>
     public int FfbExperimentalOptionsVersion { get; set; }
 
-    public const int CurrentFfbExperimentalOptionsVersion = 3;
+    public const int CurrentFfbExperimentalOptionsVersion = 4;
 
     [JsonIgnore]
     public bool AppliesHidHideOnStart => HidHideApplyMode != HidHideApplyMode.Off;
@@ -746,6 +752,7 @@ public sealed class AppSettings
         FfbExperimentalNonBlockingRimReads = false;
         FfbExperimentalSoftCatchUpSteer = true;
         FfbExperimentalDualHandleInput = false;
+        FfbExperimentalCfPacingOnFanatec = false;
         FfbExperimentalOptionsMigrated = true;
         FfbExperimentalOptionsVersion = AppSettings.CurrentFfbExperimentalOptionsVersion;
     }

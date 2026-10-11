@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using G920Emulator.Core.Ffb;
 using G920Emulator.Core.Input;
 using G920Emulator.Core.Mapping;
@@ -618,6 +619,12 @@ public sealed class BridgeService : IDisposable
             else
                 LastFfbStatus = "FFB: attached to physical device.";
 
+            if (_ffb.UsesCfPacing)
+                LastFfbStatus += $" CF pacing {_ffb.CfPacingLabel}.";
+
+            if (BridgeHealthLog.IsEnabled)
+                BridgeHealthLog.NoteAlways($"FFB_ATTACH pacing={_ffb.CfPacingLabel}");
+
             // Dual-handle: bindings come from InputHub Poll — do not cache Exclusive rim overlay.
             if (!dualHandle &&
                 _ffb.TryGetOverlayInput(out var axes, out var buttons, out var hat))
@@ -648,7 +655,8 @@ public sealed class BridgeService : IDisposable
         bool enabled,
         bool unlockedSetParameters,
         bool nonBlockingRimReads,
-        bool dualHandleInput)
+        bool dualHandleInput,
+        bool cfPacingOnFanatec)
     {
         _ffbExperimentalInputFixes = enabled;
         _ffbExperimentalUnlockedSetParameters = enabled && unlockedSetParameters;
@@ -657,7 +665,8 @@ public sealed class BridgeService : IDisposable
         _ffb.SetExperimentalInputOptions(
             _ffbExperimentalUnlockedSetParameters,
             _ffbExperimentalNonBlockingRimReads,
-            _ffbExperimentalDualHandleInput);
+            _ffbExperimentalDualHandleInput,
+            enabled && cfPacingOnFanatec);
     }
 
     /// <summary>Settings → coop mode (only applied when Debug Test is on).</summary>
@@ -1021,7 +1030,10 @@ public sealed class BridgeService : IDisposable
                             combined,
                             oemSnap.DownloadCount,
                             seenMask,
-                            combinedPlaying);
+                            combinedPlaying,
+                            _oemTypeTorqueDi,
+                            Math.Abs(OemFfbSharedMemory.LastSteeringVel),
+                            ffbSteer);
                         _ffb.NoteIncoming(combined);
                         QueuePhysicalFfbTorque(smoothed + centerTorque);
                         wroteTorque = true;
@@ -1094,29 +1106,53 @@ public sealed class BridgeService : IDisposable
         try { Thread.CurrentThread.Priority = ThreadPriority.AboveNormal; }
         catch { /* best-effort */ }
 
-        var lastVersion = 0;
-        var sw = Stopwatch.StartNew();
-        while (!token.IsCancellationRequested)
-        {
-            sw.Restart();
-            var version = Volatile.Read(ref _ffbQueuedVersion);
-            if (version != lastVersion)
-            {
-                var torque = Volatile.Read(ref _ffbQueuedTorque);
-                lastVersion = version;
-                try { _ffb.UpdateTorque(torque); }
-                catch { /* keep applying */ }
-            }
+        // Raise Windows timer resolution so short device-update sleeps are accurate.
+        var timerPeriod = false;
+        try { timerPeriod = timeBeginPeriod(1) == 0; }
+        catch { /* best-effort */ }
 
-            var remain = InputTargetPeriodMs - sw.Elapsed.TotalMilliseconds;
-            if (remain >= 1.0)
-                Thread.Sleep((int)remain);
-            else if (remain > 0.05)
-                Thread.SpinWait(50);
-            else if (version == lastVersion)
-                Thread.Sleep(1); // idle: don't burn a core when torque is unchanged
+        try
+        {
+            var lastVersion = 0;
+            var sw = Stopwatch.StartNew();
+            while (!token.IsCancellationRequested)
+            {
+                sw.Restart();
+                var version = Volatile.Read(ref _ffbQueuedVersion);
+                // Non-Fanatec CF pacing must keep ticking so the latest OEM target is
+                // slipped to the device at the short update period.
+                if (version != lastVersion || _ffb.UsesCfPacing)
+                {
+                    var torque = Volatile.Read(ref _ffbQueuedTorque);
+                    lastVersion = version;
+                    try { _ffb.UpdateTorque(torque); }
+                    catch { /* keep applying */ }
+                }
+
+                var remain = InputTargetPeriodMs - sw.Elapsed.TotalMilliseconds;
+                if (remain >= 1.0)
+                    Thread.Sleep((int)remain);
+                else if (remain > 0.05)
+                    Thread.SpinWait(50);
+                else if (version == lastVersion)
+                    Thread.Sleep(1); // idle: don't burn a core when torque is unchanged
+            }
+        }
+        finally
+        {
+            if (timerPeriod)
+            {
+                try { timeEndPeriod(1); }
+                catch { /* ignore */ }
+            }
         }
     }
+
+    [DllImport("winmm.dll", EntryPoint = "timeBeginPeriod")]
+    private static extern uint timeBeginPeriod(uint periodMs);
+
+    [DllImport("winmm.dll", EntryPoint = "timeEndPeriod")]
+    private static extern uint timeEndPeriod(uint periodMs);
 
     private float ComputeForcedCenter(FfbOutputFeel? feel, float rim, long nowTick)
     {
@@ -1308,14 +1344,23 @@ public sealed class BridgeService : IDisposable
         g.Clamp();
         var shmGainsOk = OemFfbSharedMemory.WriteTypeGains(g);
         ApplyEffectGainsUnlocked(profile, g);
-        LogFfbTuneApply(profile, g, shmGainsOk);
+        var feel = profile.FfbOutputFeel ?? FfbOutputFeel.CreateDefault();
+        LogFfbTuneApply(profile, g, shmGainsOk, feel.ReconstructionMs, _ffbSmoother.ReconstructionMs);
     }
 
     private void ApplyOutputFeel(FfbOutputFeel? feel)
     {
+        feel ??= FfbOutputFeel.CreateDefault();
+        feel.Clamp();
         _ffbSmoother.ApplyFeel(feel);
+        // Mix adjustments live on the smoother; Device pace only rates physical CF updates.
+        var intMs = (float)feel.ReconstructionMs;
+        _ffb.SetInterpolateMs(intMs);
+        _ffb.SetCfPacePeriodMs((float)feel.CfPacePeriodMs);
         _ffb.MagnitudeEpsilon = _ffbSmoother.MagnitudeEpsilon;
-        OemFfbSharedMemory.WriteMixOptions(feel);
+        // Apply-path EMA off — Interpolate owns the mix; stacking caused L/R hunting.
+        _ffb.SetReconstructionMs(0);
+        OemFfbSharedMemory.WriteMixOptions(feel, intMs);
     }
 
     private void ApplyEffectGainsUnlocked(MappingProfile profile, FfbEffectGains? gains = null)
@@ -1338,7 +1383,12 @@ public sealed class BridgeService : IDisposable
     /// Debug session: log effect/feel values we push and SHM readback so exports prove
     /// slider changes reached g920ffb (or that SHM was closed).
     /// </summary>
-    private static void LogFfbTuneApply(MappingProfile profile, FfbEffectGains g, bool shmGainsOk)
+    private static void LogFfbTuneApply(
+        MappingProfile profile,
+        FfbEffectGains g,
+        bool shmGainsOk,
+        double profileInterpolateMs,
+        float smootherInterpolateMs)
     {
         if (!BridgeHealthLog.IsEnabled)
             return;
@@ -1347,24 +1397,30 @@ public sealed class BridgeService : IDisposable
         f.Clamp();
         Span<ushort> readback = stackalloc ushort[FfbEffectGains.TypeCount];
         var shmReadOk = OemFfbSharedMemory.TryReadTypeGains(readback);
-        var mixOk = OemFfbSharedMemory.TryReadMixOptions(out var mixFlags, out var dampVel, out var dampDead);
+        var mixOk = OemFfbSharedMemory.TryReadMixOptions(
+            out var mixFlags, out var dampVel, out var dampDead, out var shmRecon);
         var shmCf = shmReadOk ? readback[FfbEffectGains.Constant] : (ushort)0;
         var shmSpring = shmReadOk ? readback[FfbEffectGains.Spring] : (ushort)0;
         var shmDamper = shmReadOk ? readback[FfbEffectGains.Damper] : (ushort)0;
         var shmPeriodic = shmReadOk ? readback[FfbEffectGains.Sine] : (ushort)0;
 
+        // Prove slider → smoother + SHM (profile vs applied vs shmRecon).
         BridgeHealthLog.Note(
             $"FFB_TUNE master={profile.FfbGain:0.##} inv={profile.FfbInvert} " +
             $"CF={g.ConstantForce:0.##} Spring={g.SpringForce:0.##} Damper={g.DamperForce:0.##} " +
             $"Friction={g.FrictionForce:0.##} Inertia={g.InertiaForce:0.##} Periodic={g.Periodic:0.##} " +
             $"Ramp={g.RampForce:0.##} Custom={g.CustomForce:0.##} " +
-            $"feel smooth={f.SmoothingMs:0} peak={f.PeakSoftStart:0.##} bootEaseIn={(f.BootEaseIn ? "on" : "off")} " +
+            $"feel smooth={f.SmoothingMs:0} interpolate={f.ReconstructionMs:0} intApply={smootherInterpolateMs:0} " +
+            $"gapFill={f.IdleGapHoldMs:0} devicePace={f.CfPacePeriodMs:0} " +
+            $"peak={f.PeakSoftStart:0.##} bootEaseIn={(f.BootEaseIn ? "on" : "off")} " +
             $"dead={f.Deadband:0.###} slew={f.MaxSlewPerSecond:0} spike={f.MaxSpikeStep:0.##} eps={f.MagnitudeEpsilon:0} " +
             $"dampVel={f.DamperVelocityScale:0.##} dampDead={f.DamperDeadbandScale:0.##} " +
+            $"springCoeff={f.SpringCoefficientScale:0.##} frictionCoeff={f.FrictionCoefficientScale:0.##} " +
             $"invertCF={f.InvertConstantForce} center={f.ForceCenterSpring} " +
             $"shmWrite={(shmGainsOk ? 1 : 0)} shmRead={(shmReadOk ? 1 : 0)} " +
             $"shmCF={shmCf} shmSpring={shmSpring} shmDamper={shmDamper} shmPeriodic={shmPeriodic} " +
-            $"mixRead={(mixOk ? 1 : 0)} mixFlags=0x{mixFlags:X} dampVelDi={dampVel} dampDeadDi={dampDead}");
+            $"mixRead={(mixOk ? 1 : 0)} mixFlags=0x{mixFlags:X} dampVelDi={dampVel} dampDeadDi={dampDead} " +
+            $"shmRecon={shmRecon} profileInterpolate={profileInterpolateMs:0}");
     }
 
     public void Dispose()
