@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>SteeringWheelEmulator.App</RootNamespace>
+    <AssemblyName>SteeringWheelEmulator</AssemblyName>
+    <AssemblyTitle>Steering Wheel Emulator</AssemblyTitle>
+    <Product>Steering Wheel Emulator</Product>
+    <Company>Steering Wheel Emulator</Company>
+    <Description>Map any wheel, pedals, and H-shifter to a virtual Logitech G920 or Fanatec DD1</Description>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!-- Applied by publish.ps1 / `dotnet publish -r win-x64` -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MahApps.Metro.IconPacks.Material" Version="5.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SteeringWheelEmulator.Core\SteeringWheelEmulator.Core.csproj" />
+    <ProjectReference Include="..\SteeringWheelEmulator.VirtualHid\SteeringWheelEmulator.VirtualHid.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\simhub\**\*" Link="simhub\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Built by publish.ps1 / explicit build of SteeringWheelEmulator.SimHubPlugin -->
+    <None Include="..\SteeringWheelEmulator.SimHubPlugin\bin\Release\SteeringWheelEmulator.SimHubPlugin.dll"
+          Link="simhub\SteeringWheelEmulator.SimHubPlugin.dll"
+          CopyToOutputDirectory="PreserveNewest"
+          Condition="Exists('..\SteeringWheelEmulator.SimHubPlugin\bin\Release\SteeringWheelEmulator.SimHubPlugin.dll')" />
+    <None Include="..\..\native\README.md" Link="native\README.md" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Bundled WinUHid package (no download required) -->
+    <None Include="..\..\native\winuhid\**\*" Link="winuhid\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\native\winuhid\WinUHid.dll" Link="WinUHid.dll" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\..\native\winuhid\WinUHid.dll')" />
+  </ItemGroup>
+</Project>

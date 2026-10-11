@@ -1,6 +1,6 @@
 # WinUHid driver install (required for games)
 
-G920 Emulator creates a virtual Logitech G920 (`VID 046D` / `PID C262`) using **[WinUHid](https://github.com/cgutman/WinUHid)**.
+Steering Wheel Emulator creates a virtual Logitech G920 (`VID 046D` / `PID C262`) using **[WinUHid](https://github.com/cgutman/WinUHid)**.
 
 Without the driver, the app still runs in **preview mode** so you can map controls, but games will not see a G920.
 
@@ -8,7 +8,7 @@ Without the driver, the app still runs in **preview mode** so you can map contro
 
 WinUHid files ship inside the app under `winuhid\`.
 
-1. Launch G920 Emulator (**approve the UAC prompt** - WinUHid only allows Administrators to open the device)
+1. Launch Steering Wheel Emulator (**approve the UAC prompt** - WinUHid only allows Administrators to open the device)
 2. Open **Dependencies…** → **Install WinUHid**
 3. Click **Install WinUHid** and approve any additional UAC prompts
 4. **Forza-friendly flow:** Install enables test signing only if needed, installs the driver, then **turns test signing back off**. You may need:
@@ -61,32 +61,39 @@ By default (**Settings → HidHide → Off**), **Start** leaves HidHide alone �
 2. Open **HidHide Client** (or Dependencies → **Open HidHide Client** / optional **Configure HidHide** helper) and set up what you want, typically:
    - **Inverse** off (normal whitelist mode)
    - **Cloak** on
-   - Whitelist `G920Emulator.exe` so this app can still see your pad for binding/FFB
+   - Whitelist `SteeringWheelEmulator.exe` so this app can still see your pad for binding/FFB
    - Hide your physical pad / wheel from games; keep the virtual G920 visible
 3. Or use **Settings → HidHide** apply modes if you want the app to do that on **Start**
 4. Recheck in Dependencies if you use that window
 
-## Logitech Steering Wheel SDK + OEM FFB (session-scoped)
+## OEM FFB (`emuffb.dll`) + Logitech SDK (session-scoped)
 
-Games built on the Logitech Steering Wheel SDK (NFS Heat and similar) find the SDK through
-`HKLM\SOFTWARE\Classes\CLSID\{63BD165D-1584-4E75-AB56-08330350545F}\ServerBinary`. The OEM FFB path for the virtual G920 points at our `g920ffb.dll`.
+Both emulated identities point DirectInput `OEMForceFeedback` at shared **`emuffb.dll`** (CLSID `{A920FFB0-E7DB-4329-8C13-A966D84A289F}`; cache under `%ProgramData%\SteeringWheelEmulator\emuffb\`). Older installs used `g920ffb.dll` — Start migrates that path.
+
+| Emulated device | On Start |
+|-----------------|----------|
+| **Logitech G920** | Pin G920 OEM + `emuffb` COM; cache/pin Logitech Steering Wheel SDK `ServerBinary` (Heat / Unbound-style) |
+| **Fanatec DD1** | Pin Fanatec OEM for `VID_0EB7&PID_0004` + `emuffb` COM only — **no** Logitech SDK cache/pin, **no** Fanatec SDK |
+
+Games built on the Logitech Steering Wheel SDK find it through
+`HKLM\SOFTWARE\Classes\CLSID\{63BD165D-1584-4E75-AB56-08330350545F}\ServerBinary` (G920 identity only).
 
 These registry pins are **not** a permanent Dependencies install. They apply only while the bridge is running:
 
 | Event | What happens |
 |-------|----------------|
-| **Start bridge** | Cache SDK DLLs under `%ProgramData%\G920Emulator\LogitechSDK\` if needed, pin SDK + OEM FFB CLSID |
+| **Start bridge** | Pin OEM/`emuffb` for the selected identity; G920 also caches SDK under `%ProgramData%\SteeringWheelEmulator\LogitechSDK\` if needed |
 | **Stop bridge / close app** | Restore previous registry (or clear our pins) |
 | **App crash / Task Manager kill** | Pins stay until the next emulator launch (auto-recover) |
 | **Next launch** | Auto-recovers any leftover dirty state |
 
-Dependencies shows **OEM / Logitech SDK registration** as Idle / Active / Needs restore, with **Restore system registration** if something was left dirty. Session pins are for NFS Heat / Unbound-style games; they are **not** what stops Forza Horizon 6 from launching.
+Dependencies shows **OEM / Logitech SDK registration** as Idle / Active / Needs restore, with **Restore system registration** if something was left dirty. Session pins are for NFS Heat / Unbound-style games on the G920 identity; they are **not** what stops Forza Horizon 6 from launching.
 
 ### Full clean restore (optional)
 
-Nuclear option if you want every app leftover removed: **Dependencies → Full clean restore…** (stop the bridge first). That also turns off test signing and removes OEM/SDK pins, ProgramData caches (`LogitechSDK` + `g920ffb`), DirectInput leftovers, orphan virtual G920 nodes, older hidpp rename, and WinUHid. **Not required for FH6** - prefer **Uninstall WinUHid**.
+Nuclear option if you want every app leftover removed: **Dependencies → Full clean restore…** (stop the bridge first). That also turns off test signing and removes OEM/SDK pins, ProgramData caches (`LogitechSDK` + `emuffb`), DirectInput leftovers, orphan virtual G920 nodes, older hidpp rename, and WinUHid. **Not required for FH6** - prefer **Uninstall WinUHid**.
 
-Full clean does **not** change Secure Boot, HidHide, or your profiles under `%AppData%\G920Emulator`. If you disabled Secure Boot only for the WinUHid install, you can re-enable it afterward (with WinUHid installed and test signing off).
+Full clean does **not** change Secure Boot, HidHide, or your profiles under `%AppData%\SteeringWheelEmulator`. If you disabled Secure Boot only for the WinUHid install, you can re-enable it afterward (with WinUHid installed and test signing off).
 
 The SDK (`LogitechSteeringWheel.dll` 8.81, x64 + x86) is bundled in `logisdk\`. No G HUB or Logitech Gaming Software needed.
 
@@ -94,7 +101,7 @@ The SDK (`LogitechSteeringWheel.dll` 8.81, x64 + x86) is bundled in `logisdk\`. 
 
 G HUB's installer rewrites the DirectInput OEM entry for `VID_046D` / `PID_C262` (FFB CLSID) and repoints the Logitech SDK key at its own SDK; its uninstaller deletes the SDK key. It can also bind `logi_joy_hid` to the virtual wheel.
 
-**The G HUB guard runs only while the bridge is running** (Dependencies shows it as **ACTIVE** then). Every 2 seconds it checks the OEM identity, FFB CLSID, `g920ffb.dll` COM registration and Logitech SDK registration, and rewrites anything G HUB changed or deleted. It also removes `logi_joy_hid` from the virtual Col01. It never `pnputil /restart-device`s the virtual wheel (that orphans WinUHid Col01). If a game still fails:
+**The G HUB guard runs only while the bridge is running** (Dependencies shows it as **ACTIVE** then). Every 2 seconds it checks the OEM identity, FFB CLSID, `emuffb.dll` COM registration and Logitech SDK registration, and rewrites anything G HUB changed or deleted. It also removes `logi_joy_hid` from the virtual Col01. It never `pnputil /restart-device`s the virtual wheel (that orphans WinUHid Col01). If a game still fails:
 
 1. Quit G HUB completely (if present)
 2. Dependencies → **Repair G HUB leftovers** (does not leave OEM/SDK pins while idle)
@@ -107,14 +114,14 @@ You do not need G HUB for this app.
 ## Force feedback notes
 
 - Select your physical FFB wheel under **Force feedback → FFB output device**
-- Games drive FFB through DirectInput OEM into **`g920ffb.dll`**, which publishes torque over shared memory; the bridge applies it to your base (not Logitech HID++ WriteReports)
+- Games drive FFB through DirectInput OEM into **`emuffb.dll`**, which publishes torque over shared memory; the bridge applies it to your base (not Logitech HID++ WriteReports)
 - **Start bridge** applies session OEM/SDK pins and attaches FFB; **Stop** restores system registration; use status-bar **Debug** only for short OEM log captures (leave it off for normal play - see [force-feedback.md](force-feedback.md#status-bar-debug-oem-file-log)), and **FFB debug** for on-screen test controls
 - Full detail: [force-feedback.md](force-feedback.md)
-- Exclusive cooperative level may require running G920 Emulator elevated on some setups
+- Exclusive cooperative level may require running Steering Wheel Emulator elevated on some setups
 
 ## Validation checklist
 
-- [ ] Devices appear in G920 Emulator after Refresh
+- [ ] Devices appear in Steering Wheel Emulator after Refresh
 - [ ] Bindings update live meters (steering, pedals, gear R/1-6)
 - [ ] With WinUHid installed, virtual G920 shows in `joy.cpl`
 - [ ] Game sees G920

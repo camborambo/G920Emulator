@@ -1,0 +1,113 @@
+<Window x:Class="SteeringWheelEmulator.App.FfbEffectBindWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Bind effect buttons"
+        Icon="pack://application:,,,/Assets/app.ico"
+        SizeToContent="Height"
+        Width="500"
+        MinHeight="420"
+        MinWidth="460"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#121418"
+        Foreground="#E8EAED"
+        FontFamily="Segoe UI"
+        ShowInTaskbar="False">
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Themes/Controls.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <DockPanel Margin="20">
+    <Button DockPanel.Dock="Bottom" Style="{StaticResource PrimaryButton}" Content="Done"
+            HorizontalAlignment="Right" Margin="0,16,0,0" IsDefault="True" Click="Done_Click"/>
+
+    <StackPanel>
+      <TextBlock x:Name="TitleText" FontSize="20" FontWeight="SemiBold" FontFamily="Bahnschrift"/>
+      <TextBlock Opacity="0.7" Margin="0,6,0,16" TextWrapping="Wrap"
+                 Text="Assign hardware buttons that lower, raise, or snap this slider to your default while you drive. A tap is a small step; hold −/+ for a faster step. These binds are saved on the input profile."/>
+
+      <Border x:Name="MinusRow" Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6" Margin="0,0,0,8">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button x:Name="ClearMinus" Style="{StaticResource AppButton}" Content="Clear"
+                    MinWidth="64" Margin="0,0,8,0" Click="ClearMinus_Click"
+                    ToolTip="Remove the lower (−) bind"/>
+            <Button Style="{StaticResource AppButton}" Content="Assign" MinWidth="72" Margin="0"
+                    Click="AssignMinus_Click"/>
+          </StackPanel>
+          <StackPanel Margin="0,0,12,0">
+            <DockPanel LastChildFill="False">
+              <TextBlock Text="Lower (−)" FontWeight="SemiBold" VerticalAlignment="Center"/>
+              <TextBlock x:Name="MinusBoundBadge" DockPanel.Dock="Right" Text="Bound" Margin="10,0,0,0"
+                         FontSize="11" FontWeight="SemiBold" Foreground="#2F9E6B" VerticalAlignment="Center"
+                         Visibility="Collapsed"/>
+            </DockPanel>
+            <TextBlock x:Name="MinusBindingText" Opacity="0.75" Margin="0,4,0,0" TextWrapping="Wrap"
+                       Text="Not bound"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Border x:Name="PlusRow" Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6" Margin="0,0,0,8">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button x:Name="ClearPlus" Style="{StaticResource AppButton}" Content="Clear"
+                    MinWidth="64" Margin="0,0,8,0" Click="ClearPlus_Click"
+                    ToolTip="Remove the raise (+) bind"/>
+            <Button Style="{StaticResource AppButton}" Content="Assign" MinWidth="72" Margin="0"
+                    Click="AssignPlus_Click"/>
+          </StackPanel>
+          <StackPanel Margin="0,0,12,0">
+            <DockPanel LastChildFill="False">
+              <TextBlock Text="Raise (+)" FontWeight="SemiBold" VerticalAlignment="Center"/>
+              <TextBlock x:Name="PlusBoundBadge" DockPanel.Dock="Right" Text="Bound" Margin="10,0,0,0"
+                         FontSize="11" FontWeight="SemiBold" Foreground="#2F9E6B" VerticalAlignment="Center"
+                         Visibility="Collapsed"/>
+            </DockPanel>
+            <TextBlock x:Name="PlusBindingText" Opacity="0.75" Margin="0,4,0,0" TextWrapping="Wrap"
+                       Text="Not bound"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <Border x:Name="DefaultRow" Background="#1A1F29" BorderBrush="#2A3140" BorderThickness="1" Padding="12" CornerRadius="6">
+        <StackPanel>
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+              <Button x:Name="ClearDefault" Style="{StaticResource AppButton}" Content="Clear"
+                      MinWidth="64" Margin="0,0,8,0" Click="ClearDefault_Click"
+                      ToolTip="Remove the Set as Default bind"/>
+              <Button Style="{StaticResource AppButton}" Content="Assign" MinWidth="72" Margin="0"
+                      Click="AssignDefault_Click"/>
+            </StackPanel>
+            <StackPanel Margin="0,0,12,0">
+              <DockPanel LastChildFill="False">
+                <TextBlock Text="Set as Default" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <TextBlock x:Name="DefaultBoundBadge" DockPanel.Dock="Right" Text="Bound" Margin="10,0,0,0"
+                           FontSize="11" FontWeight="SemiBold" Foreground="#2F9E6B" VerticalAlignment="Center"
+                           Visibility="Collapsed"/>
+              </DockPanel>
+              <TextBlock x:Name="DefaultBindingText" Opacity="0.75" Margin="0,4,0,0" TextWrapping="Wrap"
+                         Text="Not bound"/>
+            </StackPanel>
+          </DockPanel>
+          <TextBlock Opacity="0.6" FontSize="11" Margin="0,10,0,6" TextWrapping="Wrap"
+                     Text="When that button is pressed, the slider jumps to this value:"/>
+          <DockPanel>
+            <TextBlock x:Name="DefaultValueText" DockPanel.Dock="Right" Width="56" Text="100%"
+                       VerticalAlignment="Center" HorizontalAlignment="Right" TextAlignment="Right"
+                       Cursor="Hand" ToolTip="Click to type a value"
+                       MouseLeftButtonDown="DefaultValueText_Click"/>
+            <Slider x:Name="DefaultValueSlider" Minimum="0" Maximum="2" Value="1"
+                    TickFrequency="0.01" IsSnapToTickEnabled="False"
+                    ValueChanged="DefaultValueSlider_ValueChanged"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </DockPanel>
+</Window>

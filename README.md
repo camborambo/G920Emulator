@@ -1,12 +1,12 @@
-# G920 Emulator
+# Steering Wheel Emulator
 
-**Use any wheel, pedals, H-shifter, or controller as a Logitech G920** - including games that only offer a G920 / Logitech wheel profile.
+**Use any wheel, pedals, H-shifter, or controller as a virtual racing wheel** - Logitech G920 by default, or Fanatec DD1 when a title prefers that identity.
 
-G920 Emulator is a **hobby project**: a Windows app that creates a **virtual Logitech G920** (`VID 046D` / `PID C262`) on your PC. You bind your physical DirectInput devices to that virtual wheel, hide the real hardware from games with HidHide, and optionally forward **force feedback** to your Fanatec, Simucube, Simagic, Moza, or other DirectInput FFB base.
+Steering Wheel Emulator is a **hobby project**: a Windows app that creates a **virtual wheel** on your PC (toolbar **Emulated device**: **Logitech G920** `046D:C262`, or **Fanatec DD1** `0EB7:0004`). You bind your physical DirectInput devices to that virtual wheel, hide the real hardware from games with HidHide, and optionally forward **force feedback** to your Fanatec, Simucube, Simagic, Moza, or other DirectInput FFB base. Both identities share **`emuffb.dll`** for OEM FFB.
 
 ```
-Physical devices  →  G920 Emulator  →  Virtual G920  →  Game
-Game FFB effects  →  g920ffb.dll    →  Physical base
+Physical devices  →  Steering Wheel Emulator  →  Virtual G920 / Fanatec PC Comp  →  Game
+Game FFB effects  →  emuffb.dll    →  Physical base
 ```
 
 ## Guides
@@ -19,7 +19,7 @@ Game FFB effects  →  g920ffb.dll    →  Physical base
 | **[Force feedback](docs/force-feedback.md)** | Understand OEM FFB, Debug logging, and effect probing |
 | **[Changelog](CHANGELOG.md)** | See what’s new in each release (version notes) |
 | **[Architecture](docs/architecture.md)** | See how input and FFB flow through the stack |
-| **[Building](docs/building.md)** | Publish the EXE or build `g920ffb.dll` from source |
+| **[Building](docs/building.md)** | Publish the EXE or build `emuffb.dll` from source |
 | **[Research notes](docs/research-logitech-g920.md)** | Read G HUB / HID++ findings and the NFS Unbound probe |
 
 ## Tested so far
@@ -49,14 +49,14 @@ Emulator and Forza can coexist on the same boot after that. Details: [driver-ins
 
 No Visual Studio or .NET SDK required.
 
-1. Download **`G920Emulator-win-x64.zip`** from the latest [**Releases**](https://github.com/camborambo/G920Emulator/releases) page.
+1. Download **`SteeringWheelEmulator-win-x64.zip`** from the latest [**Releases**](https://github.com/camborambo/SteeringWheelEmulator/releases) page.
 2. Extract the zip - you get a **`G920Emulator`** folder.
-3. Run **`G920Emulator.exe`** inside that folder.
+3. Run **`SteeringWheelEmulator.exe`** inside that folder.
 4. Open **Dependencies** → **Install WinUHid** (bundled; approve UAC; may reboot once or twice). When install finishes: confirm **test signing is off**, then **re-enable Secure Boot** in UEFI if you turned it off for install (see [above](#after-winuhid-is-installed-important)).
 5. Install **HidHide** from its download link → **Configure HidHide**.  
    Step-by-step: [driver install](docs/driver-install.md).
-6. **Refresh** devices, bind steering / pedals / buttons / gears **R-6** (and D-pad via hat or **D-pad Up/Down/Left/Right**), pick an **FFB output device** + **FFB profile**, then **Save** your input profile.
-7. **Start bridge**, then launch your game and select the G920.
+6. Pick **Emulated device** (G920 or Fanatec DD1) while Stopped if needed. **Refresh** devices, bind steering / pedals / buttons / gears **R-6** (and D-pad via hat or **D-pad Up/Down/Left/Right**), pick an **FFB output device** + **FFB profile**, then **Save** your input profile (also stores a HidHide snapshot when capture succeeds).
+7. **Start bridge**, then launch your game and select the virtual wheel (G920 or Fanatec PC Comp).
 
 Later releases: the app can show an **Update** banner when GitHub has a newer zip. That only downloads to **Downloads** - unzip over your `G920Emulator` folder yourself (AppData profiles are kept). You can turn the check off under **Settings**.
 
@@ -67,10 +67,10 @@ Binding changes apply while the bridge is running - no need to Stop/Start after 
 Profiles are **not** inside the install / zip folder. On first run the app creates:
 
 ```
-%AppData%\G920Emulator\profiles\              ← input bindings (Default.json + your Save / Save As)
-%AppData%\G920Emulator\ffb-profiles\          ← force-feedback presets (Raw + your Save / Save As)
-%AppData%\G920Emulator\telemetry-profiles\    ← SimHub simulation presets (Save / Save As)
-%AppData%\G920Emulator\settings.json
+%AppData%\SteeringWheelEmulator\profiles\              ← input bindings (Default.json + your Save / Save As)
+%AppData%\SteeringWheelEmulator\ffb-profiles\          ← force-feedback presets (Raw + your Save / Save As)
+%AppData%\SteeringWheelEmulator\telemetry-profiles\    ← SimHub simulation presets (Save / Save As)
+%AppData%\SteeringWheelEmulator\settings.json
 ```
 
 **Input**, **FFB**, and **Telemetry** profiles are separate. Default FFB is **Raw** (exact game mix). Adjust master / per-effect gains / output feel / torque shaping, then Save / Save As under Force feedback; each input profile stores which FFB profile it links to. Telemetry host/port/rate stay in `settings.json`.
@@ -78,7 +78,7 @@ Profiles are **not** inside the install / zip folder. On first run the app creat
 That way unzipping a newer release over `G920Emulator\` does not wipe or replace your buttons or feel. The status bar shows this path when you refresh devices.
 
 - Bindings also store a stable DirectInput **product** id so devices can rematch if Windows changes the instance GUID after a replug.
-- Optional USB-stick mode: create an empty `portable.txt` beside `G920Emulator.exe` to keep `profiles\`, `ffb-profiles\`, and `settings.json` next to the app instead (created at runtime - never shipped in the zip).
+- Optional USB-stick mode: create an empty `portable.txt` beside `SteeringWheelEmulator.exe` to keep `profiles\`, `ffb-profiles\`, and `settings.json` next to the app instead (created at runtime - never shipped in the zip).
 
 Details: [user guide → Profiles](docs/user-guide.md#profiles).
 
@@ -98,7 +98,7 @@ Bind axes, buttons, POV hats, and **D-pad Up/Down/Left/Right** (for pads without
 
 ### Force feedback
 
-Games write Logitech OEM FFB to the virtual G920. Our `g920ffb.dll` driver captures that mix and applies it to your physical DirectInput base (Fanatec, Simucube, Simagic, Moza, and similar). Tune with separate **FFB profiles**: master gain, per-effect gains, output feel, torque shaping, and optional in-car **Bind** buttons so you can adjust while driving. Default profile **Raw** passes the game mix unchanged.
+Games write Logitech OEM FFB to the virtual G920. Our `emuffb.dll` driver captures that mix and applies it to your physical DirectInput base (Fanatec, Simucube, Simagic, Moza, and similar). Tune with separate **FFB profiles**: master gain, per-effect gains, output feel, torque shaping, and optional in-car **Bind** buttons so you can adjust while driving. Default profile **Raw** passes the game mix unchanged.
 
 ### SimHub telemetry (games without Data Out)
 
@@ -107,7 +107,7 @@ Titles like NFS Heat / Unbound have no native SimHub plugin. The **Telemetry** t
 - **Speed / RPM / gear** from your pedals and shifter, with **gear-ratio simulation** (ratios, Diff, Tire, Redline) so each gear has a realistic top speed and RPM curve
 - **G-force** and FFB-derived rumble / impact / road load from the virtual G920 mix
 - Optional **Handbrake** / **NOS** binds for arcade-style speed effects
-- **Register with SimHub** installs the External Sim definition plus the **G920 Emulator RPM** plugin so built-in ShakeIt Engine vibrations work
+- **Register with SimHub** installs the External Sim definition plus the **Steering Wheel Emulator RPM** plugin so built-in ShakeIt Engine vibrations work
 
 Use this only for games that lack real telemetry. For Forza and similar, keep SimHub on the native game plugin.
 
@@ -119,7 +119,7 @@ Use this only for games that lack real telemetry. For Forza and similar, keep Si
 
 ### Profiles
 
-Input, FFB, and Telemetry settings are separate JSON profiles under `%AppData%\G920Emulator\` so updating the app zip does not wipe your binds or feel. See [Profiles](#profiles-where-your-binds--ffb-live).
+Input, FFB, and Telemetry settings are separate JSON profiles under `%AppData%\SteeringWheelEmulator\` so updating the app zip does not wipe your binds or feel. See [Profiles](#profiles-where-your-binds--ffb-live).
 
 ## Requirements
 
@@ -136,12 +136,12 @@ For contributors (not needed to play):
 .\publish.ps1 -OpenFolder
 ```
 
-Needs the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0). Output: `dist\G920Emulator\` and `dist\G920Emulator-win-x64.zip` (includes `README.md` / `CHANGELOG.md`; no `profiles\` or `ffb-profiles\` - user data is AppData-only).
+Needs the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0). Output: `dist\SteeringWheelEmulator\` and `dist\SteeringWheelEmulator-win-x64.zip` (includes `README.md` / `CHANGELOG.md`; no `profiles\` or `ffb-profiles\` - user data is AppData-only).
 
 Day-to-day development:
 
 ```powershell
-dotnet run --project src/G920Emulator.App
+dotnet run --project src/SteeringWheelEmulator.App
 ```
 
 Details: [building](docs/building.md).
@@ -149,21 +149,23 @@ Details: [building](docs/building.md).
 ## Repository layout
 
 ```
-src/G920Emulator.App          WPF UI
-src/G920Emulator.Core         Input hub, mapper, bridge, FFB apply, AppData profiles
-src/G920Emulator.VirtualHid   WinUHid + G920 identity + OEM registration
-native/g920ffb                DirectInput OEM EffectDriver (g920ffb.dll)
+SteeringWheelEmulator.sln
+src/SteeringWheelEmulator.App          WPF UI
+src/SteeringWheelEmulator.Core         Input hub, mapper, bridge, FFB apply, AppData profiles
+src/SteeringWheelEmulator.VirtualHid   WinUHid + G920 identity + OEM registration
+src/SteeringWheelEmulator.SimHubPlugin SimHub RPM capability plugin
+native/emuffb                DirectInput OEM EffectDriver (emuffb.dll)
 native/winuhid                Bundled WinUHid runtime + INF (copied into dist)
 native/logisdk                Bundled Logitech Steering Wheel SDK runtimes
 docs/                         User and technical guides
-simhub/                       SimHub External Sim definition + G920Emulator.SimHubPlugin.dll (Register installs both)
-tools/                        Build helpers (g920ffb, WinUHid, probes)
-publish.ps1                   Self-contained win-x64 → dist\G920Emulator + zip
+simhub/                       SimHub External Sim definition + SteeringWheelEmulator.SimHubPlugin.dll (Register installs both)
+tools/                        Build helpers (emuffb, WinUHid, probes)
+publish.ps1                   Self-contained win-x64 → dist\SteeringWheelEmulator + zip
 CHANGELOG.md                  Version notes
 profiles/                     Repo reference only (not shipped; runtime data → AppData)
 ```
 
-User bindings and FFB presets live in **`%AppData%\G920Emulator\`** at runtime - not in this `profiles/` folder and not in the release zip.
+User bindings and FFB presets live in **`%AppData%\SteeringWheelEmulator\`** at runtime - not in this `profiles/` folder and not in the release zip.
 
 ## Version notes
 
@@ -171,7 +173,7 @@ Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Curr
 
 ## Support
 
-Report bugs and ask questions on [GitHub Issues](https://github.com/camborambo/G920Emulator/issues). From the app: **Debug** (status bar) → short reproduce → **Stop debug** → **Export log…**, then attach the zip to your issue. Leave **Debug** off during normal play (especially Forza) - it is for brief captures only. Release notes on GitHub should match the matching section in [CHANGELOG.md](CHANGELOG.md).
+Report bugs and ask questions on [GitHub Issues](https://github.com/camborambo/SteeringWheelEmulator/issues). From the app: **Debug** (status bar) → short reproduce → **Stop debug** → **Export log…**, then attach the zip to your issue. Leave **Debug** off during normal play (especially Forza) - it is for brief captures only. Release notes on GitHub should match the matching section in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

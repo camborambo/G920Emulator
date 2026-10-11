@@ -7,6 +7,6 @@
     <RootNamespace>IdleSmoothReplay</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\G920Emulator.Core\G920Emulator.Core.csproj" />
+    <ProjectReference Include="..\..\src\SteeringWheelEmulator.Core\SteeringWheelEmulator.Core.csproj" />
   </ItemGroup>
 </Project>

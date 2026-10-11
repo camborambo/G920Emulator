@@ -22,11 +22,11 @@ When Col01 is owned by **`logi_joy_hid_filter`**, Logitech’s HID++ FFB COM ser
 - Advertise Hardware ID with **`&REV_9601`** so PnP does **not** match `logi_joy_hid.inf`.
 - Do **not** `pnputil /install` `logi_joy_hid` for the virtual device.
 - On Start, clean leftover no-REV Col01 nodes from older builds when needed.
-- Point OEMForceFeedback at our **`g920ffb.dll`** instead of Logitech’s CLSID.
+- Point OEMForceFeedback at our **`emuffb.dll`** instead of Logitech’s CLSID.
 
 Logitech’s `hidpp_forcefeedback` may still load but does not deliver usable WriteReports to WinUHid (`HidD_SetOutputReport` → `ERROR_NOT_SUPPORTED`).
 
-**FFB path now:** OEMForceFeedback CLSID → `g920ffb.dll` (`IDirectInputEffectDriver`) → shared memory `Local\G920Emulator.FfbTorque.v7` → bridge → physical base.
+**FFB path now:** OEMForceFeedback CLSID → `emuffb.dll` (`IDirectInputEffectDriver`) → shared memory `Local\G920Emulator.FfbTorque.v7` → bridge → physical base.
 
 | Change | Purpose |
 |--------|---------|
@@ -52,11 +52,11 @@ Games do **not** all use that reverse index in their native G920 profiles:
 | Most titles (e.g. **NFS Heat**) | 13-18 | **19** | Default - leave Bind Gear R on **19** |
 | **NFS Unbound** | 13-18 | **12** | Bind Gear R → select **12 - NFS Unbound** |
 
-G920 Emulator defaults to **19**. For Unbound, open **Gear R** binding and set **G920 reverse button** to **12** (saved on the profile; no bridge restart).
+Steering Wheel Emulator defaults to **19**. For Unbound, open **Gear R** binding and set **G920 reverse button** to **12** (saved on the profile; no bridge restart).
 
 ## Effect probe
 
-`g920ffb.dll` publishes SHM **v7** (`Local\G920Emulator.FfbTorque.v7`), including `TypesSeen` / `TypesPlaying` bitmasks and per-type mix torque. The emulator **FFB debug** UI and FFB Debug Overlay list each DirectInput type (same names as `g920ffb-effects.log`) as seen or playing, with MIX totals. Full OEM log (`%TEMP%\g920ffb-effects.log`) is written only while the status-bar **Debug** session is active.
+`emuffb.dll` publishes SHM **v7** (`Local\G920Emulator.FfbTorque.v7`), including `TypesSeen` / `TypesPlaying` bitmasks and per-type mix torque. The emulator **FFB debug** UI and FFB Debug Overlay list each DirectInput type (same names as `emuffb-effects.log`) as seen or playing, with MIX totals. Full OEM log (`%TEMP%\emuffb-effects.log`) is written only while the status-bar **Debug** session is active.
 
 ### NFS Unbound (2026-10-04)
 
@@ -74,6 +74,20 @@ Unbound streams these DirectInput OEM types (all must stay in the mix - do not m
 | **Square** | Impacts / collisions |
 
 Universal native mixing of **all** DI effect types is required. Hardware `DIPROP_AUTOCENTER` must not be toggled during gameplay (it fights the OEM mix on Fanatec); use FFB debug **Center** only for a manual return-to-center test.
+
+## Fanatec DD1 virtual identity
+
+Optional toolbar identity (not a second FFB stack):
+
+| Item | Detail |
+|------|--------|
+| VID:PID | `0EB7:0004` (Fanatec PC Compatibility) |
+| WinUHid REV | `REV_E001` (keep-visible / identity fix) |
+| OEM FFB | Same **`emuffb.dll`** CLSID as G920 |
+| Not used | Fanatec SDK / FAW; Logitech Steering Wheel SDK pin; Fanatec DD1 PC `0006` |
+| Physical base | Still your real Fanatec/Simucube/etc. for motor output and binding |
+
+Use when a title prefers a Fanatec-class device. Gear R defaults to **12**. Details: [architecture.md](architecture.md), [user-guide.md](user-guide.md#emulated-device).
 
 ## Related
 

@@ -1,6 +1,6 @@
 # Builds a self-contained Windows x64 folder you can double-click:
-#   dist\G920Emulator\G920Emulator.exe
-#   dist-test\G920Emulator\G920Emulator.exe  (-TestBuild)
+#   dist\SteeringWheelEmulator\SteeringWheelEmulator.exe
+#   dist-test\SteeringWheelEmulator\SteeringWheelEmulator.exe  (-TestBuild)
 param(
     [switch]$OpenFolder,
     [switch]$TestBuild
@@ -11,7 +11,7 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $root
 
 $distRoot = if ($TestBuild) { Join-Path $root "dist-test" } else { Join-Path $root "dist" }
-$outDir = Join-Path $distRoot "G920Emulator"
+$outDir = Join-Path $distRoot "SteeringWheelEmulator"
 
 $winuhid = Join-Path $root "native\winuhid"
 if (-not (Test-Path (Join-Path $winuhid "WinUHid.dll"))) {
@@ -19,28 +19,28 @@ if (-not (Test-Path (Join-Path $winuhid "WinUHid.dll"))) {
 }
 
 # Native OEM FFB COM driver (DirectInput -> shared memory)
-$g920ffbScript = Join-Path $root "tools\build-g920ffb.ps1"
-$g920ffbDll = Join-Path $root "native\g920ffb\bin\g920ffb.dll"
-if (Test-Path $g920ffbScript) {
-    Write-Host "Building g920ffb.dll..." -ForegroundColor Cyan
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $g920ffbScript
+$emuffbScript = Join-Path $root "tools\build-emuffb.ps1"
+$emuffbDll = Join-Path $root "native\emuffb\bin\emuffb.dll"
+if (Test-Path $emuffbScript) {
+    Write-Host "Building emuffb.dll..." -ForegroundColor Cyan
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $emuffbScript
     if ($LASTEXITCODE -ne 0) {
-        Write-Warning "g920ffb build failed (exit $LASTEXITCODE)"
+        Write-Warning "emuffb build failed (exit $LASTEXITCODE)"
     }
 }
 
 Write-Host "Building SimHub RPM plugin (net48)..." -ForegroundColor Cyan
-dotnet build ".\src\G920Emulator.SimHubPlugin\G920Emulator.SimHubPlugin.csproj" -c Release
+dotnet build ".\src\SteeringWheelEmulator.SimHubPlugin\SteeringWheelEmulator.SimHubPlugin.csproj" -c Release
 if ($LASTEXITCODE -ne 0) {
-    throw "G920Emulator.SimHubPlugin build failed (exit $LASTEXITCODE). Is SimHub installed under Program Files (x86)\SimHub?"
+    throw "SteeringWheelEmulator.SimHubPlugin build failed (exit $LASTEXITCODE). Is SimHub installed under Program Files (x86)\SimHub?"
 }
-$pluginDll = Join-Path $root "src\G920Emulator.SimHubPlugin\bin\Release\G920Emulator.SimHubPlugin.dll"
+$pluginDll = Join-Path $root "src\SteeringWheelEmulator.SimHubPlugin\bin\Release\SteeringWheelEmulator.SimHubPlugin.dll"
 if (-not (Test-Path $pluginDll)) {
     throw "SimHub plugin DLL missing after build: $pluginDll"
 }
 
-Write-Host "Publishing G920 Emulator (self-contained win-x64)..." -ForegroundColor Cyan
-dotnet publish ".\src\G920Emulator.App\G920Emulator.App.csproj" `
+Write-Host "Publishing Steering Wheel Emulator (self-contained win-x64)..." -ForegroundColor Cyan
+dotnet publish ".\src\SteeringWheelEmulator.App\SteeringWheelEmulator.App.csproj" `
     -c Release `
     -r win-x64 `
     --self-contained true `
@@ -52,7 +52,7 @@ dotnet publish ".\src\G920Emulator.App\G920Emulator.App.csproj" `
 $simhubOut = Join-Path $outDir "simhub"
 New-Item -ItemType Directory -Force -Path $simhubOut | Out-Null
 Copy-Item $pluginDll $simhubOut -Force
-Write-Host "Bundled G920Emulator.SimHubPlugin.dll for SimHub Engine vibrations." -ForegroundColor Green
+Write-Host "Bundled SteeringWheelEmulator.SimHubPlugin.dll for SimHub Engine vibrations." -ForegroundColor Green
 
 # Remove legacy SessionWatch leftovers from older publishes (no longer shipped).
 $legacyWatchPaths = @(
@@ -88,28 +88,30 @@ if (Test-Path (Join-Path $logisdk "x64\LogitechSteeringWheel.dll")) {
     Write-Warning "native\logisdk missing - Logitech SDK games (NFS Heat, etc.) may not show a wheel layout."
 }
 
-if (Test-Path $g920ffbDll) {
-    # Games keep g920ffb.dll loaded; skip the copy when it's already identical.
-    $destFfb = Join-Path $outDir "g920ffb.dll"
-    if (-not ((Test-Path $destFfb) -and (Get-FileHash $destFfb).Hash -eq (Get-FileHash $g920ffbDll).Hash)) {
-        Copy-Item $g920ffbDll $outDir -Force
+if (Test-Path $emuffbDll) {
+    # Games keep emuffb.dll loaded; skip the copy when it's already identical.
+    $destFfb = Join-Path $outDir "emuffb.dll"
+    if (-not ((Test-Path $destFfb) -and (Get-FileHash $destFfb).Hash -eq (Get-FileHash $emuffbDll).Hash)) {
+        Copy-Item $emuffbDll $outDir -Force
     }
-    Write-Host "Bundled g920ffb.dll (OEM DirectInput FFB driver)."
+    # Remove legacy DLL name from older publishes so install folders don't keep both.
+    Remove-Item (Join-Path $outDir "g920ffb.dll") -Force -ErrorAction SilentlyContinue
+    Write-Host "Bundled emuffb.dll (OEM DirectInput FFB driver)."
 } else {
-    Write-Warning "g920ffb.dll missing - in-game FFB ingress via OEM driver will not work."
+    Write-Warning "emuffb.dll missing - in-game FFB ingress via OEM driver will not work."
 }
 
 if ($TestBuild) {
     # Side-by-side experiment - do not rewrite stable dist launchers.
-    $launcher = Join-Path $distRoot "Launch G920 Emulator (ratio test).bat"
+    $launcher = Join-Path $distRoot "Launch Steering Wheel Emulator (ratio test).bat"
     Set-Content -Path $launcher -Encoding ASCII -Value @(
         '@echo off'
-        'start "" "%~dp0G920Emulator\G920Emulator.exe"'
+        'start "" "%~dp0SteeringWheelEmulator\SteeringWheelEmulator.exe"'
     )
-    $rootLauncher = Join-Path $root "Launch G920 Emulator (ratio test).bat"
+    $rootLauncher = Join-Path $root "Launch Steering Wheel Emulator (ratio test).bat"
     Set-Content -Path $rootLauncher -Encoding ASCII -Value @(
         '@echo off'
-        'set EXE=%~dp0dist-test\G920Emulator\G920Emulator.exe'
+        'set EXE=%~dp0dist-test\SteeringWheelEmulator\SteeringWheelEmulator.exe'
         'if exist "%EXE%" ('
         '  start "" "%EXE%"'
         '  exit /b 0'
@@ -125,22 +127,22 @@ if ($TestBuild) {
     )
 } else {
     # Convenience launcher next to the folder
-    $launcher = Join-Path $distRoot "Launch G920 Emulator.bat"
+    $launcher = Join-Path $distRoot "Launch Steering Wheel Emulator.bat"
     Set-Content -Path $launcher -Encoding ASCII -Value @(
         '@echo off'
-        'start "" "%~dp0G920Emulator\G920Emulator.exe"'
+        'start "" "%~dp0SteeringWheelEmulator\SteeringWheelEmulator.exe"'
     )
 
     # Root-level quick launcher
-    $rootLauncher = Join-Path $root "Launch G920 Emulator.bat"
+    $rootLauncher = Join-Path $root "Launch Steering Wheel Emulator.bat"
     Set-Content -Path $rootLauncher -Encoding ASCII -Value @(
         '@echo off'
-        'set EXE=%~dp0dist\G920Emulator\G920Emulator.exe'
+        'set EXE=%~dp0dist\SteeringWheelEmulator\SteeringWheelEmulator.exe'
         'if exist "%EXE%" ('
         '  start "" "%EXE%"'
         '  exit /b 0'
         ')'
-        'echo G920Emulator.exe not found. Building it now...'
+        'echo SteeringWheelEmulator.exe not found. Building it now...'
         'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0publish.ps1"'
         'if exist "%EXE%" ('
         '  start "" "%EXE%"'
@@ -150,14 +152,19 @@ if ($TestBuild) {
         ')'
     )
 
-    # Remove old launcher name if present
-    $oldRoot = Join-Path $root "Launch G920Emulator.bat"
-    $oldDist = Join-Path $root "dist\Launch G920 Emulator.bat"
-    if (Test-Path $oldRoot) { Remove-Item $oldRoot -Force }
-    if (Test-Path $oldDist) { Remove-Item $oldDist -Force }
+    # Remove old launcher names if present
+    foreach ($old in @(
+        (Join-Path $root "Launch G920 Emulator.bat"),
+        (Join-Path $root "Launch G920Emulator.bat"),
+        (Join-Path $root "Launch G920 Emulator (ratio test).bat"),
+        (Join-Path $distRoot "Launch G920 Emulator.bat"),
+        (Join-Path $root "dist\Launch G920 Emulator.bat")
+    )) {
+        if (Test-Path $old) { Remove-Item $old -Force -ErrorAction SilentlyContinue }
+    }
 }
 
-# Profiles are created at runtime in %AppData%\G920Emulator - never ship profiles\,
+# Profiles are created at runtime in %AppData%\SteeringWheelEmulator - never ship profiles\,
 # ffb-profiles\, or settings.json (publishing from a used dist\ used to bake personal
 # binds into the zip and overwrite users on "unzip over install" updates).
 $profilesOut = Join-Path $outDir "profiles"
@@ -182,21 +189,21 @@ if (Test-Path $simhubSrc) {
     Copy-Item (Join-Path $simhubSrc "*") $simhubOut -Force
 }
 
-# Zip with a single top-level folder: G920Emulator\...
-$zipName = if ($TestBuild) { "G920Emulator-ratio-test-win-x64.zip" } else { "G920Emulator-win-x64.zip" }
+# Zip with a single top-level folder: SteeringWheelEmulator\...
+$zipName = if ($TestBuild) { "SteeringWheelEmulator-ratio-test-win-x64.zip" } else { "SteeringWheelEmulator-win-x64.zip" }
 $zipPath = Join-Path $distRoot $zipName
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Write-Host "Creating $zipPath ..." -ForegroundColor Cyan
 Compress-Archive -Path $outDir -DestinationPath $zipPath -CompressionLevel Optimal
-Write-Host "Zip layout: G920Emulator\ (folder) → app files"
+Write-Host "Zip layout: SteeringWheelEmulator\ (folder) → app files"
 
 Write-Host ""
 Write-Host "Done." -ForegroundColor Green
-Write-Host "Run:  $outDir\G920Emulator.exe"
+Write-Host "Run:  $outDir\SteeringWheelEmulator.exe"
 if ($TestBuild) {
-    Write-Host "Or double-click:  Launch G920 Emulator (ratio test).bat"
+    Write-Host "Or double-click:  Launch Steering Wheel Emulator (ratio test).bat"
 } else {
-    Write-Host "Or double-click:  Launch G920 Emulator.bat"
+    Write-Host "Or double-click:  Launch Steering Wheel Emulator.bat"
 }
 Write-Host "Zip:  $zipPath"
 Write-Host ""

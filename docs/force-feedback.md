@@ -2,11 +2,11 @@
 
 ## Goal
 
-Forward game-authored DirectInput force-feedback from the virtual G920 to a physical wheel base. **Validated on Fanatec Podium DD2** (NFS Heat / Unbound) and **Simucube** (NFS Unbound); also designed for Simagic, Moza, Logitech, and other DirectInput FFB bases. **Raw** leaves magnitudes unshaped; optional **effect gains**, **output feel**, and **torque shaping** sliders (saved on FFB profiles) let you adjust the mix without baking feel into the driver.
+Forward game-authored DirectInput force-feedback from the virtual wheel (**Logitech G920** or **Fanatec DD1**) to a physical wheel base via shared **`emuffb.dll`**. **Validated on Fanatec Podium DD2** (NFS Heat / Unbound) and **Simucube** (NFS Unbound); also designed for Simagic, Moza, Logitech, and other DirectInput FFB bases. **Raw** leaves magnitudes unshaped; optional **effect gains**, **output feel**, and **torque shaping** sliders (saved on FFB profiles) let you adjust the mix without baking feel into the driver.
 
 ## FFB profiles (separate from input)
 
-Force-feedback presets live in `%AppData%\G920Emulator\ffb-profiles\` (not in the install zip). They are **independent of input binding profiles**.
+Force-feedback presets live in `%AppData%\SteeringWheelEmulator\ffb-profiles\` (not in the install zip). They are **independent of input binding profiles**.
 
 | Preset | Meaning |
 |--------|---------|
@@ -31,7 +31,7 @@ See [research-logitech-g920.md](research-logitech-g920.md).
 ## Active path: OEM EffectDriver
 
 ```
-Game → DirectInput → g920ffb.dll (IDirectInputEffectDriver)
+Game → DirectInput → emuffb.dll (IDirectInputEffectDriver)
      → shared memory Local\G920Emulator.FfbTorque.v7
      → BridgeService → optional feel / torque shaping → FfbBridge → physical base (DI constant force)
 ```
@@ -39,11 +39,11 @@ Game → DirectInput → g920ffb.dll (IDirectInputEffectDriver)
 | Piece | Detail |
 |-------|--------|
 | COM CLSID | `{A920FFB0-E7DB-4329-8C13-A966D84A289F}` |
-| DLL | `g920ffb.dll` next to `G920Emulator.exe` (built from `native/g920ffb`) |
+| DLL | `emuffb.dll` next to `SteeringWheelEmulator.exe` (built from `native/emuffb`) |
 | Registration | Session-scoped: `OemRegistrationSession.BeginSession()` on Start bridge; restored on Stop/Close (`EndSession`), or next launch after a crash (`RecoverIfDirty`) |
 | Shared memory | Magic `G9FF`, version 7 (`…FfbTorque.v7`): game `Torque` + optional `AuxTorque` (Steam/overlay), playing, steering in/out, type bitmasks, per-type mix torque, per-type gains, OEM mix flags/scales. Each process mixes its own OEM instances; bridge sums game + aux. |
-| Effect gains | Per-type sliders applied in `g920ffb.dll` before mix; master gain applies on the physical base |
-| Advanced Settings options | Optional inside `g920ffb.dll`: Invert Constant Force, damper velocity scale, damper deadband scale (see below). Defaults = pass-through |
+| Effect gains | Per-type sliders applied in `emuffb.dll` before mix; master gain applies on the physical base |
+| Advanced Settings options | Optional inside `emuffb.dll`: Invert Constant Force, damper velocity scale, damper deadband scale (see below). Defaults = pass-through |
 | Output feel / torque shaping | Optional, after Advanced Settings mix scales, in the emulator (see below). Defaults = pass-through |
 
 ### Effect types mixed natively
@@ -80,7 +80,7 @@ Each slider adds its effect independently when set above 0. Interpolate / Gap fi
 
 ## How games author FFB (Forza vs NFS, G920 vs DD)
 
-Games do **not** send one universal force stream. They pick an effect mix (and update rate) from the **device class they think they are talking to**. With the emulator, that device is always the **virtual G920** — your physical Fanatec / Simucube / etc. is only the playback base.
+Games do **not** send one universal force stream. They pick an effect mix (and update rate) from the **device class they think they are talking to**. With the emulator, that device is the toolbar **Emulated device** (default **virtual G920**, or **Fanatec DD1**) — your physical Fanatec / Simucube / etc. is only the playback base.
 
 ### Findings (Forza Horizon on virtual G920)
 
@@ -88,7 +88,7 @@ Validated while chasing “grainy” idle / light-steer feel on **Simucube** wit
 
 1. **Device profile matters more than the base brand.** Forza (and similar titles) author different DirectInput mixes for a Logitech G920 OEM wheel than for a native Fanatec / high-end DD path. Hiding the real base and presenting a G920 means you get the **G920-authored** mix, not the Fanatec-native one.
 2. **G920 path → sparse Constant Force.** On the virtual G920, Forza’s road/tire feel is often a **low-rate CF stream** (tens of Hz, stepped magnitudes) rather than a dense spring/damper blend. On a high-bandwidth DD that faithfully plays every step, that reads as **grain / stair-steps**, especially at idle and slow steering.
-3. **Native DD / Fanatec path → softer, spring-led mix.** Side-by-side captures (Fanatec base used natively vs same game through G920 Emulator) show the game (or its Fanatec profile) leaning on **spring / condition-heavy** forces with a smoother envelope. That is why a Fanatec can feel fine in Forza while the same title through the emulator feels grainy on Simucube — the **signals differ**, not just the motor.
+3. **Native DD / Fanatec path → softer, spring-led mix.** Side-by-side captures (Fanatec base used natively vs same game through Steering Wheel Emulator) show the game (or its Fanatec profile) leaning on **spring / condition-heavy** forces with a smoother envelope. That is why a Fanatec can feel fine in Forza while the same title through the emulator feels grainy on Simucube — the **signals differ**, not just the motor.
 4. **NFS Unbound / Heat differ again.** Unbound tends to download a richer mix (Triangle / periodic + CF + damper, with Controllers → Vibration on). Menus may show Spring-only; in-race MIX should show non-zero CF/periodic/damper. That path usually feels less “stepped” on Raw than Forza’s G920 CF stream.
 5. **What the emulator can and cannot do.** We faithfully mix and play whatever the game downloads on the virtual G920. We **cannot** make Forza send its Fanatec-native profile while the game still sees a G920. Optional **Device pace** / **Interpolate** / **Gap fill** only reshape the G920 mix after the fact (defaults off = Raw / unpaced core for every base).
 
@@ -129,7 +129,7 @@ Scale each DirectInput effect type **in the mixer** before summing (0% mutes tha
 
 ### Advanced Settings
 
-UI: Force Feedback → **Advanced Settings**. Boot ease-in / Invert FFB / soft steering catch-up apply on the emulator side; the CF/damper/coefficient rows below are applied inside `g920ffb.dll` while evaluating effects (before shared-memory torque is published).
+UI: Force Feedback → **Advanced Settings**. Boot ease-in / Invert FFB / soft steering catch-up apply on the emulator side; the CF/damper/coefficient rows below are applied inside `emuffb.dll` while evaluating effects (before shared-memory torque is published).
 
 | Control | Default | NFS Unbound / Heat | Notes |
 |---------|---------|--------------------|--------|
@@ -191,7 +191,7 @@ Off by default so everyday use stays uncluttered. File logging (OEM effects + HI
 
 ## Status-bar Debug (OEM file log)
 
-**Leave Debug off for normal racing.** It enables `%TEMP%\g920ffb-effects.log` (and HID++ ingress logging) from inside the game process. Titles that re-download effects every frame (Forza Horizon, some Steam Input paths) can generate hundreds of lines per second; older builds opened/closed the file on every write and could freeze game input while the emulator UI stayed live. Current `g920ffb.dll` rate-limits stream lines, keeps the file open, and rotates at 4 MB - still use Debug only for short diagnostic captures, then **Stop debug**. Emulator CPU/RAM is sampled every 10 seconds into `%TEMP%\g920emulator-perf.log` (and once in `summary.txt` at export), including the OEM game process when `g920ffb.dll` is loaded. That file is not written from the game. High game CPU/GPU is expected; the `hint=` line is about **emulator** load. GPU is not sampled.
+**Leave Debug off for normal racing.** It enables `%TEMP%\emuffb-effects.log` (and HID++ ingress logging) from inside the game process. Titles that re-download effects every frame (Forza Horizon, some Steam Input paths) can generate hundreds of lines per second; older builds opened/closed the file on every write and could freeze game input while the emulator UI stayed live. Current `emuffb.dll` rate-limits stream lines, keeps the file open, and rotates at 4 MB - still use Debug only for short diagnostic captures, then **Stop debug**. Emulator CPU/RAM is sampled every 10 seconds into `%TEMP%\g920emulator-perf.log` (and once in `summary.txt` at export), including the OEM game process when `emuffb.dll` is loaded. That file is not written from the game. High game CPU/GPU is expected; the `hint=` line is about **emulator** load. GPU is not sampled.
 
 **FFB debug** (the expander) is separate: live counters and test pulses with no file I/O on the game thread. **Settings → FFB Debug Overlay** shows the same live G920 inputs and FFB diagnostics in a topmost window you can drag over the game.
 
@@ -205,18 +205,18 @@ Off by default so everyday use stays uncluttered. File logging (OEM effects + HI
 While a Debug session is active (and until the next Start clears them), you can also open:
 
 ```
-%TEMP%\g920ffb-effects.log
+%TEMP%\emuffb-effects.log
 ```
 
 Each `DownloadEffect` logs type, handle, flags, and a type-specific “extra” (CF magnitude, spring offset, damper coeff, periodic magnitude). Parameter-only streaming updates are rate-limited per effect (see **Reading the OEM log** below). Spring downloads also emit `SPRING_DETAIL` lines.
 
-When a game opens the virtual wheel's FFB, the log gets a `SESSION g920ffb loaded pid=… exe=…` line. If no SESSION line appears for a game, it did not load the OEM driver, so its forces never reached the emulator. The log rotates to `g920ffb-effects.log.old` past 4 MB.
+When a game opens the virtual wheel's FFB, the log gets a `SESSION emuffb loaded pid=… exe=…` line. If no SESSION line appears for a game, it did not load the OEM driver, so its forces never reached the emulator. The log rotates to `emuffb-effects.log.old` past 4 MB.
 
 ### NFS Unbound
 
 At menu/load Unbound downloads **ConstantForce**, **Sine**, **Damper**, **Spring**, and in-race often **Triangle** (and streams `0x100` every frame). Universal mixing is required.
 
-Unbound can construct **multiple** OEM driver instances; older single-instance mixers published torque=0 while `effects.log` still grew. Current `g920ffb.dll` mixes all live instances and uses SHM **v7** (`Torque` + `AuxTorque`) so Steam/idle helpers cannot overwrite the game channel.
+Unbound can construct **multiple** OEM driver instances; older single-instance mixers published torque=0 while `effects.log` still grew. Current `emuffb.dll` mixes all live instances and uses SHM **v7** (`Torque` + `AuxTorque`) so Steam/idle helpers cannot overwrite the game channel.
 
 For a stronger tire-follow / lighter arcade center on DD bases, raise **Constant** and lower **Spring** in the effect gains, then **Save As…** your own FFB profile. Default runtime path stays **Raw**.
 
@@ -227,7 +227,7 @@ Heat / Unbound pull the wheel back to center like an arcade cabinet. In DirectIn
 1. Select your **physical FFB base** under Force feedback (not DualSense). Spring uses that rim angle.
 2. Keep **Spring** (and other) effect gains above 0% unless you intend to mute a type.
 3. Do **not** rely on hardware `DIPROP_AUTOCENTER` during gameplay - it is left off so it cannot fight the OEM mix. FFB debug **Center** is a manual software return-to-center test only.
-4. OEM log (`%TEMP%\g920ffb-effects.log`) should list Spring / Damper / CF / periodic while driving. FFB debug and FFB Debug Overlay show **Rim (spring)** plus the same MIX groups and per-type seen/playing list.
+4. OEM log (`%TEMP%\emuffb-effects.log`) should list Spring / Damper / CF / periodic while driving. FFB debug and FFB Debug Overlay show **Rim (spring)** plus the same MIX groups and per-type seen/playing list.
 
 ### Reading the OEM log
 

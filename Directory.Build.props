@@ -4,7 +4,7 @@
     <Version>0.2.7</Version>
     <InformationalVersion>$(Version)</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <Product>G920 Emulator</Product>
-    <Company>G920 Emulator</Company>
+    <Product>Steering Wheel Emulator</Product>
+    <Company>Steering Wheel Emulator</Company>
   </PropertyGroup>
 </Project>

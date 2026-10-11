@@ -1,19 +1,19 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-  Undoes G920 Emulator system registry changes that can break Forza Horizon 5/6
+  Undoes Steering Wheel Emulator system registry changes that can break Forza Horizon 5/6
   and other titles that load the Logitech Steering Wheel SDK / G920 OEM FFB.
 
-  Close G920Emulator.exe first (its G HUB guard re-applies the pin every ~2s).
+  Close SteeringWheelEmulator.exe first (its G HUB guard re-applies the pin every ~2s).
 
 .DESCRIPTION
   1) Removes our OEMForceFeedback CLSID override for VID_046D&PID_C262
      (and restores Logitech stock CLSID if you pass -RestoreLogitechOemClsid).
-  2) Unregisters our g920ffb.dll COM server.
+  2) Unregisters our emuffb.dll COM server.
   3) Removes the LogitechSteeringWheel.dll ServerBinary pin under
      CLSID {63BD165D-1584-4E75-AB56-08330350545F} (64- and 32-bit views).
 
-  Does NOT uninstall WinUHid/HidHide or delete %ProgramData%\G920Emulator\LogitechSDK
+  Does NOT uninstall WinUHid/HidHide or delete %ProgramData%\SteeringWheelEmulator\LogitechSDK
   (files can stay; only the registry pin is removed).
 #>
 [CmdletBinding()]
@@ -30,8 +30,8 @@ $oemFfRel = 'System\CurrentControlSet\Control\MediaProperties\PrivateProperties\
 
 $running = Get-Process -Name G920Emulator -ErrorAction SilentlyContinue
 if ($running) {
-    Write-Warning "G920Emulator.exe is running (PID $($running.Id -join ',')). Stop it first or the guard will re-pin within seconds."
-    throw "Close G920 Emulator, then re-run this script."
+    Write-Warning "SteeringWheelEmulator.exe is running (PID $($running.Id -join ',')). Stop it first or the guard will re-pin within seconds."
+    throw "Close Steering Wheel Emulator, then re-run this script."
 }
 
 function Remove-ClsidInproc([string] $clsid) {
@@ -89,13 +89,13 @@ function Clear-SdkServerBinary {
     }
 }
 
-Write-Host '=== Restoring system Logitech registration (G920 Emulator undo) ==='
+Write-Host '=== Restoring system Logitech registration (Steering Wheel Emulator undo) ==='
 Clear-OemFfbClsid
-Write-Host 'Unregistering g920ffb COM server...'
+Write-Host 'Unregistering emuffb COM server...'
 Remove-ClsidInproc $ourFfb
 Write-Host 'Removing Logitech SDK ServerBinary pin...'
 Clear-SdkServerBinary
 Write-Host ''
 Write-Host 'Done. Launch Forza Horizon 5/6 to verify.'
-Write-Host 'If it works: the SDK/OEM pin from G920 Emulator was the cause.'
-Write-Host 'Re-opening G920 Emulator will re-apply pins while the app (or bridge) runs - keep it closed for Forza until we ship a fix.'
+Write-Host 'If it works: the SDK/OEM pin from Steering Wheel Emulator was the cause.'
+Write-Host 'Re-opening Steering Wheel Emulator will re-apply pins while the app (or bridge) runs - keep it closed for Forza until we ship a fix.'

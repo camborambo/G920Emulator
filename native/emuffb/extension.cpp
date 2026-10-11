@@ -30,7 +30,7 @@ BOOL WINAPI DllMain(HINSTANCE Instance, DWORD Reason, LPVOID Reserved)
 		// Keep this module mapped for the process lifetime. Steam/DirectInput
 		// CoCreates our IDirectInputEffectDriver then CoFreeUnusedLibraries /
 		// FreeLibrary — without a pin, WER reports steam.exe faulting in
-		// g920ffb.dll_unloaded (0xc0000005) on the leftover vtable.
+		// emuffb.dll_unloaded (0xc0000005) on the leftover vtable.
 		{
 			HMODULE pinned = nullptr;
 			if (!GetModuleHandleExW(

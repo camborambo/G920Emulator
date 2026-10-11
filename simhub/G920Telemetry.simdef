@@ -159,7 +159,7 @@
   "ManagerVersion": 2,
   "GameSignature": 2863604573,
   "TelemetrySignature": 308537222,
-  "Name": "G920 Emulator (simulated)",
+  "Name": "Steering Wheel Emulator (simulated)",
   "UniqueId": "8c4e2b1a-9f70-4d3e-b6a1-2d5c8e0f1734",
   "DefaultUDPPort": 20778,
   "DetectionProcesses": [

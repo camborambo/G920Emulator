@@ -8,7 +8,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A920FFB0-4620-4E7D-8C13-A966D84A289F}</ProjectGuid>
-    <RootNamespace>g920ffb</RootNamespace>
+    <RootNamespace>emuffb</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -21,9 +21,9 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup>
-    <OutDir>$(ProjectDir)..\..\native\g920ffb\bin\</OutDir>
+    <OutDir>$(ProjectDir)..\..\native\emuffb\bin\</OutDir>
     <IntDir>$(ProjectDir)obj\</IntDir>
-    <TargetName>g920ffb</TargetName>
+    <TargetName>emuffb</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>

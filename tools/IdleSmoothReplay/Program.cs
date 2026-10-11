@@ -1,11 +1,11 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
-using G920Emulator.Core.Ffb;
+using SteeringWheelEmulator.Core.Ffb;
 
 /// <summary>
-/// Replay g920ffb-effects.log CF samples through Interpolate (full-path INT)
+/// Replay emuffb-effects.log CF samples through Interpolate (full-path INT)
 /// and print grain metrics (low-mag steps, sign flips, ΔRMS).
-/// Usage: IdleSmoothReplay [path-to-g920ffb-effects.log] [blendMs=50] [gapFillMs=80]
+/// Usage: IdleSmoothReplay [path-to-emuffb-effects.log] [blendMs=50] [gapFillMs=80]
 /// </summary>
 static class Program
 {
@@ -27,7 +27,7 @@ static class Program
 
         if (string.IsNullOrWhiteSpace(logPath) || !File.Exists(logPath))
         {
-            Console.Error.WriteLine("Usage: IdleSmoothReplay <g920ffb-effects.log> [blendMs] [gapFillMs]");
+            Console.Error.WriteLine("Usage: IdleSmoothReplay <emuffb-effects.log> [blendMs] [gapFillMs]");
             Console.Error.WriteLine("No log found. Pass a path from a Debug export with sparse CF.");
             return 1;
         }
@@ -70,15 +70,15 @@ static class Program
                          ".tmp-diag-20261010-020834",
                      })
             {
-                var p = Path.Combine(root, dir, "logs", "g920ffb-effects.log");
+                var p = Path.Combine(root, dir, "logs", "emuffb-effects.log");
                 if (File.Exists(p)) return p;
-                p = Path.Combine(root, ".tmp-diag-20261010-030926", "logs", "g920ffb-effects.log");
+                p = Path.Combine(root, ".tmp-diag-20261010-030926", "logs", "emuffb-effects.log");
                 if (File.Exists(p)) return p;
             }
 
             try
             {
-                foreach (var candidate in Directory.EnumerateFiles(root, "g920ffb-effects.log", SearchOption.AllDirectories)
+                foreach (var candidate in Directory.EnumerateFiles(root, "emuffb-effects.log", SearchOption.AllDirectories)
                              .Take(20))
                 {
                     if (candidate.Contains("20261010", StringComparison.Ordinal))

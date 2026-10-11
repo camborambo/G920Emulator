@@ -58,7 +58,7 @@ static bool LogPath(wchar_t* path, size_t cch)
 {
 	if (GetTempPathW((DWORD)cch, path) == 0)
 		return false;
-	return wcscat_s(path, cch, L"g920ffb-effects.log") == 0;
+	return wcscat_s(path, cch, L"emuffb-effects.log") == 0;
 }
 
 static void CloseLogFile_NoLock()
@@ -166,7 +166,7 @@ void G920FfbLogSession()
 	name = name ? name + 1 : exe;
 
 	char body[300];
-	sprintf_s(body, "SESSION g920ffb loaded pid=%lu exe=%ls",
+	sprintf_s(body, "SESSION emuffb loaded pid=%lu exe=%ls",
 		(unsigned long)GetCurrentProcessId(), name);
 	AppendLine(body);
 }

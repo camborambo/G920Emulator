@@ -124,4 +124,4 @@ if ($result -notmatch '^OK') { throw $result }
 & pnputil.exe /add-driver $inf /install | Out-Host
 try { & pnputil.exe /scan-devices | Out-Host } catch {}
 Write-Host ''
-Write-Host 'Done. In G920 Emulator click Recheck. If it still fails, reboot once and Recheck again.'
+Write-Host 'Done. In Steering Wheel Emulator click Recheck. If it still fails, reboot once and Recheck again.'

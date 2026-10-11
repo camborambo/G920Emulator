@@ -5,16 +5,16 @@
 - Windows 10/11
 - [WinUHid](driver-install.md) (bundled installer in the app)
 - [HidHide](https://github.com/nefarius/HidHide) (**required**)
-- [Logitech Steering Wheel SDK + OEM FFB](driver-install.md#logitech-steering-wheel-sdk--oem-ffb-session-scoped) (bundled; pinned only while the bridge runs for NFS Heat / Unbound-style games, then restored)
+- [OEM FFB (`emuffb.dll`)](driver-install.md#logitech-steering-wheel-sdk--oem-ffb-session-scoped) (bundled; session-scoped). **G920** also pins the Logitech Steering Wheel SDK for Heat / Unbound-style titles; **Fanatec DD1** uses Fanatec OEM + `emuffb` only (no Logitech SDK pin, no Fanatec SDK)
 - A physical DirectInput controller / wheel / pedals / shifter to bind
 - Optional: DirectInput FFB wheel base for force feedback
 
 ## Launch
 
-1. Download **`G920Emulator-win-x64.zip`** from [Releases](https://github.com/camborambo/G920Emulator/releases).
-2. Extract → open the **`G920Emulator`** folder → run **`G920Emulator.exe`**. Only one instance can run; launching again restores the existing window (including from the system tray).
+1. Download **`SteeringWheelEmulator-win-x64.zip`** from [Releases](https://github.com/camborambo/SteeringWheelEmulator/releases).
+2. Extract → open the **`G920Emulator`** folder → run **`SteeringWheelEmulator.exe`**. Only one instance can run; launching again restores the existing window (including from the system tray).
 
-(From a source checkout: `.\publish.ps1`, then `dist\G920Emulator\G920Emulator.exe`.)
+(From a source checkout: `.\publish.ps1`, then `dist\SteeringWheelEmulator\SteeringWheelEmulator.exe`.)
 
 Approve UAC when prompted (WinUHid requires elevation to open the device).
 
@@ -23,11 +23,11 @@ Approve UAC when prompted (WinUHid requires elevation to open the device).
 The window title and status bar show the app version (for example **v0.2.7**). With **Settings → Check for GitHub updates** on (default), a banner appears when a newer **published** GitHub release exists.
 
 1. Click **Update** - the zip downloads to **Downloads** and that folder opens.
-2. Close G920 Emulator if it is running.
+2. Close Steering Wheel Emulator if it is running.
 3. Unzip the new `G920Emulator` folder **over** the folder you already use (same place you put it the first time).
-4. Run the new `G920Emulator.exe`. Bindings stay in `%AppData%\G920Emulator\` unless you use `portable.txt`.
+4. Run the new `SteeringWheelEmulator.exe`. Bindings stay in `%AppData%\SteeringWheelEmulator\` unless you use `portable.txt`.
 
-If Windows says the install folder is **in use**, Steam often still has an old `g920ffb.dll` loaded from that folder. OEM FFB is registered under `%ProgramData%\G920Emulator\g920ffb\` — **fully quit Steam once**, then delete or replace the folder. (Closing only the emulator is not enough if Steam already loaded the old path.)
+If Windows says the install folder is **in use**, Steam often still has an old `emuffb.dll` loaded from that folder. OEM FFB is registered under `%ProgramData%\SteeringWheelEmulator\emuffb\` — **fully quit Steam once**, then delete or replace the folder. (Closing only the emulator is not enough if Steam already loaded the old path.)
 
 **Later** hides that version until a newer tag. You can turn the check off in Settings. The app does not overwrite files itself.
 
@@ -36,25 +36,36 @@ If Windows says the install folder is **in use**, Steam often still has an old `
 1. Open **Dependencies** (header **Settings** → **Manage dependencies**, or the **Fix** banner if something is missing).
 2. **Install WinUHid** → Recheck until installed/ready.
 3. Install HidHide if missing → configure it yourself in **HidHide Client** (or optional **Configure HidHide** in Dependencies). Or open **Settings → HidHide** and pick an apply mode:
-   - **Off** (default) - **Start** never changes HidHide.
-   - **Hide all (except emulator)** - each **Start** whitelists the emulator and hides devices from HidHide’s **Gaming devices only** list (virtual G920 stays visible).
+   - **Off** (default) - **Start** never changes HidHide from Settings. If the active input profile has a saved **HidHide snapshot**, Start still restores that list.
+   - **Hide all (except emulator)** - each **Start** whitelists the emulator and hides devices from HidHide's **Gaming devices only** list (virtual wheel stays visible).
    - **Hide bound devices only** - same whitelist/cloak, but each **Start** hides only devices used in your current bindings (and FFB source) and **unhides** other gaming devices left hidden from a previous profile (e.g. pedals after switching from a full-rig bind to wheel-only). Unbound pads stay visible for in-game binding.
    - **Save & restore on Stop** - with a mode other than Off, **Start** can save your current HidHide setup and put it back on **Stop**/**Exit** (status shows **Restoring HidHide…**; if it times out, the next launch finishes it).
    Close **HidHide Client** before Start (or let the app close it when prompted) - while that window is open the driver returns Access denied / 0x0005. Windows may also ask for admin permission.
-4. Create a profile name → **Save** (stored in `%AppData%\G920Emulator\profiles`, so updates do not wipe binds).
+4. Pick **Emulated device** (toolbar): **Logitech G920** or **Fanatec DD1** — only while Stopped. Create a profile name → **Save** (stored in `%AppData%\SteeringWheelEmulator\profiles`, so updates do not wipe binds). Save also captures a HidHide snapshot into the profile when possible; switching profiles restores it.
 
 Details and troubleshooting: [driver-install.md](driver-install.md).
 
 ## Tabs
 
-- **Input** - detected devices, G920 bindings, shifter mode, and live virtual G920 preview (including buttons).
+- **Input** - detected devices, bindings for the selected emulated identity, shifter mode, and live virtual-wheel preview (including buttons).
 - **Telemetry** - SimHub UDP for games with no native telemetry (simulated speed/RPM plus FFB-derived rumble).
 
-Shared chrome: Input / Force Feedback / Telemetry tabs, input profile, **Start** (toggles to **Stop** while running), and the gear **Settings** modal (tabs **General**, **Overlays**, **HidHide**). Settings save immediately in `settings.json` (minimize to tray, update checks, telemetry km/h, overlays, HidHide apply mode + save & restore). The tray icon menu is slim: **Restore**, **Settings…**, **Exit**. Telemetry **simulation** presets are separate profiles under `%AppData%\G920Emulator\telemetry-profiles` (same Save / Save as / Default / Delete pattern as FFB profiles); host/port/rate stay in settings. Live meters sit on the Input tab. A warning strip appears if required pieces are missing. With update checks on, a banner appears when GitHub has a newer published release. **Update** saves the zip to Downloads (then opens that folder); unzip it over your G920 Emulator folder like a first install. **Later** skips that version.
+Shared chrome: Input / Force Feedback / Telemetry tabs, **Emulated device** combo, input profile, **Start** (toggles to **Stop** while running), and the gear **Settings** modal (tabs **General**, **Overlays**, **HidHide**). Settings save immediately in `settings.json` (minimize to tray, update checks, telemetry km/h, overlays, HidHide apply mode + save & restore). The tray icon menu is slim: **Restore**, **Settings…**, **Exit**. Telemetry **simulation** presets are separate profiles under `%AppData%\SteeringWheelEmulator\telemetry-profiles` (same Save / Save As / Default / Delete pattern as FFB profiles); host/port/rate stay in settings. Live meters sit on the Input tab. A warning strip appears if required pieces are missing. With update checks on, a banner appears when GitHub has a newer published release. **Update** saves the zip to Downloads (then opens that folder); unzip it over your Steering Wheel Emulator folder like a first install. **Later** skips that version.
+
+## Emulated device
+
+Toolbar combo (change only while the bridge is **Stopped**):
+
+| Identity | VID:PID | When to use |
+|----------|---------|-------------|
+| **Logitech G920** (default) | `046D:C262` | Titles with a G920 / Logitech wheel profile (Heat, Unbound, Forza on G920 path, …) |
+| **Fanatec DD1** | `0EB7:0004` | Titles / mixed-brand setups that expect Fanatec PC Compatibility mode |
+
+Your **physical** Fanatec (or other) base stays in Detected devices for bind and FFB output — it is not removed because it shares a Fanatec VID. PC Comp uses shared **`emuffb.dll`** for game FFB (no Fanatec SDK, no Logitech SDK pin). Gear R defaults to button **12** on PC Comp profiles.
 
 ## Telemetry (SimHub)
 
-Many arcade / console-port titles (Need for Speed Heat and Unbound included) have **no telemetry API**. This tab does not read the game process. It sends a UDP packet SimHub 9.11.5+ can consume as an **External Sim** named **G920 Emulator (simulated)**.
+Many arcade / console-port titles (Need for Speed Heat and Unbound included) have **no telemetry API**. This tab does not read the game process. It sends a UDP packet SimHub 9.11.5+ can consume as an **External Sim** named **Steering Wheel Emulator (simulated)**.
 
 **Honest fields**
 
@@ -70,8 +81,8 @@ Many arcade / console-port titles (Need for Speed Heat and Unbound included) hav
 **Setup**
 
 1. SimHub **9.11.5 or newer**. Settings → Global → enable game definition authoring if the sim does not appear.
-2. On the **Telemetry** tab, click **Register with SimHub** (writes `%LocalAppData%\SimHub\ExternalSims\Registrations\{id}.simlink` pointing at `simhub\G920Telemetry.simdef` next to `G920Emulator.exe`, and installs **`G920Emulator.SimHubPlugin.dll`** into the SimHub folder so built-in ShakeIt **Engine vibrations** gets the same RPM capability native games like Forza use). **Remove registration** deletes the link and disables/removes that plugin; restart SimHub so the tile and icon drop, then Register again after changing `simhub/logo.png`.
-3. Restart SimHub, then activate **G920 Emulator (simulated)**. Match UDP **port** (default **20778**) and host **127.0.0.1**. Do not pick this sim for titles that already have a native SimHub plugin (Forza, and so on). Need for Speed Heat / Unbound are listed as detection processes only so SimHub can switch to this definition if those EXEs are running - they still have no real telemetry. Confirm **G920 Emulator RPM** is enabled under SimHub → Settings → Plugins.
+2. On the **Telemetry** tab, click **Register with SimHub** (writes `%LocalAppData%\SimHub\ExternalSims\Registrations\{id}.simlink` pointing at `simhub\G920Telemetry.simdef` next to `SteeringWheelEmulator.exe`, and installs **`SteeringWheelEmulator.SimHubPlugin.dll`** into the SimHub folder so built-in ShakeIt **Engine vibrations** gets the same RPM capability native games like Forza use). **Remove registration** deletes the link and disables/removes that plugin; restart SimHub so the tile and icon drop, then Register again after changing `simhub/logo.png`.
+3. Restart SimHub, then activate **Steering Wheel Emulator (simulated)**. Match UDP **port** (default **20778**) and host **127.0.0.1**. Do not pick this sim for titles that already have a native SimHub plugin (Forza, and so on). Need for Speed Heat / Unbound are listed as detection processes only so SimHub can switch to this definition if those EXEs are running - they still have no real telemetry. Confirm **Steering Wheel Emulator RPM** is enabled under SimHub → Settings → Plugins.
 4. Enable **Send telemetry while the bridge is running**, **Start** the bridge, launch the game.
 5. Optional **Telemetry profile** tuning (Save / Save as / Default / Delete under `telemetry-profiles`):
 
@@ -83,13 +94,13 @@ Many arcade / console-port titles (Need for Speed Heat and Unbound included) hav
 
 Unbound still needs **Controller Vibration On** or periodic/CF magnitudes stay 0 (same as FFB).
 
-**ShakeIt / property picker (with G920 Emulator selected)**
+**ShakeIt / property picker (with Steering Wheel Emulator selected)**
 
 | Effect | Use these properties |
 |--------|----------------------|
 | Speed | `SpeedKmh` or `SpeedMph` (we always send **km/h**; SimHub derives MPH) |
 | RPM | `Rpms` / `MaxRpm` / `CarSettings_CurrentGearRedLineRPM` (from `EngineRpm` / `EngineMaxRpm` / `EngineShiftRpm`) |
-| Engine vibrations (built-in ShakeIt) | Simulated **`Rpms`** / `MaxRpm` / `EngineStarted` are always sent. After **Register with SimHub**, the **G920 Emulator RPM** plugin enables the effect (Forza-style). Use the **Engine** scale under ShakeIt / FFB scales for force (0-200%); enable/curves stay in SimHub. Restart SimHub once after installing the plugin. |
+| Engine vibrations (built-in ShakeIt) | Simulated **`Rpms`** / `MaxRpm` / `EngineStarted` are always sent. After **Register with SimHub**, the **Steering Wheel Emulator RPM** plugin enables the effect (Forza-style). Use the **Engine** scale under ShakeIt / FFB scales for force (0-200%); enable/curves stay in SimHub. Restart SimHub once after installing the plugin. |
 | G-force | `AccelerationSurge` / `AccelerationSway` / `AccelerationHeave` (from Local*Ms2) |
 | Road vibration / kerbs (built-in ShakeIt) | Uses standard **suspension velocity** + **tyre contact surface** (enabled when FFB rumble/impact is present) |
 | Custom rumble / impact / load | Game raw data **`SurfaceRumble`**, **`Impact`**, **`RoadLoad`** (0..1) |
@@ -107,7 +118,7 @@ On the **Input** tab:
 
 ## Bindings
 
-On the **Input** tab, click a G920 control in **G920 bindings** to **Assign** (capture dialog).
+On the **Input** tab, click a control in the bindings list to **Assign** (capture dialog). Labels follow the emulated identity (G920 or Fanatec PC Comp catalog).
 
 | Target kind | Capture |
 |-------------|---------|
@@ -143,12 +154,12 @@ Assign **Gear R** and **Gear 1-6**. Gears 1-6 always map to G920 buttons **13-18
 
 **Gear R** output button is selectable in the Assign Gear R dialog (saved on the profile):
 
-| Setting | G920 button | Use when |
-|---------|-------------|----------|
-| **19** (default) | Official G920 / LGS reverse | **NFS Heat** and most titles |
-| **12** | Unbound native reverse | **NFS Unbound** only (required for reverse to work there) |
+| Setting | Reverse button | Use when |
+|---------|----------------|----------|
+| **19** (G920 default) | Official G920 / LGS reverse | **NFS Heat** and most G920 titles |
+| **12** (Unbound / PC Comp default) | Unbound / Fanatec-style reverse | **NFS Unbound**; Fanatec DD1 profiles default here |
 
-If reverse works in Heat but not Unbound (or the reverse), change this setting - gears 1-6 stay on 13-18 either way.
+If reverse works in Heat but not Unbound (or the reverse), change this setting - gears 1-6 stay on 13-18 either way for the G920 identity.
 
 Gears are always exclusive H-pattern: only one gear bit is on at a time. If more than one gear is pressed, the first match (R→1→6) is kept.
 
@@ -176,7 +187,7 @@ Slider ranges and probing tips: [force-feedback.md](force-feedback.md).
 1. Confirm WinUHid + HidHide ready.
 2. Bindings update the live meters on the right.
 3. Click **Start** (the button becomes **Stop** while the bridge is running).
-4. Launch the game and select the Logitech G920 / wheel device.
+4. Launch the game and select the virtual wheel (G920 or Fanatec PC Comp, matching **Emulated device**).
 
 You can change bindings (and tweak Invert, **Axis range**, or **Activate on Axis**) while the bridge is running; they take effect immediately. Restart the bridge only when you change something that attaches at Start (for example the **FFB output device**) or after driver/dependency changes.
 
@@ -193,12 +204,12 @@ Stop ends the virtual device and FFB apply loop. If Stop is slow (WinUHid teardo
 Input bindings and force-feedback presets are stored **separately**, both outside the install folder so updates never overwrite them:
 
 ```
-%AppData%\G920Emulator\profiles\Default.json        (input bindings - Save / Save As)
-%AppData%\G920Emulator\ffb-profiles\Raw.json        (exact game mix - cannot delete)
-%AppData%\G920Emulator\settings.json
+%AppData%\SteeringWheelEmulator\profiles\Default.json        (input bindings - Save / Save As)
+%AppData%\SteeringWheelEmulator\ffb-profiles\Raw.json        (exact game mix - cannot delete)
+%AppData%\SteeringWheelEmulator\settings.json
 ```
 
-There is **no** `profiles\` or `ffb-profiles\` directory next to `G920Emulator.exe` in the zip. On first run the app creates AppData, seeds an empty **Default** input profile, and seeds the built-in **Raw** FFB profile.
+There is **no** `profiles\` or `ffb-profiles\` directory next to `SteeringWheelEmulator.exe` in the zip. On first run the app creates AppData, seeds an empty **Default** input profile, and seeds the built-in **Raw** FFB profile.
 
 **Migration (once, never overwrites AppData):** copies **input** `profiles\*.json` and `settings.json` from next-to-exe leftovers and from `%AppData%\N4Sunbound`. Next-to-exe `ffb-profiles\` are **not** migrated - re-Save FFB presets, or rely on legacy inline FFB fields on an input JSON becoming a named FFB profile when loaded.
 
@@ -245,18 +256,18 @@ Leave status-bar **Debug** **off** during normal play. It turns on OEM / HID++ f
 
 1. Click **Debug** (status bar, bottom-right) - clears prior session logs in `%TEMP%` and starts OEM / HID++ file logging.
 2. Reproduce briefly (Start bridge, launch the game, hit a wall, etc.). Prefer a short run over a long session with Debug left on.
-3. Click **Stop debug**, then **Export log…**, save the zip, and attach it to a [GitHub issue](https://github.com/camborambo/G920Emulator/issues) with a short description (wheel, game, what failed). Export before starting Debug again, or those logs are wiped.
+3. Click **Stop debug**, then **Export log…**, save the zip, and attach it to a [GitHub issue](https://github.com/camborambo/SteeringWheelEmulator/issues) with a short description (wheel, game, what failed). Export before starting Debug again, or those logs are wiped.
 
 The zip includes:
 
 - `HOW-TO-SEND.txt` - how the capture was meant to be taken
-- `summary.txt` - machine name, deps, running wheel/SimHub/Steam processes, `g920ffb.dll` stamp, live bridge/FFB attach, emulator CPU/RAM snapshot
+- `summary.txt` - machine name, deps, running wheel/SimHub/Steam processes, `emuffb.dll` stamp, live bridge/FFB attach, emulator CPU/RAM snapshot
 - `devices.txt` - every DirectInput game device (including virtual G920 and FFB flag)
 - `ffb-snapshot.txt` - OEM shared-memory mix + active gains at export time
 - `hidhide.txt` - cloak / app whitelist / hidden devices via HidHideCLI
-- `oem-registry.txt` - g920ffb COM InprocServer32 (ProgramData vs install folder) + OEMForceFeedback CLSID tree
+- `oem-registry.txt` - emuffb COM InprocServer32 (ProgramData vs install folder) + OEMForceFeedback CLSID tree
 - `game-ffb-analysis.txt` - Unbound race signature / Vibration hint from the OEM log
-- `logs\g920ffb-effects.log` - game OEM calls (`SESSION` / `CALL` / `EFFECT` / `MIX`) when Debug was used
+- `logs\emuffb-effects.log` - game OEM calls (`SESSION` / `CALL` / `EFFECT` / `MIX`) when Debug was used
 - `logs\g920emulator-perf.log` - 10 s snapshots of emulator CPU/RAM plus the OEM game (and Steam aux) process; high game load is expected, watch emulator `cpu1` / `hint=`
 - Copies of AppData (or portable) `profiles\`, `ffb-profiles\`, and `settings.json`
 

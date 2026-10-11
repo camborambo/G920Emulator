@@ -1,4 +1,4 @@
-LIBRARY "g920ffb.dll"
+LIBRARY "emuffb.dll"
 
 EXPORTS
 	DllGetClassObject	PRIVATE

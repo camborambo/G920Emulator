@@ -1,8 +1,15 @@
 # Compatibility
 
-Devices and games exercised during development of this project. This is **not** an exhaustive support matrix - unlisted titles may still work if they accept a DirectInput G920 with OEM FFB.
+Devices and games exercised during development of this project. This is **not** an exhaustive support matrix - unlisted titles may still work if they accept a DirectInput G920 or Fanatec DD1 identity with OEM FFB (`emuffb.dll`).
 
 Update this page when you validate a new setup.
+
+## Emulated identities
+
+| Identity | VID:PID | OEM FFB | Notes |
+|----------|---------|---------|--------|
+| Logitech G920 (default) | `046D:C262` | `emuffb` + Logitech SDK pin on Start | Most validated games below |
+| Fanatec DD1 | `0EB7:0004` | `emuffb` only (no Fanatec SDK, no Logitech SDK) | Physical Fanatec remains FFB/bind source; Gear R default **12** |
 
 ## Input devices tested
 

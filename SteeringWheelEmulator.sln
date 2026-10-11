@@ -1,0 +1,48 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{8CF1FD81-BB75-42F4-BB4B-3717A2B77E33}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteeringWheelEmulator.Core", "src\SteeringWheelEmulator.Core\SteeringWheelEmulator.Core.csproj", "{F2CA4ADC-1705-477F-A7F7-2A3FED34B843}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteeringWheelEmulator.VirtualHid", "src\SteeringWheelEmulator.VirtualHid\SteeringWheelEmulator.VirtualHid.csproj", "{03A76DE5-AC16-41AD-B9B0-815FC2CF4152}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteeringWheelEmulator.App", "src\SteeringWheelEmulator.App\SteeringWheelEmulator.App.csproj", "{0E012812-DA2F-409E-9C3B-3C839507BEE9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SteeringWheelEmulator.SimHubPlugin", "src\SteeringWheelEmulator.SimHubPlugin\SteeringWheelEmulator.SimHubPlugin.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F2CA4ADC-1705-477F-A7F7-2A3FED34B843}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2CA4ADC-1705-477F-A7F7-2A3FED34B843}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2CA4ADC-1705-477F-A7F7-2A3FED34B843}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2CA4ADC-1705-477F-A7F7-2A3FED34B843}.Release|Any CPU.Build.0 = Release|Any CPU
+		{03A76DE5-AC16-41AD-B9B0-815FC2CF4152}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03A76DE5-AC16-41AD-B9B0-815FC2CF4152}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03A76DE5-AC16-41AD-B9B0-815FC2CF4152}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{03A76DE5-AC16-41AD-B9B0-815FC2CF4152}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E012812-DA2F-409E-9C3B-3C839507BEE9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E012812-DA2F-409E-9C3B-3C839507BEE9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E012812-DA2F-409E-9C3B-3C839507BEE9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E012812-DA2F-409E-9C3B-3C839507BEE9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F2CA4ADC-1705-477F-A7F7-2A3FED34B843} = {8CF1FD81-BB75-42F4-BB4B-3717A2B77E33}
+		{03A76DE5-AC16-41AD-B9B0-815FC2CF4152} = {8CF1FD81-BB75-42F4-BB4B-3717A2B77E33}
+		{0E012812-DA2F-409E-9C3B-3C839507BEE9} = {8CF1FD81-BB75-42F4-BB4B-3717A2B77E33}
+		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890} = {8CF1FD81-BB75-42F4-BB4B-3717A2B77E33}
+	EndGlobalSection
+EndGlobal

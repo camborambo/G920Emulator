@@ -7,10 +7,16 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- **Product rename → Steering Wheel Emulator:** UI brand, `SteeringWheelEmulator.exe` / zip / install folder, `%AppData%` / `%ProgramData%` / LocalAppData under `SteeringWheelEmulator` (one-time migrate from `G920Emulator`, then remove old trees when safe). GitHub repo → `camborambo/SteeringWheelEmulator`. C# projects/namespaces → `SteeringWheelEmulator.*` (`SteeringWheelEmulator.sln`). `emuffb` COM CLSID, SHM `Local\G920Emulator.FfbTorque.v7`, and virtual G920/Fanatec HID InstanceIDs unchanged. SimHub External Sim → **Steering Wheel Emulator (simulated)**; plugin → `SteeringWheelEmulator.SimHubPlugin.dll` (Register removes legacy `G920Emulator.SimHubPlugin`).
+
 ### Added
 
+- **Emulated device** toolbar: **Logitech G920** (default) or **Fanatec DD1** (`0EB7:0004`). Games see that virtual identity; your physical Fanatec/Simucube/etc. stays the FFB output (and can still be bound). Change only while Stopped. Gear R defaults to **12** for PC Comp.
+- **Per-profile HidHide snapshot:** **Save** on an input profile captures the current hide list (best-effort). Switching profiles (or Start when Settings HidHide is **Off** but the profile has a snapshot) restores that list. Settings Hide-all / Hide-bound Start paths unchanged.
 - Output feel optional **Device pace**, **Interpolate** (full-path INT-like blend, not idle-only), and **Gap fill** — each slider adds its effect when &gt; 0 (defaults off). Offline replay: `tools/IdleSmoothReplay`.
-- Debug session logs **FFB_TUNE** lines to `g920emulator-bridge-health.log` when effect gains / output feel are applied (values + shared-memory readback) so exports can prove slider changes reached `g920ffb`.
+- Debug session logs **FFB_TUNE** lines to `g920emulator-bridge-health.log` when effect gains / output feel are applied (values + shared-memory readback) so exports can prove slider changes reached `emuffb`.
 - Telemetry **Max gears** in the Gearing card (1–10): UDP `MaxGears` → SimHub `CarSettings_MaxGears`, shows that many gear ratio / top-speed rows (paddles can use 7–10 for speed sim; H-shifter still 1–6). Gear tops use the [Blocklayer](https://www.blocklayer.com/rpm-gear) formula MPH = (tire × ShiftAt) / (336 × gear × diff) for all gears including 7–10; absolute speed ceiling raised to 1600 km/h so tall overdrive is not clipped through AbsoluteRpmMax. After updating, **Remove registration** → restart SimHub → **Register with SimHub** again if the packet layout changed.
 - Telemetry **Arcade buttons → Sequential shifter** (opt-in): bind **Gear up** / **Gear down** / **Gear reset** on the input profile for sequential/paddle boxes that do not map to H-pattern gears. Pattern is **R → 1 → Max gears**; Reset jumps to **1**. When enabled, H-pattern and bumper-paddle gear inference are ignored.
 - **Custom bindings** after Gear 6: Binding Wizard with **Bind Button** + optional **Bind FN** popups, plus a **Toggle** checkbox (hold vs latch). If FN is bound, the button requires that key held. Remove with **X**.
@@ -21,7 +27,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
-- Docs: **Forza device-profile findings** — games author different FFB mixes per device class; virtual G920 gets sparse CF (grain on DDs) vs native Fanatec spring-led mix. Documented in `docs/force-feedback.md`, compatibility, architecture, user guide, README.
+- Renamed shared OEM EffectDriver **`g920ffb.dll` → `emuffb.dll`** (`native/emuffb`; `%ProgramData%\SteeringWheelEmulator\emuffb\`; `%TEMP%\emuffb-effects.log`). Same COM CLSID and SHM map name. On Start, legacy `g920ffb` cache / InprocServer32 paths migrate to `emuffb.dll`. Quit Steam once if it still holds the old DLL.
+- Docs: **Forza device-profile findings** — games author different FFB mixes per device class; virtual G920 gets sparse CF (grain on DDs) vs native Fanatec spring-led mix. Documented in `docs/force-feedback.md`, compatibility, architecture, user guide, README. PC Comp identity + shared `emuffb` covered in architecture / user guide / research notes.
 - **Unified FFB core:** unpaced physical CF apply is the default for **all** vendors (including Simucube / generic). Device pace and Interpolate are opt-in Output feel sliders only (defaults 0), not vendor-gated always-on. Debug Test → CF pacing on Fanatec remains a 3 ms override when feel Device pace is off.
 - Renamed Output feel **CF pace** → **Device pace**, **Idle smooth** → **Interpolate**, **Gap hold** → **Gap fill** (mix adjustments; JSON keys unchanged).
 - Interpolate / Gap fill apply as mix adjustments only (no idle rim-settle mute). Force Feedback tooltips describe effect only (no third-party product references).
@@ -44,7 +51,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - **Peak soft** slider: **0 = off**, slide up for more peak compression (was inverted: 100% = off, lower = stronger).
 - **Spike cap:** limit is a per-second |Δtorque| cap (like Slew), not a raw per-call clamp. Slider goes to **0 = off** (was stuck at 5% minimum with “off” only at 100%). Legacy 100% migrates to 0. On the ~500 Hz OEM path, lowering the slider no longer turns into hard stair-steps that feel more rugged on DD bases.
 - **HidHide Hide bound devices only:** each **Start** syncs the hide list to the active profile — hides bound devices (match by DirectInput instance/product GUID and VID/PID) and **unhides** other gaming devices left hidden from a previous full-rig / Hide-all session. Wheel-only profiles no longer leave pedals/shifters cloaked after you switch profiles (or manually unhide them in HidHide Client).
-- **Install folder still “in use” by Steam:** never re-register `g920ffb.dll` COM InprocServer32 to the install folder when the ProgramData cache copy fails; rewrite stale Desktop/install paths (HKCU/HKLM × 32/64-bit) to `%ProgramData%\G920Emulator\g920ffb\`; update the cache via temp+Replace. Diagnostics `oem-registry.txt` shows install vs ProgramData. If the folder was already locked from an older load, close Steam once after updating.
+- **Install folder still “in use” by Steam:** never re-register `emuffb.dll` COM InprocServer32 to the install folder when the ProgramData cache copy fails; rewrite stale Desktop/install paths (HKCU/HKLM × 32/64-bit) to `%ProgramData%\SteeringWheelEmulator\emuffb\`; update the cache via temp+Replace. Diagnostics `oem-registry.txt` shows install vs ProgramData. If the folder was already locked from an older load, close Steam once after updating.
 - **HOST_STALE / mid-session disconnect:** virtual G920 uses **interrupt-push** WinUHid input (no ReadReport pull mode) so `SubmitInputReport` is not gated on a pending host read. Status + Debug log `HOST_STALE` / 2s heartbeats (`hostReadAgeMs`, `notReadyDelta`). **No mid-session Col01 auto-recover** for HOST_STALE or hard submit-fail (log + Stop/Start only; Settings opt-in later). Start/Stop orphan Col01 cleanup unchanged. Validated on Fanatec (idle + ~30 min live Unbound).
 - On bridge Start, disable Device Manager power-saving (“Allow the computer to turn off this device…”) for **WinUHid / VHF** nodes so Windows cannot sleep the virtual G920 while the app stays Running. Best-effort (needs elevation).
 - Telemetry synth, UDP send, and game-process probe run on a **side thread** (same idea as Simucube FFB apply). When Telemetry is off, the input loop skips that work entirely so SimHub I/O cannot stall virtual G920 reports.
@@ -62,7 +69,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ### Added
 
 - **Telemetry** tab: optional SimHub External Sim UDP feed for games with no native telemetry (Heat / Unbound first). Speed/RPM/gear are simulated from pedals and shifter; rumble/impact/road load come from the virtual G920 FFB mix. Requires SimHub 9.11.5+. No game-process injection.
-- **G920 Emulator (simulated)** External Sim registration (**Register with SimHub** / **Remove registration**) plus bundled **G920 Emulator RPM** plugin so ShakeIt built-in **Engine vibrations** works like native games.
+- **Steering Wheel Emulator (simulated)** External Sim registration (**Register with SimHub** / **Remove registration**) plus bundled **Steering Wheel Emulator RPM** plugin so ShakeIt built-in **Engine vibrations** works like native games.
 - Telemetry **simulation profiles** (Save / Save as / Default / Delete) under `telemetry-profiles`. Host/port/rate stay global in settings.
 - Telemetry **gearing** sliders (ratios, Diff, Tire, Redline) and hard-cut **Rev-limiter** with hysteresis.
 - Telemetry **arcade buttons**: Handbrake / NOS-Turbo binds plus strength/boost sliders.
@@ -80,11 +87,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
-- Install folder no longer stays "in use" after close: leave the app directory as CWD at startup, run helpers from `%TEMP%`, skip deferred pnputil cleanup on exit, and register `g920ffb.dll` from `%ProgramData%\G920Emulator\g920ffb\` so Steam/games do not lock the Desktop install folder. **Full clean restore** also deletes that `g920ffb` cache (and the whole `%ProgramData%\G920Emulator` tree when elevated).
+- Install folder no longer stays "in use" after close: leave the app directory as CWD at startup, run helpers from `%TEMP%`, skip deferred pnputil cleanup on exit, and register `emuffb.dll` from `%ProgramData%\SteeringWheelEmulator\emuffb\` so Steam/games do not lock the Desktop install folder. **Full clean restore** also deletes that `emuffb` cache (and the whole `%ProgramData%\SteeringWheelEmulator` tree when elevated).
 - Telemetry RPM can reach configured **Max**: soft headroom uses √(remaining/band). Coast stays off-throttle only; aero scales with (1−throttle)² so WOT can pin the gear but lifting brings RPM down again.
 - Telemetry tall gears can reach their configured max again: aero is per gear cap, and throttle fades free drag while climbing.
 - Telemetry idle RPM: no longer set `SessionPaused` when OEM FFB goes quiet (SimHub was zeroing the dash), and keep `EngineRpm` floored at the configured idle while the session is live.
-- SimHub **Engine vibrations** (built-in): External Sims never advertise the RPM feedback capability on their own; the **G920 Emulator RPM** plugin patches that when **G920 Emulator (simulated)** is active.
+- SimHub **Engine vibrations** (built-in): External Sims never advertise the RPM feedback capability on their own; the **Steering Wheel Emulator RPM** plugin patches that when **Steering Wheel Emulator (simulated)** is active.
 - HidHide **Start** / restore: batched CLI, shorter timeouts, gaming-devices-only hide list, detect open HidHide Client, and actually reapply the saved config on Stop/Exit.
 - Settings menu labels: **Apply HidHide on Start** and **Restore my HidHide on Stop** (both off = leave HidHide alone).
 - Telemetry **Redline** is a separate absolute RPM (SimHub `EngineShiftRpm`), not a percent of max.
@@ -99,7 +106,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - **Bind** on every Force Feedback slider (Master, Custom, feel, shaping, centering, mix): hardware −/+ while driving (1% tap / 5% hold on gains). Green **Bind** means a − or + is assigned; the bind dialog has **Clear** per side
 - **Debug Overlay** (Settings): topmost live G920 inputs + FFB diagnostics
 - **Effect Changes Overlay** (Settings, on by default): brief top-center HUD of category, slider name, and value when FFB bind buttons fire
-- FFB debug / overlay lists each DirectInput OEM effect type (seen / playing) with MIX totals, matching `g920ffb-effects.log`
+- FFB debug / overlay lists each DirectInput OEM effect type (seen / playing) with MIX totals, matching `emuffb-effects.log`
 - Diagnostics capture emulator vs game process CPU/RAM (10 s snapshots + export). Game GPU/CPU being high is expected; GPU is not sampled
 
 ## [0.2.5] - 2026-10-05
@@ -121,7 +128,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ### Fixed
 
 - **Forza FFB silent:** games that re-download full DIEP_ALL (`0x3FF`) every frame (Forza / some Steam Input paths) never armed Constant Force - only Unbound-style `0x100` param streams did. Updates on an existing effect handle now arm CF/periodics; Steam Aux publishes the full mix when no game Torque channel is live.
-- **Steam unload harden:** `g920ffb` PIN now falls back to a permanent `LoadLibrary` ref if pin fails, and holds a COM lock for process lifetime (crash stamp `0x6AC32A35` was the pre-pin Oct 4 build; no `steam.exe` faults after the pinned builds).
+- **Steam unload harden:** `emuffb` PIN now falls back to a permanent `LoadLibrary` ref if pin fails, and holds a COM lock for process lifetime (crash stamp `0x6AC32A35` was the pre-pin Oct 4 build; no `steam.exe` faults after the pinned builds).
 - **OEM FFB polarity:** Constant / ramp / periodic forces were published in DI device sense while springs used app sense (`+` = right); after `FfbBridge`’s base negation, CF pushed into the turn (Unbound’s Invert Constant Force was compensating). Non-condition effects now convert DI→app; conditions no longer take `DIEFFECT` direction; Unbound/Heat seed drops the CF invert workaround.
 - **Debug FFB log stall:** with Debug on, Forza’s per-frame OEM downloads (~600 lines/s) opened/wrote/closed the log on the game thread and could freeze game input while the emulator UI stayed live - log is now rate-limited, keeps the file open, and rotates at 4 MB
 - **Start after Stop:** OEM/SDK restore always runs even if WinUHid stop is slow; Start waits longer for teardown before recreating the virtual G920
@@ -145,7 +152,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
-- **Steam crash** (`steam.exe` / `g920ffb.dll_unloaded` ACCESS_VIOLATION): pin OEM FFB DLL for process lifetime; `DllCanUnloadNow` refuses unload
+- **Steam crash** (`steam.exe` / `emuffb.dll_unloaded` ACCESS_VIOLATION): pin OEM FFB DLL for process lifetime; `DllCanUnloadNow` refuses unload
 - Forza Horizon 6 splash exit (code 100): Windows **test signing** left on (not OEM/SDK pins)
 - WinUHid Install no longer stops after enabling test signing without installing the driver (avoids duplicate enumerators / false “Not installed”)
 - WinUHid status distinguishes **Reboot required** / **Not responding** from **Not installed**
@@ -156,7 +163,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ### Added
 
 - FFB profile **Need For Speed Unbound / Heat** (Desktop-era mix: CF/Spring/Damper gains, Invert Constant Force, damper velocity/deadband scales, light torque shaping)
-- Advanced mix options on FFB profiles: Invert Constant Force, damper velocity scale, damper deadband scale (applied in `g920ffb.dll`)
+- Advanced mix options on FFB profiles: Invert Constant Force, damper velocity scale, damper deadband scale (applied in `emuffb.dll`)
 - Click FFB % / value labels to type exact numbers
 - Shifter mode tooltip explaining Exclusive H-pattern vs Passthrough
 
@@ -185,7 +192,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
-- Status-bar **Debug** session that gates OEM (`g920ffb-effects.log`) and HID++ ingress file logging; **Export log…** only after **Stop debug**
+- Status-bar **Debug** session that gates OEM (`emuffb-effects.log`) and HID++ ingress file logging; **Export log…** only after **Stop debug**
 - Shared-memory v6 with game `Torque` plus Steam/overlay `AuxTorque` layer
 - Separate FFB profiles (`ffb-profiles\`), per-effect gains, and optional output-feel / torque-shaping controls (default **Raw** = pass-through)
 - Diagnostics zip extras: live FFB snapshot, HidHide dump, OEM registry, `game-ffb-analysis.txt` (Unbound race signature / Vibration hint)
@@ -215,16 +222,16 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 
-- Initial public build: virtual Logitech G920 (WinUHid), binding UI, HidHide helpers, OEM `g920ffb.dll` path, bundled WinUHid + Logitech Steering Wheel SDK
+- Initial public build: virtual Logitech G920 (WinUHid), binding UI, HidHide helpers, OEM `emuffb.dll` path, bundled WinUHid + Logitech Steering Wheel SDK
 - NFS Heat / Unbound gear mapping (reverse button 19 vs 12)
 
-[Unreleased]: https://github.com/camborambo/G920Emulator/compare/v0.2.7...HEAD
-[0.2.7]: https://github.com/camborambo/G920Emulator/compare/v0.2.6...v0.2.7
-[0.2.6]: https://github.com/camborambo/G920Emulator/compare/v0.2.5...v0.2.6
-[0.2.5]: https://github.com/camborambo/G920Emulator/compare/v0.2.4...v0.2.5
-[0.2.4]: https://github.com/camborambo/G920Emulator/compare/v0.2.3...v0.2.4
-[0.2.3]: https://github.com/camborambo/G920Emulator/compare/v0.2.2...v0.2.3
-[0.2.2]: https://github.com/camborambo/G920Emulator/compare/v0.2.1...v0.2.2
-[0.2.1]: https://github.com/camborambo/G920Emulator/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/camborambo/G920Emulator/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/camborambo/G920Emulator/releases/tag/v0.1.0
+[Unreleased]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.6...v0.2.7
+[0.2.6]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.5...v0.2.6
+[0.2.5]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.4...v0.2.5
+[0.2.4]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.3...v0.2.4
+[0.2.3]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/camborambo/SteeringWheelEmulator/releases/tag/v0.1.0
