@@ -206,6 +206,8 @@ If **joy.cpl still lists the G920 but buttons stop updating** in-game, the virtu
 
 If the **app itself freezes** while alt-tabbing or dragging FFB sliders, use a build that keeps DirectInput work off the UI thread (device refresh, FFB reattach, and FFB debug no longer poll the exclusive wheel on the UI). Stop → Start recovers a stuck session.
 
+If the **main window feels laggy** on a high-refresh monitor (144/240 Hz) with a weaker PC, that is display/UI paint cost — not Telemetry Send Hz. Current builds cap the WPF UI at **60 Hz** and slow live meters when the window is inactive or minimized.
+
 If the **game** freezes or loses the wheel mid-session while the emulator UI stays live, check whether status-bar **Debug** was left on - Forza-class titles stream OEM updates every frame, and older builds could stall the game on log I/O. Leave Debug off for racing; use it only for a short capture. Current builds rate-limit that log, but everyday play should still keep Debug off.
 
 Stop ends the virtual device and FFB apply loop. If Stop is slow (WinUHid teardown), wait a few seconds before Start again - Start waits for the previous virtual G920 to finish tearing down.

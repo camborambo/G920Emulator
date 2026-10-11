@@ -89,10 +89,10 @@ public static class DiagnosticsExporter
         "older builds could stall the game on log I/O while the emulator UI stayed live.\r\n\r\n" +
         "For Fanatec vs Simucube FFB comparison, do the same on both PCs with the same build.\r\n\r\n" +
         "Key files in this zip:\r\n" +
-        "  summary.txt       - machine, deps, processes, Debug Test knobs, emuffb.dll stamp\r\n" +
-        "  settings.json     - full app settings (incl. Debug Test / FFB experimental flags)\r\n" +
+        "  summary.txt       - machine, deps, processes, FFB path notes, emuffb.dll stamp\r\n" +
+        "  settings.json     - full app settings (legacy experimental flags forced off)\r\n" +
         "  devices.txt       - every DirectInput game device (incl. virtual G920 + FFB flag)\r\n" +
-        "  ffb-snapshot.txt  - live OEM mix / bridge attach / gains + Debug Test at export time\r\n" +
+        "  ffb-snapshot.txt  - live OEM mix / bridge attach / gains at export time\r\n" +
         "  hidhide.txt       - cloak, apps whitelist, hidden devices (via HidHideCLI)\r\n" +
         "  oem-registry.txt  - OEMForceFeedback CLSID / Effects / DLL path for VID_046D&PID_C262\r\n" +
         "  game-ffb-analysis.txt - OEM race signature (Triangle/CF vs spring-only / Vibration)\r\n" +
@@ -502,42 +502,25 @@ public static class DiagnosticsExporter
         }
         catch (Exception ex)
         {
-            sb.AppendLine("Debug Test (Settings): failed - " + ex.Message);
+            sb.AppendLine("FFB input path (Settings): failed - " + ex.Message);
         }
 
         File.WriteAllText(Path.Combine(staging, "ffb-snapshot.txt"), sb.ToString(), Encoding.UTF8);
     }
 
-    /// <summary>Readable Settings → Debug Test knobs for freeze A/B triage.</summary>
+    /// <summary>Legacy Debug Test knobs are UI-removed; record that runtime uses the release path.</summary>
     private static void AppendDebugTestSettings(StringBuilder sb, AppSettings settings)
     {
         sb.AppendLine();
-        sb.AppendLine("Debug Test (Settings)");
-        sb.AppendLine("  Enabled: " + (settings.FfbExperimentalInputFixes ? "yes" : "no (normal / release path)"));
-        // Effective runtime: sub-options only apply when Enabled is on.
-        var coop = settings.FfbExperimentalInputFixes
-            ? settings.FfbCooperativeMode.ToString()
-            : nameof(FfbCooperativeMode.Exclusive);
-        var dualHandle = settings.FfbExperimentalInputFixes && settings.FfbExperimentalDualHandleInput;
-        var unlocked = settings.FfbExperimentalInputFixes && settings.FfbExperimentalUnlockedSetParameters;
-        var nonBlocking = settings.FfbExperimentalInputFixes && settings.FfbExperimentalNonBlockingRimReads;
-        var cfFanatec = settings.FfbExperimentalInputFixes && settings.FfbExperimentalCfPacingOnFanatec;
-        sb.AppendLine("  Cooperative level (effective): " + coop);
-        sb.AppendLine("  Dual-handle input (effective): " +
-                      (dualHandle
-                          ? "on (standalone Exclusive FFB + InputHub NonExclusive poll)"
-                          : "off"));
-        sb.AppendLine("  Unlocked SetParameters (effective): " + (unlocked ? "on" : "off"));
-        sb.AppendLine("  Non-blocking rim reads (effective): " + (nonBlocking ? "on" : "off"));
-        sb.AppendLine("  CF pacing on Fanatec (effective): " + (cfFanatec ? "on" : "off"));
-        if (settings.FfbExperimentalInputFixes)
-        {
-            sb.AppendLine("  Stored coop: " + settings.FfbCooperativeMode);
-            sb.AppendLine("  Stored dual-handle input: " + settings.FfbExperimentalDualHandleInput);
-            sb.AppendLine("  Stored unlocked SetParameters: " + settings.FfbExperimentalUnlockedSetParameters);
-            sb.AppendLine("  Stored non-blocking rim reads: " + settings.FfbExperimentalNonBlockingRimReads);
-            sb.AppendLine("  Stored CF pacing on Fanatec: " + settings.FfbExperimentalCfPacingOnFanatec);
-        }
+        sb.AppendLine("FFB input path (Settings → Debug Test UI removed)");
+        sb.AppendLine("  Runtime: release path (Exclusive coop, locked SetParameters, blocking rim reads)");
+        sb.AppendLine("  Fanatec PC Comp + Fanatec physical: dual-handle in core (not a Settings knob)");
+        sb.AppendLine("  Stored legacy Enable (ignored): " + settings.FfbExperimentalInputFixes);
+        sb.AppendLine("  Stored legacy coop (ignored): " + settings.FfbCooperativeMode);
+        sb.AppendLine("  Stored legacy dual-handle (ignored): " + settings.FfbExperimentalDualHandleInput);
+        sb.AppendLine("  Stored legacy unlocked SetParameters (ignored): " + settings.FfbExperimentalUnlockedSetParameters);
+        sb.AppendLine("  Stored legacy non-blocking rim (ignored): " + settings.FfbExperimentalNonBlockingRimReads);
+        sb.AppendLine("  Stored legacy CF pacing on Fanatec (ignored): " + settings.FfbExperimentalCfPacingOnFanatec);
     }
 
     private static void WriteHidHide(string staging)

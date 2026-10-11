@@ -121,11 +121,8 @@ public sealed class BridgeService : IDisposable
     private long _healthReportFrozenSinceTick;
     private long _healthLastStaleNoteTick;
     private int _healthFrozenNotes;
-    private FfbCooperativeMode _ffbCooperativeMode = FfbCooperativeMode.Exclusive;
-    private bool _ffbExperimentalInputFixes;
-    private bool _ffbExperimentalUnlockedSetParameters;
-    private bool _ffbExperimentalNonBlockingRimReads;
-    private bool _ffbExperimentalDualHandleInput;
+    /// <summary>True when Exclusive FFB + InputHub NonExclusive Poll (Fanatec PC Comp core path).</summary>
+    private bool _ffbDualHandleActive;
     /// <summary>Last live axes from the exclusive FFB base (InputHub does not Poll it).</summary>
     private Dictionary<string, float>? _lastFfbAxes01;
     private bool[]? _lastFfbButtons;
@@ -566,6 +563,7 @@ public sealed class BridgeService : IDisposable
         });
         try { ffbTeardown.Wait(1500); } catch { /* ignore */ }
         _inputHub.PinFfbDevice(null);
+        _ffbDualHandleActive = false;
         _lastFfbAxes01 = null;
         _lastFfbButtons = null;
         _lastFfbHat = -1;
@@ -618,6 +616,7 @@ public sealed class BridgeService : IDisposable
         if (string.IsNullOrWhiteSpace(profile.FfbSourceDeviceId))
         {
             _inputHub.PinFfbDevice(null);
+            _ffbDualHandleActive = false;
             _lastFfbAxes01 = null;
             _lastFfbButtons = null;
             _lastFfbHat = -1;
@@ -626,10 +625,11 @@ public sealed class BridgeService : IDisposable
         }
 
         // Dual-handle: Exclusive FFB + InputHub NonExclusive Poll.
-        // Required for Fanatec PC Comp + Fanatec physical FFB; optional via Debug Test elsewhere.
+        // Core for Fanatec PC Comp + Fanatec physical FFB.
         var fanatecEmu = profile.EmulatedDevice == EmulatedDeviceKind.FanatecDd1PcComp;
         var fanatecPhysicalFfb = LooksLikeFanatecFfbSource(profile);
-        var dualHandle = _ffbExperimentalDualHandleInput || (fanatecEmu && fanatecPhysicalFfb);
+        var dualHandle = fanatecEmu && fanatecPhysicalFfb;
+        _ffbDualHandleActive = false;
         if (dualHandle)
         {
             _inputHub.PinFfbDevice(null);
@@ -644,22 +644,12 @@ public sealed class BridgeService : IDisposable
             _inputHub.PinFfbDevice(profile.FfbSourceDeviceId);
         }
 
-        // NonExclusive only when experimental debug bundle is on (Fanatec emu forces Exclusive dual-handle).
-        var preferNonExclusive = !dualHandle &&
-                                 _ffbExperimentalInputFixes &&
-                                 _ffbCooperativeMode == FfbCooperativeMode.NonExclusive;
-        if (_ffb.TryAttach(profile.FfbSourceDeviceId, preferNonExclusive, out var error))
+        if (_ffb.TryAttach(profile.FfbSourceDeviceId, preferSharedInput: false, out var error))
         {
-            if (preferNonExclusive)
-                LastFfbStatus = "FFB: attached (experimental · NonExclusive).";
-            else if (fanatecEmu && fanatecPhysicalFfb)
-                LastFfbStatus = "FFB: attached (Fanatec · dual-handle input for live wheel/gears).";
-            else if (dualHandle)
-                LastFfbStatus = "FFB: attached (experimental · dual-handle: Exclusive FFB + InputHub poll).";
-            else if (_ffbExperimentalInputFixes)
-                LastFfbStatus = "FFB: attached (experimental · Exclusive).";
-            else
-                LastFfbStatus = "FFB: attached to physical device.";
+            _ffbDualHandleActive = dualHandle;
+            LastFfbStatus = dualHandle
+                ? "FFB: attached (Fanatec · dual-handle input for live wheel/gears)."
+                : "FFB: attached to physical device.";
 
             if (_ffb.UsesCfPacing)
                 LastFfbStatus += $" CF pacing {_ffb.CfPacingLabel}.";
@@ -692,7 +682,10 @@ public sealed class BridgeService : IDisposable
         }
     }
 
-    /// <summary>Settings → Debug Test master + sub-options (all default off = last-release path).</summary>
+    /// <summary>
+    /// Legacy Debug Test knobs (UI removed). Callers should pass all false / Exclusive.
+    /// Fanatec PC Comp dual-handle remains a core path in TryAttachFfb.
+    /// </summary>
     public void SetFfbExperimentalOptions(
         bool enabled,
         bool unlockedSetParameters,
@@ -700,24 +693,21 @@ public sealed class BridgeService : IDisposable
         bool dualHandleInput,
         bool cfPacingOnFanatec)
     {
-        _ffbExperimentalInputFixes = enabled;
-        _ffbExperimentalUnlockedSetParameters = enabled && unlockedSetParameters;
-        _ffbExperimentalNonBlockingRimReads = enabled && nonBlockingRimReads;
-        _ffbExperimentalDualHandleInput = enabled && dualHandleInput;
+        // Always release path — Debug Test UI is gone.
+        _ = enabled;
+        _ = unlockedSetParameters;
+        _ = nonBlockingRimReads;
+        _ = dualHandleInput;
+        _ = cfPacingOnFanatec;
         _ffb.SetExperimentalInputOptions(
-            _ffbExperimentalUnlockedSetParameters,
-            _ffbExperimentalNonBlockingRimReads,
-            _ffbExperimentalDualHandleInput,
-            enabled && cfPacingOnFanatec);
+            unlockedSetParameters: false,
+            nonBlockingRimReads: false,
+            dualHandleInput: false,
+            cfPacingOnFanatec: false);
     }
 
-    /// <summary>Settings → coop mode (only applied when Debug Test is on).</summary>
-    public void SetFfbCooperativeMode(FfbCooperativeMode mode)
-    {
-        _ffbCooperativeMode = mode is FfbCooperativeMode.NonExclusive
-            ? FfbCooperativeMode.NonExclusive
-            : FfbCooperativeMode.Exclusive;
-    }
+    /// <summary>Legacy coop setter (UI removed). Always Exclusive.</summary>
+    public void SetFfbCooperativeMode(FfbCooperativeMode mode) => _ = mode;
 
     private void OnFfb(FfbCommand cmd)
     {
@@ -1297,7 +1287,7 @@ public sealed class BridgeService : IDisposable
 
         // Dual-handle: InputHub already Polls the FFB device NonExclusive — overlaying from
         // the Exclusive FFB handle would reintroduce the Fanatec soft-freeze flatline.
-        if (_ffbExperimentalDualHandleInput)
+        if (_ffbDualHandleActive)
             return devices;
 
         if (_ffb.IsReady && _ffb.TryGetOverlayInput(out var liveAxes, out var liveButtons, out var liveHat))

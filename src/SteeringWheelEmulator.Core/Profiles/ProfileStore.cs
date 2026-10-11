@@ -632,15 +632,13 @@ public sealed class ProfileStore
     }
 
     /// <summary>
-    /// Align Debug Test knobs with the known-good release path. v2 clears the old
-    /// “master on = unlocked + non-blocking bundle” migration.
+    /// Force legacy experimental knobs to the known-good release path (Debug Test UI removed).
     /// </summary>
     private static bool MigrateFfbExperimentalOptions(AppSettings settings, string json)
     {
         if (settings.FfbExperimentalOptionsVersion >= AppSettings.CurrentFfbExperimentalOptionsVersion)
             return false;
 
-        // Always land on release defaults (Debug Test off). Enable is opt-in afterward.
         settings.ApplyFfbExperimentalReleaseDefaults(enableDebugTest: false);
         return true;
     }
@@ -735,52 +733,42 @@ public sealed class AppSettings
     public bool UnloadHidHideConfigWhenStopped { get; set; }
 
     /// <summary>
-    /// Settings → Debug Test master switch. Default off = last-release FFB/input path.
-    /// Sub-options below are ignored unless this is on.
+    /// Legacy Settings → Debug Test master (UI removed). Kept for settings.json deserialize; always forced off.
     /// </summary>
     public bool FfbExperimentalInputFixes { get; set; }
 
     /// <summary>
-    /// Only used when <see cref="FfbExperimentalInputFixes"/> is on.
-    /// Exclusive = strongest FFB; NonExclusive = shared acquire if axes freeze on the base.
+    /// Legacy coop mode from Debug Test (UI removed). Always Exclusive on load/save.
     /// </summary>
     public FfbCooperativeMode FfbCooperativeMode { get; set; } = FfbCooperativeMode.Exclusive;
 
-    /// <summary>Debug Test: run SetParameters outside the DI lock so Poll can proceed.</summary>
+    /// <summary>Legacy Debug Test flag (ignored; UI removed).</summary>
     public bool FfbExperimentalUnlockedSetParameters { get; set; }
 
-    /// <summary>Debug Test: never stall rim/axis reads behind a slow FFB apply.</summary>
+    /// <summary>Legacy Debug Test flag (ignored; UI removed).</summary>
     public bool FfbExperimentalNonBlockingRimReads { get; set; }
 
     /// <summary>
-    /// Legacy Debug Test soft-catch-up flag (ignored). Soft catch-up lives on the FFB profile.
-    /// Kept so older settings.json still deserialize.
+    /// Legacy soft-catch-up flag (ignored). Soft catch-up lives on the FFB profile.
     /// </summary>
     public bool FfbExperimentalSoftCatchUpSteer { get; set; } = true;
 
-    /// <summary>
-    /// Debug Test: second NonExclusive Poll handle on the FFB device while FFB stays Exclusive.
-    /// A/B for mid-race soft freeze (Exclusive GetCurrentState flatline).
-    /// </summary>
+    /// <summary>Legacy Debug Test dual-handle flag (ignored; UI removed). Fanatec PC Comp dual-handle is core.</summary>
     public bool FfbExperimentalDualHandleInput { get; set; }
 
-    /// <summary>
-    /// Debug Test: enable CF device-update pacing on Fanatec (normally unpaced). Default off.
-    /// </summary>
+    /// <summary>Legacy Debug Test CF pacing on Fanatec (ignored; UI removed).</summary>
     public bool FfbExperimentalCfPacingOnFanatec { get; set; }
 
-    /// <summary>True after Debug Test sub-options have been written (or migrated from the old master-only flag).</summary>
+    /// <summary>True after experimental knobs were migrated to release defaults.</summary>
     public bool FfbExperimentalOptionsMigrated { get; set; }
 
     /// <summary>
-    /// Bump when Debug Test defaults/semantics change so we can re-apply release defaults once.
-    /// v2 = Enable only reveals; defaults = Exclusive / locked SP / blocking rim.
-    /// v3 = soft steering catch-up moved to Force Feedback profile (no longer a Debug Test knob).
-    /// v4 = CF pacing on Fanatec Debug Test knob (default off).
+    /// Bump when experimental defaults/semantics change so we re-apply release defaults once.
+    /// v5 = Settings → Debug Test UI removed; always force release path.
     /// </summary>
     public int FfbExperimentalOptionsVersion { get; set; }
 
-    public const int CurrentFfbExperimentalOptionsVersion = 4;
+    public const int CurrentFfbExperimentalOptionsVersion = 5;
 
     [JsonIgnore]
     public bool AppliesHidHideOnStart => HidHideApplyMode != HidHideApplyMode.Off;
@@ -842,20 +830,18 @@ public sealed class AppSettings
 
     public void NormalizeFfbCooperative()
     {
-        if (FfbCooperativeMode is not (FfbCooperativeMode.Exclusive or FfbCooperativeMode.NonExclusive))
-            FfbCooperativeMode = FfbCooperativeMode.Exclusive;
-        // Master off: keep stored knobs at release defaults so Enable only reveals (no behavior change).
-        if (!FfbExperimentalInputFixes)
-            ApplyFfbExperimentalReleaseDefaults(enableDebugTest: false);
+        // Debug Test UI removed — always persist Exclusive + release knobs.
+        ApplyFfbExperimentalReleaseDefaults(enableDebugTest: false);
     }
 
     /// <summary>
-    /// Known-good path from previous releases: Exclusive coop, locked SetParameters,
-    /// blocking rim reads (TryEnter 0). Soft steering catch-up is an FFB profile option.
+    /// Known-good release path: Exclusive coop, locked SetParameters, blocking rim reads.
+    /// Soft steering catch-up is an FFB profile option. <paramref name="enableDebugTest"/> is ignored (always off).
     /// </summary>
     public void ApplyFfbExperimentalReleaseDefaults(bool enableDebugTest = false)
     {
-        FfbExperimentalInputFixes = enableDebugTest;
+        _ = enableDebugTest;
+        FfbExperimentalInputFixes = false;
         FfbCooperativeMode = FfbCooperativeMode.Exclusive;
         FfbExperimentalUnlockedSetParameters = false;
         FfbExperimentalNonBlockingRimReads = false;

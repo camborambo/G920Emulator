@@ -52,17 +52,6 @@ public partial class SettingsWindow : Window
 
             HidHideRestoreCheck.IsChecked = s.UnloadHidHideConfigWhenStopped;
             UpdateHidHideRestoreEnabled();
-
-            FfbExperimentalCheck.IsChecked = s.FfbExperimentalInputFixes;
-            if (s.FfbCooperativeMode == FfbCooperativeMode.NonExclusive)
-                FfbNonExclusiveRadio.IsChecked = true;
-            else
-                FfbExclusiveRadio.IsChecked = true;
-            FfbDualHandleInputCheck.IsChecked = s.FfbExperimentalDualHandleInput;
-            FfbUnlockedSetParametersCheck.IsChecked = s.FfbExperimentalUnlockedSetParameters;
-            FfbNonBlockingRimReadsCheck.IsChecked = s.FfbExperimentalNonBlockingRimReads;
-            FfbCfPacingOnFanatecCheck.IsChecked = s.FfbExperimentalCfPacingOnFanatec;
-            UpdateFfbExperimentalOptionsVisible();
         }
         finally
         {
@@ -76,7 +65,6 @@ public partial class SettingsWindow : Window
         GeneralPanel.Visibility = GeneralTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         OverlaysPanel.Visibility = OverlaysTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         HidHidePanel.Visibility = HidHideTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-        DebugTestPanel.Visibility = DebugTestTab.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void HidHideMode_Changed(object sender, RoutedEventArgs e)
@@ -86,56 +74,6 @@ public partial class SettingsWindow : Window
         Persist();
     }
 
-    private void FfbExperimental_Changed(object sender, RoutedEventArgs e)
-    {
-        if (_suppress) return;
-        // Enable only reveals knobs. When turning on, show release defaults so behavior is unchanged.
-        if (FfbExperimentalCheck.IsChecked == true)
-            ApplyReleaseDefaultsToUi(enableDebugTest: true);
-        UpdateFfbExperimentalOptionsVisible();
-        Persist();
-    }
-
-    private void FfbCoop_Changed(object sender, RoutedEventArgs e)
-    {
-        if (_suppress) return;
-        Persist();
-    }
-
-    private void FfbDualHandle_Changed(object sender, RoutedEventArgs e)
-    {
-        if (_suppress) return;
-        Persist();
-    }
-
-    private void FfbExperimentalDefault_Click(object sender, RoutedEventArgs e)
-    {
-        if (_suppress) return;
-        ApplyReleaseDefaultsToUi(enableDebugTest: false);
-        UpdateFfbExperimentalOptionsVisible();
-        Persist();
-    }
-
-    /// <summary>UI + saved knobs = last stable release FFB/input path.</summary>
-    private void ApplyReleaseDefaultsToUi(bool enableDebugTest)
-    {
-        _suppress = true;
-        try
-        {
-            FfbExperimentalCheck.IsChecked = enableDebugTest;
-            FfbExclusiveRadio.IsChecked = true;
-            FfbNonExclusiveRadio.IsChecked = false;
-            FfbDualHandleInputCheck.IsChecked = false;
-            FfbUnlockedSetParametersCheck.IsChecked = false;
-            FfbNonBlockingRimReadsCheck.IsChecked = false;
-            FfbCfPacingOnFanatecCheck.IsChecked = false;
-        }
-        finally
-        {
-            _suppress = false;
-        }
-    }
-
     private void UpdateHidHideRestoreEnabled()
     {
         var modeOn = HidHideOffRadio?.IsChecked != true;
@@ -143,14 +81,6 @@ public partial class SettingsWindow : Window
         HidHideRestoreCheck.IsEnabled = modeOn;
         if (!modeOn)
             HidHideRestoreCheck.IsChecked = false;
-    }
-
-    private void UpdateFfbExperimentalOptionsVisible()
-    {
-        if (FfbExperimentalOptions is null) return;
-        FfbExperimentalOptions.Visibility = FfbExperimentalCheck?.IsChecked == true
-            ? Visibility.Visible
-            : Visibility.Collapsed;
     }
 
     private void Setting_Changed(object sender, RoutedEventArgs e)
@@ -175,16 +105,8 @@ public partial class SettingsWindow : Window
         settings.HidHideApplyMode = mode;
         settings.UnloadHidHideConfigWhenStopped = mode != HidHideApplyMode.Off &&
                                                   HidHideRestoreCheck.IsChecked == true;
-        settings.FfbExperimentalInputFixes = FfbExperimentalCheck.IsChecked == true;
-        settings.FfbCooperativeMode = FfbNonExclusiveRadio.IsChecked == true
-            ? FfbCooperativeMode.NonExclusive
-            : FfbCooperativeMode.Exclusive;
-        settings.FfbExperimentalDualHandleInput = FfbDualHandleInputCheck.IsChecked == true;
-        settings.FfbExperimentalUnlockedSetParameters = FfbUnlockedSetParametersCheck.IsChecked == true;
-        settings.FfbExperimentalNonBlockingRimReads = FfbNonBlockingRimReadsCheck.IsChecked == true;
-        settings.FfbExperimentalCfPacingOnFanatec = FfbCfPacingOnFanatecCheck.IsChecked == true;
-        settings.FfbExperimentalOptionsMigrated = true;
-        settings.FfbExperimentalOptionsVersion = AppSettings.CurrentFfbExperimentalOptionsVersion;
+        // Debug Test UI removed — always persist the known-good release FFB/input path.
+        settings.ApplyFfbExperimentalReleaseDefaults(enableDebugTest: false);
         settings.NormalizeHidHide();
         settings.NormalizeFfbCooperative();
         _profiles.SaveSettings(settings);

@@ -44,7 +44,7 @@ public sealed class FfbBridge : IDisposable
     private string? _deviceName;
     private Joystick? _joystick;
     private Joystick? _ownedFallback;
-    /// <summary>Debug Test dual-handle: separate NonExclusive Poll joystick (same GUID as FFB).</summary>
+    /// <summary>Legacy dual-handle Poll joystick (same GUID as FFB); experimental flag always off.</summary>
     private Joystick? _inputJoystick;
     private readonly object _inputGate = new();
     private Effect? _constantEffect;
@@ -94,13 +94,13 @@ public sealed class FfbBridge : IDisposable
     /// <summary>Winning SetParameters flags for this base - skip multi-strategy probes after first success.</summary>
     private EffectParameterFlags? _fastMagnitudeFlags;
     private bool _fastMagnitudeUsesFullParams;
-    /// <summary>Debug Test: SetParameters outside the DI lock (default off).</summary>
+    /// <summary>Legacy experimental: SetParameters outside the DI lock (always off).</summary>
     private bool _experimentalUnlockedSetParameters;
-    /// <summary>Debug Test: brief wait / never stall rim reads behind apply (default off).</summary>
+    /// <summary>Legacy experimental: brief wait on rim reads (always off).</summary>
     private bool _experimentalNonBlockingRimReads;
-    /// <summary>Debug Test: second NonExclusive Poll handle while FFB stays Exclusive (default off).</summary>
+    /// <summary>Legacy experimental dual-handle (always off; Fanatec PC Comp dual-handle is core).</summary>
     private bool _experimentalDualHandleInput;
-    /// <summary>Debug Test: apply CF device-update pacing on Fanatec too (default off).</summary>
+    /// <summary>Legacy experimental CF pacing on Fanatec (always off).</summary>
     private bool _experimentalCfPacingOnFanatec;
 
     private enum WheelVendor
@@ -128,7 +128,7 @@ public sealed class FfbBridge : IDisposable
     /// <summary>
     /// True when Device pace is active — apply loop must keep ticking so
     /// the latest OEM target is slipped between queue updates. Opt-in via Output feel
-    /// → Device pace (or Debug Test → CF pacing on Fanatec as a 3 ms override).
+    /// → Device pace (legacy experimental Fanatec override always off).
     /// </summary>
     public bool UsesCfPacing
     {
@@ -165,7 +165,7 @@ public sealed class FfbBridge : IDisposable
     {
         if (_cfPacePeriodMs > 0)
             return _cfPacePeriodMs;
-        // Debug Test legacy: force 3 ms pace when feel Device pace is off.
+        // Legacy experimental Fanatec pace override (always off at runtime).
         if (_experimentalCfPacingOnFanatec)
             return DefaultCfPacePeriodMs;
         return 0;
@@ -209,7 +209,7 @@ public sealed class FfbBridge : IDisposable
     }
 
     /// <summary>
-    /// Settings → Debug Test sub-options (each default off = last-release FFB/input path).
+    /// Legacy experimental knobs (Settings → Debug Test UI removed). Callers pass all false.
     /// </summary>
     public void SetExperimentalInputOptions(
         bool unlockedSetParameters,
@@ -708,7 +708,7 @@ public sealed class FfbBridge : IDisposable
             }
         }
 
-        // Debug Test: brief wait when cache is stale. Release: never wait (TryEnter 0).
+        // Legacy experimental: brief wait when cache is stale. Release: never wait (TryEnter 0).
         var waitMs = ExperimentalNonBlockingRimReads && cacheAge > 24 ? 8 : 0;
         if (!Monitor.TryEnter(_diGate, waitMs))
         {

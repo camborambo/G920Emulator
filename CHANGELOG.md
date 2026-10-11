@@ -7,6 +7,11 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+
+- Main window UI capped at **60 Hz** (`Timeline.DesiredFrameRate`) so high-refresh monitors do not multiply WPF paint cost on weaker PCs. Live meters slow to ~10 Hz when the window is inactive/minimized, with a light adaptive backoff under load; unchanged Text/ProgressBar values are skipped.
+- Removed Settings → **Debug Test** (and all sub-options). Runtime always uses the known-good release FFB/input path. Fanatec PC Comp + Fanatec physical dual-handle stays in the core path. Soft steering catch-up / Invert FFB remain on Force Feedback → Advanced Settings. Legacy `settings.json` keys still load but are forced off.
+
 ## [0.2.8] - 2026-10-10
 
 ### Changed
@@ -32,7 +37,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 - Renamed shared OEM EffectDriver **`g920ffb.dll` → `emuffb.dll`** (`native/emuffb`; `%ProgramData%\SteeringWheelEmulator\emuffb\`; `%TEMP%\emuffb-effects.log`). Same COM CLSID and SHM map name. On Start, legacy `g920ffb` cache / InprocServer32 paths migrate to `emuffb.dll`. Quit Steam once if it still holds the old DLL.
 - Docs: **Forza device-profile findings** — games author different FFB mixes per device class; virtual G920 gets sparse CF (grain on DDs) vs native Fanatec spring-led mix. Documented in `docs/force-feedback.md`, compatibility, architecture, user guide, README. PC Comp identity + shared `emuffb` covered in architecture / user guide / research notes.
-- **Unified FFB core:** unpaced physical CF apply is the default for **all** vendors (including Simucube / generic). Device pace and Interpolate are opt-in Output feel sliders only (defaults 0), not vendor-gated always-on. Debug Test → CF pacing on Fanatec remains a 3 ms override when feel Device pace is off.
+- **Unified FFB core:** unpaced physical CF apply is the default for **all** vendors (including Simucube / generic). Device pace and Interpolate are opt-in Output feel sliders only (defaults 0), not vendor-gated always-on.
 - Renamed Output feel **CF pace** → **Device pace**, **Idle smooth** → **Interpolate**, **Gap hold** → **Gap fill** (mix adjustments; JSON keys unchanged).
 - Interpolate / Gap fill apply as mix adjustments only (no idle rim-settle mute). Force Feedback tooltips describe effect only (no third-party product references).
 - Gap fill defaults to **0 (off)** and shows/disables as off while Interpolate is off (was a misleading 80 ms default).

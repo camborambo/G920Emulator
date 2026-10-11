@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Windows;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using SteeringWheelEmulator.Core;
 using SteeringWheelEmulator.Core.Setup;
@@ -34,6 +35,11 @@ public partial class App : Application
             Shutdown();
             return;
         }
+
+        // Cap WPF composition at 60 Hz so 144/240 Hz monitors do not multiply paint cost.
+        Timeline.DesiredFrameRateProperty.OverrideMetadata(
+            typeof(Timeline),
+            new FrameworkPropertyMetadata { DefaultValue = 60 });
 
         // HidHide auto-apply / unload-on-stop are Settings toggles; otherwise use Dependencies / HidHide Client.
         base.OnStartup(e);

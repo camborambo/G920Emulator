@@ -15,7 +15,7 @@ public sealed class FfbProfile
 
     /// <summary>
     /// Limit per-frame virtual steering jumps (softens USB/DI catch-up spikes on the FFB base).
-    /// Off by default; part of the FFB profile, not Debug Test.
+    /// Off by default; part of the FFB profile (Force Feedback → Advanced Settings).
     /// </summary>
     public bool SoftCatchUpSteer { get; set; }
 

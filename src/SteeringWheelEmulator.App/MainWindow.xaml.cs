@@ -61,10 +61,12 @@ public partial class MainWindow : Window
     private volatile bool _bridgeBusy;
     private int _livePreviewPollInFlight;
     private bool _minimizeToTray;
-    private bool _ffbExperimentalInputFixesApplied;
-    private FfbCooperativeMode _ffbCooperativeModeApplied = FfbCooperativeMode.Exclusive;
-    private bool _ffbExperimentalDualHandleApplied;
     private WindowState _restoreWindowState = WindowState.Normal;
+    private const int UiTimerActiveMs = 16;
+    private const int UiTimerIdleMs = 100;
+    private const int UiTimerBackoffMs = 33;
+    private int _uiTimerSlowTicks;
+    private bool _uiTimerBackedOff;
     private TrayIcon? _trayIcon;
     private DebugOverlayWindow? _debugOverlay;
     private TelemetryDebugOverlayWindow? _telemetryDebugOverlay;
@@ -114,8 +116,8 @@ public partial class MainWindow : Window
         RefreshFfbProfilesCombo(_profile.FfbProfileName);
         ApplyAppSettings(_profiles.LoadSettings());
 
-        // 16 ms so live axis meters track the ~500 Hz bridge without looking lagged.
-        _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        // ~60 Hz live meters while focused; slows when inactive / under load.
+        _uiTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(UiTimerActiveMs) };
         _uiTimer.Tick += (_, _) => RefreshLiveUi();
         _uiTimer.Start();
 
@@ -140,7 +142,9 @@ public partial class MainWindow : Window
             var hwnd = new WindowInteropHelper(this).Handle;
             if (hwnd != IntPtr.Zero)
                 _bridge.BindFfbWindow(hwnd);
+            UpdateUiTimerInterval();
         };
+        Deactivated += (_, _) => UpdateUiTimerInterval();
         Closing += OnClosing;
         StateChanged += OnWindowStateChanged;
     }
@@ -408,27 +412,15 @@ public partial class MainWindow : Window
         if (!settings.CheckForUpdates)
             HideUpdateBanner();
 
-        var prevExperimental = _ffbExperimentalInputFixesApplied;
-        var prevCoop = _ffbCooperativeModeApplied;
-        var prevDual = _ffbExperimentalDualHandleApplied;
+        // Debug Test removed — always the known-good release FFB/input path.
+        // Fanatec PC Comp + Fanatec physical still dual-handles inside BridgeService.
         _bridge.SetFfbExperimentalOptions(
-            settings.FfbExperimentalInputFixes,
-            settings.FfbExperimentalUnlockedSetParameters,
-            settings.FfbExperimentalNonBlockingRimReads,
-            settings.FfbExperimentalDualHandleInput,
-            settings.FfbExperimentalCfPacingOnFanatec);
-        _bridge.SetFfbCooperativeMode(settings.FfbCooperativeMode);
-        _ffbExperimentalInputFixesApplied = settings.FfbExperimentalInputFixes;
-        _ffbCooperativeModeApplied = settings.FfbCooperativeMode;
-        _ffbExperimentalDualHandleApplied =
-            settings.FfbExperimentalInputFixes && settings.FfbExperimentalDualHandleInput;
-
-        // Re-attach when Enable / coop / dual-handle changes (opens or closes the Poll handle).
-        var ffbTestChanged = prevExperimental != settings.FfbExperimentalInputFixes ||
-                             prevCoop != settings.FfbCooperativeMode ||
-                             prevDual != _ffbExperimentalDualHandleApplied;
-        if (ffbTestChanged && _bridge.IsRunning)
-            _ = Task.Run(() => _bridge.TryAttachFfb(out _));
+            enabled: false,
+            unlockedSetParameters: false,
+            nonBlockingRimReads: false,
+            dualHandleInput: false,
+            cfPacingOnFanatec: false);
+        _bridge.SetFfbCooperativeMode(FfbCooperativeMode.Exclusive);
     }
 
     private async Task CheckForGitHubUpdateAsync(bool force)
@@ -1717,38 +1709,23 @@ public partial class MainWindow : Window
         var overlayOn = _telemetryDebugOverlay is { IsVisible: true };
         if (TelemetryTabRadio?.IsChecked != true && !overlayOn)
             return;
-        TelemetryStatusText.Text = _bridge.TelemetryStatus;
+        SetTextIfChanged(TelemetryStatusText, _bridge.TelemetryStatus);
         var t = _bridge.LatestTelemetry;
-        if (TelemetryGearText is not null)
-            TelemetryGearText.Text = "Gear " + (string.IsNullOrEmpty(t.Gear) ? "N" : t.Gear);
-        if (TelemetrySteerText is not null)
-            TelemetrySteerText.Text = $"Steering: {t.Steering:+0.00;-0.00;0.00}";
-        if (TelemetrySteerBar is not null)
-            TelemetrySteerBar.Value = t.Steering;
-        if (TelemetryThrottleText is not null)
-            TelemetryThrottleText.Text = $"Throttle: {t.Throttle * 100:0}%";
-        if (TelemetryThrottleBar is not null)
-            TelemetryThrottleBar.Value = t.Throttle;
-        if (TelemetryBrakeText is not null)
-            TelemetryBrakeText.Text = $"Brake: {t.Brake * 100:0}%";
-        if (TelemetryBrakeBar is not null)
-            TelemetryBrakeBar.Value = t.Brake;
-        if (TelemetryClutchText is not null)
-            TelemetryClutchText.Text = $"Clutch: {t.Clutch * 100:0}%";
-        if (TelemetryClutchBar is not null)
-            TelemetryClutchBar.Value = t.Clutch;
-        if (TelemetrySpeedText is not null)
-            TelemetrySpeedText.Text = $"Speed: {FormatSpeedFromKmh(t.SpeedKmh)}";
-        if (TelemetrySpeedBar is not null)
-            TelemetrySpeedBar.Value = t.SpeedKmh;
-        if (TelemetryRpmText is not null)
-            TelemetryRpmText.Text = $"RPM: {t.EngineRpm:0}";
-        if (TelemetryRpmBar is not null)
-            TelemetryRpmBar.Value = t.EngineRpm;
-        if (TelemetryEngineVibText is not null)
-            TelemetryEngineVibText.Text = $"Engine vibration: {t.EngineVibration * 100:0}%";
-        if (TelemetryEngineVibBar is not null)
-            TelemetryEngineVibBar.Value = t.EngineVibration;
+        SetTextIfChanged(TelemetryGearText, "Gear " + (string.IsNullOrEmpty(t.Gear) ? "N" : t.Gear));
+        SetTextIfChanged(TelemetrySteerText, $"Steering: {t.Steering:+0.00;-0.00;0.00}");
+        SetBarIfChanged(TelemetrySteerBar, t.Steering);
+        SetTextIfChanged(TelemetryThrottleText, $"Throttle: {t.Throttle * 100:0}%");
+        SetBarIfChanged(TelemetryThrottleBar, t.Throttle);
+        SetTextIfChanged(TelemetryBrakeText, $"Brake: {t.Brake * 100:0}%");
+        SetBarIfChanged(TelemetryBrakeBar, t.Brake);
+        SetTextIfChanged(TelemetryClutchText, $"Clutch: {t.Clutch * 100:0}%");
+        SetBarIfChanged(TelemetryClutchBar, t.Clutch);
+        SetTextIfChanged(TelemetrySpeedText, $"Speed: {FormatSpeedFromKmh(t.SpeedKmh)}");
+        SetBarIfChanged(TelemetrySpeedBar, t.SpeedKmh);
+        SetTextIfChanged(TelemetryRpmText, $"RPM: {t.EngineRpm:0}");
+        SetBarIfChanged(TelemetryRpmBar, t.EngineRpm);
+        SetTextIfChanged(TelemetryEngineVibText, $"Engine vibration: {t.EngineVibration * 100:0}%");
+        SetBarIfChanged(TelemetryEngineVibBar, t.EngineVibration);
         SetTelemetryHoldDot(TelemetryHandbrakeLiveDot, t.HandbrakeHeld, TelemetryHandbrakeHeldBrush);
         SetTelemetryHoldDot(TelemetryNosLiveDot, t.NosHeld, TelemetryNosHeldBrush);
         const float g = 9.80665f;
@@ -1759,21 +1736,16 @@ public partial class MainWindow : Window
         if (TelemetryGForceText is not null)
         {
             var totalXy = MathF.Sqrt(surgeG * surgeG + swayG * swayG);
-            TelemetryGForceText.Text =
-                $"{totalXy:0.00} g  ·  surge {surgeG:+0.00;-0.00;0.00}  sway {swayG:+0.00;-0.00;0.00}  heave {heaveG:0.00}";
+            SetTextIfChanged(
+                TelemetryGForceText,
+                $"{totalXy:0.00} g  ·  surge {surgeG:+0.00;-0.00;0.00}  sway {swayG:+0.00;-0.00;0.00}  heave {heaveG:0.00}");
         }
-        if (TelemetryRumbleText is not null)
-            TelemetryRumbleText.Text = $"Surface rumble: {t.SurfaceRumble * 100:0}%";
-        if (TelemetryRumbleBar is not null)
-            TelemetryRumbleBar.Value = t.SurfaceRumble;
-        if (TelemetryImpactText is not null)
-            TelemetryImpactText.Text = $"Impact: {t.Impact * 100:0}%";
-        if (TelemetryImpactBar is not null)
-            TelemetryImpactBar.Value = t.Impact;
-        if (TelemetryLoadText is not null)
-            TelemetryLoadText.Text = $"Road load: {t.RoadLoad * 100:0}%";
-        if (TelemetryLoadBar is not null)
-            TelemetryLoadBar.Value = t.RoadLoad;
+        SetTextIfChanged(TelemetryRumbleText, $"Surface rumble: {t.SurfaceRumble * 100:0}%");
+        SetBarIfChanged(TelemetryRumbleBar, t.SurfaceRumble);
+        SetTextIfChanged(TelemetryImpactText, $"Impact: {t.Impact * 100:0}%");
+        SetBarIfChanged(TelemetryImpactBar, t.Impact);
+        SetTextIfChanged(TelemetryLoadText, $"Road load: {t.RoadLoad * 100:0}%");
+        SetBarIfChanged(TelemetryLoadBar, t.RoadLoad);
 
         if (_telemetryDebugOverlay is { IsVisible: true })
         {
@@ -1842,6 +1814,7 @@ public partial class MainWindow : Window
 
     private void OnWindowStateChanged(object? sender, EventArgs e)
     {
+        UpdateUiTimerInterval();
         if (WindowState == WindowState.Minimized)
         {
             if (_minimizeToTray)
@@ -1854,6 +1827,18 @@ public partial class MainWindow : Window
             RestoreFromTray(keepMinimized: false);
         else
             ShowInTaskbar = true;
+    }
+
+    private void UpdateUiTimerInterval()
+    {
+        if (_uiTimer is null) return;
+        var idle = !IsActive || WindowState == WindowState.Minimized;
+        var ms = idle
+            ? UiTimerIdleMs
+            : (_uiTimerBackedOff ? UiTimerBackoffMs : UiTimerActiveMs);
+        var next = TimeSpan.FromMilliseconds(ms);
+        if (_uiTimer.Interval != next)
+            _uiTimer.Interval = next;
     }
 
     private void HideToTray()
@@ -2975,34 +2960,61 @@ public partial class MainWindow : Window
         if (_bindingDialogOpen || _bridgeBusy)
             return;
 
-        if (!_bridge.IsRunning)
+        var sw = Stopwatch.StartNew();
+        try
         {
-            ScheduleLivePreviewPoll();
+            if (!_bridge.IsRunning)
+            {
+                ScheduleLivePreviewPoll();
+                return;
+            }
+
+            ApplyLive(_bridge.LatestState);
+            ProcessFfbEffectNudges(_bridge.LatestDevices);
+            var link = _bridge.LinkStatus;
+            if (!string.IsNullOrWhiteSpace(link) && StatusText is not null &&
+                !StatusText.Text.StartsWith("FFB ", StringComparison.Ordinal) &&
+                !StatusText.Text.StartsWith("Return-to-center", StringComparison.Ordinal) &&
+                !StatusText.Text.StartsWith("Starting", StringComparison.Ordinal) &&
+                !StatusText.Text.StartsWith("Stopping", StringComparison.Ordinal) &&
+                !StatusText.Text.StartsWith("Shutting", StringComparison.Ordinal))
+            {
+                SetTextIfChanged(StatusText, link);
+                _shownLinkStatus = link;
+            }
+            else if (string.IsNullOrWhiteSpace(link) && _shownLinkStatus is not null && StatusText is not null)
+            {
+                if (StatusText.Text == _shownLinkStatus)
+                    SetTextIfChanged(StatusText, "Bridge running - virtual G920 active.");
+                _shownLinkStatus = null;
+            }
+
+            RefreshFfbDiagnostics();
+            ApplyTelemetryLive();
+        }
+        finally
+        {
+            sw.Stop();
+            ApplyUiTimerAdaptiveBackoff(sw.ElapsedMilliseconds);
+        }
+    }
+
+    private void ApplyUiTimerAdaptiveBackoff(long elapsedMs)
+    {
+        // Light backoff when a focused refresh is heavy for several ticks.
+        if (!IsActive || WindowState == WindowState.Minimized)
             return;
-        }
 
-        ApplyLive(_bridge.LatestState);
-        ProcessFfbEffectNudges(_bridge.LatestDevices);
-        var link = _bridge.LinkStatus;
-        if (!string.IsNullOrWhiteSpace(link) && StatusText is not null &&
-            !StatusText.Text.StartsWith("FFB ", StringComparison.Ordinal) &&
-            !StatusText.Text.StartsWith("Return-to-center", StringComparison.Ordinal) &&
-            !StatusText.Text.StartsWith("Starting", StringComparison.Ordinal) &&
-            !StatusText.Text.StartsWith("Stopping", StringComparison.Ordinal) &&
-            !StatusText.Text.StartsWith("Shutting", StringComparison.Ordinal))
-        {
-            StatusText.Text = link;
-            _shownLinkStatus = link;
-        }
-        else if (string.IsNullOrWhiteSpace(link) && _shownLinkStatus is not null && StatusText is not null)
-        {
-            if (StatusText.Text == _shownLinkStatus)
-                StatusText.Text = "Bridge running - virtual G920 active.";
-            _shownLinkStatus = null;
-        }
+        if (elapsedMs >= 12)
+            _uiTimerSlowTicks = Math.Min(_uiTimerSlowTicks + 1, 8);
+        else if (_uiTimerSlowTicks > 0)
+            _uiTimerSlowTicks--;
 
-        RefreshFfbDiagnostics();
-        ApplyTelemetryLive();
+        var wantBackoff = _uiTimerSlowTicks >= 3;
+        if (wantBackoff == _uiTimerBackedOff)
+            return;
+        _uiTimerBackedOff = wantBackoff;
+        UpdateUiTimerInterval();
     }
 
     private void ScheduleLivePreviewPoll()
@@ -3217,29 +3229,43 @@ public partial class MainWindow : Window
 
     private void ApplyLive(MappedG920State s)
     {
-        GearText.Text = $"Gear: {s.ActiveGearLabel}";
-        SteerText.Text = $"Steering: {s.Steering:F2}";
-        SteerBar.Value = s.Steering;
-        ThrottleText.Text = $"Throttle: {s.Throttle:P0}";
-        ThrottleBar.Value = s.Throttle;
-        BrakeText.Text = $"Brake: {s.Brake:P0}";
-        BrakeBar.Value = s.Brake;
-        ClutchText.Text = $"Clutch: {s.Clutch:P0}";
-        ClutchBar.Value = s.Clutch;
+        SetTextIfChanged(GearText, $"Gear: {s.ActiveGearLabel}");
+        SetTextIfChanged(SteerText, $"Steering: {s.Steering:F2}");
+        SetBarIfChanged(SteerBar, s.Steering);
+        SetTextIfChanged(ThrottleText, $"Throttle: {s.Throttle:P0}");
+        SetBarIfChanged(ThrottleBar, s.Throttle);
+        SetTextIfChanged(BrakeText, $"Brake: {s.Brake:P0}");
+        SetBarIfChanged(BrakeBar, s.Brake);
+        SetTextIfChanged(ClutchText, $"Clutch: {s.Clutch:P0}");
+        SetBarIfChanged(ClutchBar, s.Clutch);
 
-        if (StripGearText is not null) StripGearText.Text = $"GEAR {s.ActiveGearLabel}";
-        if (StripSteerText is not null) StripSteerText.Text = $"Steering: {s.Steering:F2}";
-        if (StripSteerBar is not null) StripSteerBar.Value = s.Steering;
-        if (StripThrottleText is not null) StripThrottleText.Text = $"Throttle: {s.Throttle:P0}";
-        if (StripThrottleBar is not null) StripThrottleBar.Value = s.Throttle;
-        if (StripBrakeText is not null) StripBrakeText.Text = $"Brake: {s.Brake:P0}";
-        if (StripBrakeBar is not null) StripBrakeBar.Value = s.Brake;
-        if (StripClutchText is not null) StripClutchText.Text = $"Clutch: {s.Clutch:P0}";
-        if (StripClutchBar is not null) StripClutchBar.Value = s.Clutch;
+        SetTextIfChanged(StripGearText, $"GEAR {s.ActiveGearLabel}");
+        SetTextIfChanged(StripSteerText, $"Steering: {s.Steering:F2}");
+        SetBarIfChanged(StripSteerBar, s.Steering);
+        SetTextIfChanged(StripThrottleText, $"Throttle: {s.Throttle:P0}");
+        SetBarIfChanged(StripThrottleBar, s.Throttle);
+        SetTextIfChanged(StripBrakeText, $"Brake: {s.Brake:P0}");
+        SetBarIfChanged(StripBrakeBar, s.Brake);
+        SetTextIfChanged(StripClutchText, $"Clutch: {s.Clutch:P0}");
+        SetBarIfChanged(StripClutchBar, s.Clutch);
 
-        ButtonsText.Text = "Buttons: " + DebugOverlayWindow.FormatButtons(s);
+        SetTextIfChanged(ButtonsText, "Buttons: " + DebugOverlayWindow.FormatButtons(s));
         if (_debugOverlay is { IsVisible: true })
             _debugOverlay.UpdateInput(s);
+    }
+
+    private static void SetTextIfChanged(TextBlock? block, string value)
+    {
+        if (block is null) return;
+        if (block.Text != value)
+            block.Text = value;
+    }
+
+    private static void SetBarIfChanged(ProgressBar? bar, double value)
+    {
+        if (bar is null) return;
+        if (Math.Abs(bar.Value - value) > 0.0005)
+            bar.Value = value;
     }
 
     private void RefreshButton_Click(object sender, RoutedEventArgs e) => RefreshDevices(restoreHidden: true);

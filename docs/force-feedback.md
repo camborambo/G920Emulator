@@ -76,7 +76,7 @@ Timing and shaping follow DirectInput semantics:
 | **Interpolate** | **0 (off)** | Blend window (ms) on the mixed force for sparse updates. |
 | **Gap fill** | **0 (off)** | Hold last force across update gaps when Interpolate &gt; 0. |
 
-Each slider adds its effect independently when set above 0. Interpolate / Gap fill / Smoothing / Peak soft / torque shaping adjust the mixed force; Device pace rates how often that mix is sent to the base. Apply-path EMA stays off. `FFB_TUNE` logs `devicePace` / `interpolate` / `gapFill` / `shmRecon`. Settings → **Debug Test** → **CF pacing on Fanatec** still forces a 3 ms pace when Device pace feel is off (legacy A/B). Offline: `tools/IdleSmoothReplay`.
+Each slider adds its effect independently when set above 0. Interpolate / Gap fill / Smoothing / Peak soft / torque shaping adjust the mixed force; Device pace rates how often that mix is sent to the base. Apply-path EMA stays off. `FFB_TUNE` logs `devicePace` / `interpolate` / `gapFill` / `shmRecon`. Offline: `tools/IdleSmoothReplay`.
 
 ## How games author FFB (Forza vs NFS, G920 vs DD)
 
