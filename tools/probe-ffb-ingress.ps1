@@ -1,7 +1,7 @@
 # Probe virtual G920 FFB ingress path while the emulator + game are running.
 $ErrorActionPreference = 'Continue'
 Write-Host "=== Processes ==="
-Get-Process G920Emulator,NeedForSpeedUnbound,NFSUnbound -ErrorAction SilentlyContinue |
+Get-Process SteeringWheelEmulator,G920Emulator,NeedForSpeedUnbound,NFSUnbound -ErrorAction SilentlyContinue |
   Format-Table Id, ProcessName, StartTime -AutoSize
 
 Write-Host "`n=== C262 PnP nodes ==="

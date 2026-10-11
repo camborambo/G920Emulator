@@ -1,4 +1,4 @@
-// G920 Emulator — DirectInput OEM force-feedback driver (IDirectInputEffectDriver)
+// Steering Wheel Emulator — DirectInput OEM force-feedback driver (IDirectInputEffectDriver)
 #pragma once
 #include <windows.h>
 
@@ -14,7 +14,8 @@ extern LONG g_cLocks;
 void G920FfbAddObject(void);
 void G920FfbReleaseObject(void);
 
-// Shared memory: virtual-G920 OEM effects <-> G920Emulator bridge.
+// Shared memory: virtual-G920 OEM effects <-> Steering Wheel Emulator bridge.
+// Wire name stays Local\G920Emulator.FfbTorque.v7 (native + managed must match).
 // Contract: anything downloaded against our OEM CLSID must reach the base.
 // Game process owns Torque.*; Steam/overlay may only fill Aux* (rumble layer)
 // so they cannot zero-out the game channel.

@@ -1,6 +1,6 @@
 # Manual fallback: create the Root\WinUHid device node and bind WinUHidDriver.inf.
 # Run elevated (right-click PowerShell → Run as administrator):
-#   cd <path-to>\G920Emulator\winuhid
+#   cd <path-to>\SteeringWheelEmulator\winuhid
 #   .\Install-DeviceNode.ps1
 
 $ErrorActionPreference = 'Stop'

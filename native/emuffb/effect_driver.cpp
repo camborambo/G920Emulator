@@ -48,6 +48,7 @@ static bool IsNonGameFfbHostProcess()
 		_wcsicmp(base, L"steamwebhelper.exe") == 0 ||
 		_wcsicmp(base, L"gameoverlayui.exe") == 0 ||
 		_wcsicmp(base, L"gameoverlayui64.exe") == 0 ||
+		_wcsicmp(base, L"SteeringWheelEmulator.exe") == 0 ||
 		_wcsicmp(base, L"G920Emulator.exe") == 0;
 	InterlockedExchange(&g_HostKind, nonGame ? 1 : 0);
 	return nonGame;

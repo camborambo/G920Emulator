@@ -1,6 +1,6 @@
 # Bundled WinUHid package
 
-These files ship with G920 Emulator. The in-app **Install WinUHid** button installs from this folder - no download.
+These files ship with Steering Wheel Emulator. The in-app **Install WinUHid** button installs from this folder - no download.
 
 | File | Purpose |
 |------|---------|

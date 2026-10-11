@@ -10,9 +10,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/src/G920Emulator.App/bin/Debug/net8.0-windows/G920Emulator.dll",
+            "program": "${workspaceFolder}/src/SteeringWheelEmulator.App/bin/Debug/net8.0-windows/SteeringWheelEmulator.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/src/G920Emulator.App",
+            "cwd": "${workspaceFolder}/src/SteeringWheelEmulator.App",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false

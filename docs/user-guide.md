@@ -12,7 +12,7 @@
 ## Launch
 
 1. Download **`SteeringWheelEmulator-win-x64.zip`** from [Releases](https://github.com/camborambo/SteeringWheelEmulator/releases).
-2. Extract → open the **`G920Emulator`** folder → run **`SteeringWheelEmulator.exe`**. Only one instance can run; launching again restores the existing window (including from the system tray).
+2. Extract → open the **`SteeringWheelEmulator`** folder → run **`SteeringWheelEmulator.exe`**. Only one instance can run; launching again restores the existing window (including from the system tray).
 
 (From a source checkout: `.\publish.ps1`, then `dist\SteeringWheelEmulator\SteeringWheelEmulator.exe`.)
 
@@ -24,7 +24,7 @@ The window title and status bar show the app version (for example **v0.2.7**). W
 
 1. Click **Update** - the zip downloads to **Downloads** and that folder opens.
 2. Close Steering Wheel Emulator if it is running.
-3. Unzip the new `G920Emulator` folder **over** the folder you already use (same place you put it the first time).
+3. Unzip the new `SteeringWheelEmulator` folder **over** the folder you already use (same place you put it the first time).
 4. Run the new `SteeringWheelEmulator.exe`. Bindings stay in `%AppData%\SteeringWheelEmulator\` unless you use `portable.txt`.
 
 If Windows says the install folder is **in use**, Steam often still has an old `emuffb.dll` loaded from that folder. OEM FFB is registered under `%ProgramData%\SteeringWheelEmulator\emuffb\` — **fully quit Steam once**, then delete or replace the folder. (Closing only the emulator is not enough if Steam already loaded the old path.)
@@ -41,7 +41,7 @@ If Windows says the install folder is **in use**, Steam often still has an old `
    - **Hide bound devices only** - same whitelist/cloak, but each **Start** hides only devices used in your current bindings (and FFB source) and **unhides** other gaming devices left hidden from a previous profile (e.g. pedals after switching from a full-rig bind to wheel-only). Unbound pads stay visible for in-game binding.
    - **Save & restore on Stop** - with a mode other than Off, **Start** can save your current HidHide setup and put it back on **Stop**/**Exit** (status shows **Restoring HidHide…**; if it times out, the next launch finishes it).
    Close **HidHide Client** before Start (or let the app close it when prompted) - while that window is open the driver returns Access denied / 0x0005. Windows may also ask for admin permission.
-4. Pick **Emulated device** (toolbar): **Logitech G920** or **Fanatec DD1** — only while Stopped. Create a profile name → **Save** (stored in `%AppData%\SteeringWheelEmulator\profiles`, so updates do not wipe binds). Save also captures a HidHide snapshot into the profile when possible; switching profiles restores it.
+4. Pick **Emulated device** (toolbar) while Stopped — use **Fanatec DD1** for Forza Horizon, **Logitech G920** for Heat / Unbound-style titles. Create a profile name → **Save** (stored in `%AppData%\SteeringWheelEmulator\profiles`, so updates do not wipe binds). Save also captures a HidHide snapshot into the profile when possible; switching profiles restores it.
 
 Details and troubleshooting: [driver-install.md](driver-install.md).
 
@@ -58,10 +58,21 @@ Toolbar combo (change only while the bridge is **Stopped**):
 
 | Identity | VID:PID | When to use |
 |----------|---------|-------------|
-| **Logitech G920** (default) | `046D:C262` | Titles with a G920 / Logitech wheel profile (Heat, Unbound, Forza on G920 path, …) |
-| **Fanatec DD1** | `0EB7:0004` | Titles / mixed-brand setups that expect Fanatec PC Compatibility mode |
+| **Logitech G920** (default) | `046D:C262` | Titles with a G920 / Logitech wheel profile (NFS Heat, Unbound, …) |
+| **Fanatec DD1** | `0EB7:0004` | **Forza Horizon** (recommended) and titles that expect Fanatec PC Compatibility |
 
 Your **physical** Fanatec (or other) base stays in Detected devices for bind and FFB output — it is not removed because it shares a Fanatec VID. PC Comp uses shared **`emuffb.dll`** for game FFB (no Fanatec SDK, no Logitech SDK pin). Gear R defaults to button **12** on PC Comp profiles.
+
+### Forza Horizon — use Fanatec DD1
+
+Forza detects wheels by **device class**. For the best detection and binding path:
+
+1. Stop the bridge → set **Emulated device** to **Fanatec DD1** → **Save** your input profile → **Start**.
+2. Launch Forza. It should see a Fanatec PC Comp–class wheel (`0EB7:0004`).
+3. In Forza’s wheel / settings UI, select **any Fanatec wheel profile** (DD1, ClubSport, etc. — pick whatever the game lists).
+4. Use Forza’s **custom bind** flow to map steering, pedals, and buttons to that profile so you end up with a **custom wheel profile** that matches your physical layout.
+
+Using the virtual **G920** identity in Forza is possible but usually worse: Forza then authors a sparse G920-class FFB mix (grain on DD bases). Prefer Fanatec DD1 for Forza; keep G920 for Heat / Unbound.
 
 ## Telemetry (SimHub)
 
@@ -187,7 +198,7 @@ Slider ranges and probing tips: [force-feedback.md](force-feedback.md).
 1. Confirm WinUHid + HidHide ready.
 2. Bindings update the live meters on the right.
 3. Click **Start** (the button becomes **Stop** while the bridge is running).
-4. Launch the game and select the virtual wheel (G920 or Fanatec PC Comp, matching **Emulated device**).
+4. Launch the game and select the virtual wheel (matching **Emulated device**). For Forza: any Fanatec profile → custom bind ([above](#forza-horizon--use-fanatec-dd1)).
 
 You can change bindings (and tweak Invert, **Axis range**, or **Activate on Axis**) while the bridge is running; they take effect immediately. Restart the bridge only when you change something that attaches at Start (for example the **FFB output device**) or after driver/dependency changes.
 
@@ -211,7 +222,9 @@ Input bindings and force-feedback presets are stored **separately**, both outsid
 
 There is **no** `profiles\` or `ffb-profiles\` directory next to `SteeringWheelEmulator.exe` in the zip. On first run the app creates AppData, seeds an empty **Default** input profile, and seeds the built-in **Raw** FFB profile.
 
-**Migration (once, never overwrites AppData):** copies **input** `profiles\*.json` and `settings.json` from next-to-exe leftovers and from `%AppData%\N4Sunbound`. Next-to-exe `ffb-profiles\` are **not** migrated - re-Save FFB presets, or rely on legacy inline FFB fields on an input JSON becoming a named FFB profile when loaded.
+**Migration (once, never overwrites destination files):**
+- From the pre-rename product folders `%AppData%\G920Emulator\`, `%ProgramData%\G920Emulator\`, and LocalAppData `G920Emulator\` into the matching `SteeringWheelEmulator` roots (then removes the old trees when safe).
+- Copies **input** `profiles\*.json` and `settings.json` from next-to-exe leftovers and from `%AppData%\N4Sunbound`. Next-to-exe `ffb-profiles\` are **not** migrated - re-Save FFB presets, or rely on legacy inline FFB fields on an input JSON becoming a named FFB profile when loaded.
 
 Each input profile links to an FFB profile name. Saving an input profile also saves the linked FFB preset’s current master / effect gains / feel / torque shaping.
 
@@ -268,7 +281,8 @@ The zip includes:
 - `oem-registry.txt` - emuffb COM InprocServer32 (ProgramData vs install folder) + OEMForceFeedback CLSID tree
 - `game-ffb-analysis.txt` - Unbound race signature / Vibration hint from the OEM log
 - `logs\emuffb-effects.log` - game OEM calls (`SESSION` / `CALL` / `EFFECT` / `MIX`) when Debug was used
-- `logs\g920emulator-perf.log` - 10 s snapshots of emulator CPU/RAM plus the OEM game (and Steam aux) process; high game load is expected, watch emulator `cpu1` / `hint=`
+- `logs\steeringwheel-emulator-perf.log` - 10 s snapshots of emulator CPU/RAM plus the OEM game (and Steam aux) process; high game load is expected, watch emulator `cpu1` / `hint=`
+- `logs\steeringwheel-emulator-bridge-health.log` - HOST_STALE / interruptPush / FFB_TUNE (when Debug was used)
 - Copies of AppData (or portable) `profiles\`, `ffb-profiles\`, and `settings.json`
 
 **Fanatec DD2** (Heat / Unbound) and **Simucube** (Unbound) are validated FFB targets. For comparisons: **Debug** → race briefly with wall hits → **Stop debug** → **Export log…** on each PC with the same build.

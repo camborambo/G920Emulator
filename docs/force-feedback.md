@@ -82,22 +82,26 @@ Each slider adds its effect independently when set above 0. Interpolate / Gap fi
 
 Games do **not** send one universal force stream. They pick an effect mix (and update rate) from the **device class they think they are talking to**. With the emulator, that device is the toolbar **Emulated device** (default **virtual G920**, or **Fanatec DD1**) — your physical Fanatec / Simucube / etc. is only the playback base.
 
-### Findings (Forza Horizon on virtual G920)
+### Recommendation for Forza Horizon
 
-Validated while chasing “grainy” idle / light-steer feel on **Simucube** with FH5/FH6:
+Use **Emulated device → Fanatec DD1** so Forza detects a Fanatec PC Comp wheel. In Forza, select **any Fanatec wheel profile**, then **custom bind** axes/buttons to create your custom wheel profile. Step-by-step: [user guide — Forza Horizon](user-guide.md#forza-horizon--use-fanatec-dd1).
 
-1. **Device profile matters more than the base brand.** Forza (and similar titles) author different DirectInput mixes for a Logitech G920 OEM wheel than for a native Fanatec / high-end DD path. Hiding the real base and presenting a G920 means you get the **G920-authored** mix, not the Fanatec-native one.
-2. **G920 path → sparse Constant Force.** On the virtual G920, Forza’s road/tire feel is often a **low-rate CF stream** (tens of Hz, stepped magnitudes) rather than a dense spring/damper blend. On a high-bandwidth DD that faithfully plays every step, that reads as **grain / stair-steps**, especially at idle and slow steering.
-3. **Native DD / Fanatec path → softer, spring-led mix.** Side-by-side captures (Fanatec base used natively vs same game through Steering Wheel Emulator) show the game (or its Fanatec profile) leaning on **spring / condition-heavy** forces with a smoother envelope. That is why a Fanatec can feel fine in Forza while the same title through the emulator feels grainy on Simucube — the **signals differ**, not just the motor.
-4. **NFS Unbound / Heat differ again.** Unbound tends to download a richer mix (Triangle / periodic + CF + damper, with Controllers → Vibration on). Menus may show Spring-only; in-race MIX should show non-zero CF/periodic/damper. That path usually feels less “stepped” on Raw than Forza’s G920 CF stream.
-5. **What the emulator can and cannot do.** We faithfully mix and play whatever the game downloads on the virtual G920. We **cannot** make Forza send its Fanatec-native profile while the game still sees a G920. Optional **Device pace** / **Interpolate** / **Gap fill** only reshape the G920 mix after the fact (defaults off = Raw / unpaced core for every base).
+### Findings (Forza Horizon on virtual G920 — why DD1 is better)
+
+Validated while chasing “grainy” idle / light-steer feel on **Simucube** with FH5/FH6 on the **G920** identity:
+
+1. **Device profile matters more than the base brand.** Forza authors different DirectInput mixes for a Logitech G920 OEM wheel than for a Fanatec / high-end DD path. Presenting a G920 means you get the **G920-authored** mix, not a Fanatec-class one.
+2. **G920 path → sparse Constant Force.** On the virtual G920, Forza’s road/tire feel is often a **low-rate CF stream** (tens of Hz, stepped magnitudes). On a high-bandwidth DD that faithfully plays every step, that reads as **grain / stair-steps**.
+3. **Fanatec-class path → better match.** Presenting **Fanatec DD1** (`0EB7:0004`) lets Forza treat the wheel like Fanatec PC Comp — pick any Fanatec profile in-game and custom-bind. Native Fanatec captures also lean on spring / condition-heavy forces with a smoother envelope.
+4. **NFS Unbound / Heat differ again.** Keep **Logitech G920** for those titles. Unbound tends to download a richer mix (Triangle / periodic + CF + damper, with Controllers → Vibration on).
+5. **What the emulator can and cannot do.** We play whatever the game downloads for the virtual identity. Switching **Emulated device** changes which class Forza sees; Output feel sliders only reshape the mix after the fact.
 
 ### Practical takeaway
 
 | Symptom | Likely cause | What to try |
 |---------|--------------|-------------|
-| Grainy idle / light steer in Forza on a DD | Sparse G920 CF from the game | Output feel: Device pace ~2–5, Interpolate tens of ms, Gap fill if needed |
-| Fanatec native feels fine, emulator grainy | Different game device profile | Expected; soften with Output feel, or accept G920 mix |
+| Forza wheel detection / binds feel wrong on G920 | Wrong device class | **Emulated device → Fanatec DD1**; in Forza pick any Fanatec profile → custom bind |
+| Grainy idle / light steer in Forza on a DD while on G920 | Sparse G920 CF from the game | Switch to Fanatec DD1; or Output feel (Device pace / Interpolate / Gap fill) as a fallback |
 | NFS Unbound weak rumble | Controller Vibration off / spring-only menus | Accessibility → Vibration On; check in-race MIX in Debug export |
 
 Leave status-bar **Debug** off for normal Forza play (per-frame OEM downloads); use short captures when comparing mixes.
@@ -191,7 +195,7 @@ Off by default so everyday use stays uncluttered. File logging (OEM effects + HI
 
 ## Status-bar Debug (OEM file log)
 
-**Leave Debug off for normal racing.** It enables `%TEMP%\emuffb-effects.log` (and HID++ ingress logging) from inside the game process. Titles that re-download effects every frame (Forza Horizon, some Steam Input paths) can generate hundreds of lines per second; older builds opened/closed the file on every write and could freeze game input while the emulator UI stayed live. Current `emuffb.dll` rate-limits stream lines, keeps the file open, and rotates at 4 MB - still use Debug only for short diagnostic captures, then **Stop debug**. Emulator CPU/RAM is sampled every 10 seconds into `%TEMP%\g920emulator-perf.log` (and once in `summary.txt` at export), including the OEM game process when `emuffb.dll` is loaded. That file is not written from the game. High game CPU/GPU is expected; the `hint=` line is about **emulator** load. GPU is not sampled.
+**Leave Debug off for normal racing.** It enables `%TEMP%\emuffb-effects.log` (and HID++ ingress logging) from inside the game process. Titles that re-download effects every frame (Forza Horizon, some Steam Input paths) can generate hundreds of lines per second; older builds opened/closed the file on every write and could freeze game input while the emulator UI stayed live. Current `emuffb.dll` rate-limits stream lines, keeps the file open, and rotates at 4 MB - still use Debug only for short diagnostic captures, then **Stop debug**. Emulator CPU/RAM is sampled every 10 seconds into `%TEMP%\steeringwheel-emulator-perf.log` (and once in `summary.txt` at export), including the OEM game process when `emuffb.dll` is loaded. That file is not written from the game. High game CPU/GPU is expected; the `hint=` line is about **emulator** load. GPU is not sampled.
 
 **FFB debug** (the expander) is separate: live counters and test pulses with no file I/O on the game thread. **Settings → FFB Debug Overlay** shows the same live G920 inputs and FFB diagnostics in a topmost window you can drag over the game.
 

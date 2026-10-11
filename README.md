@@ -34,7 +34,7 @@ Game FFB effects  →  emuffb.dll    →  Physical base
 
 **Unbound tip:** Accessibility → Controls → **Controller Vibration** must be **On**, or the game streams spring-only (walls/rumble stay at magnitude 0).
 
-**Forza tip:** The game authors a **G920-class** FFB mix (often sparse Constant Force) when it sees the virtual G920 — not the same signals as a native Fanatec DD path. That can feel grainy on high-end bases; optional Force Feedback → Output feel (**Device pace** / **Interpolate** / **Gap fill**) softens it. Details: [force-feedback.md](docs/force-feedback.md#how-games-author-ffb-forza-vs-nfs-g920-vs-dd).
+**Forza tip:** Set toolbar **Emulated device** to **Fanatec DD1** (while Stopped) so Forza detects a Fanatec PC Comp wheel. In Forza, pick **any Fanatec wheel profile**, then **custom bind** axes/buttons to build your layout. The virtual G920 identity is a worse fit for Forza (sparse G920-class FFB). Details: [user guide](docs/user-guide.md#forza-horizon--use-fanatec-dd1) · [force-feedback.md](docs/force-feedback.md#how-games-author-ffb-forza-vs-nfs-g920-vs-dd).
 
 ### After WinUHid is installed (important)
 
@@ -50,15 +50,15 @@ Emulator and Forza can coexist on the same boot after that. Details: [driver-ins
 No Visual Studio or .NET SDK required.
 
 1. Download **`SteeringWheelEmulator-win-x64.zip`** from the latest [**Releases**](https://github.com/camborambo/SteeringWheelEmulator/releases) page.
-2. Extract the zip - you get a **`G920Emulator`** folder.
+2. Extract the zip - you get a **`SteeringWheelEmulator`** folder.
 3. Run **`SteeringWheelEmulator.exe`** inside that folder.
 4. Open **Dependencies** → **Install WinUHid** (bundled; approve UAC; may reboot once or twice). When install finishes: confirm **test signing is off**, then **re-enable Secure Boot** in UEFI if you turned it off for install (see [above](#after-winuhid-is-installed-important)).
 5. Install **HidHide** from its download link → **Configure HidHide**.  
    Step-by-step: [driver install](docs/driver-install.md).
-6. Pick **Emulated device** (G920 or Fanatec DD1) while Stopped if needed. **Refresh** devices, bind steering / pedals / buttons / gears **R-6** (and D-pad via hat or **D-pad Up/Down/Left/Right**), pick an **FFB output device** + **FFB profile**, then **Save** your input profile (also stores a HidHide snapshot when capture succeeds).
-7. **Start bridge**, then launch your game and select the virtual wheel (G920 or Fanatec PC Comp).
+6. Pick **Emulated device** while Stopped (**Fanatec DD1** for Forza; **Logitech G920** for Heat / Unbound-style titles). **Refresh** devices, bind steering / pedals / buttons / gears **R-6** (and D-pad via hat or **D-pad Up/Down/Left/Right**), pick an **FFB output device** + **FFB profile**, then **Save** your input profile (also stores a HidHide snapshot when capture succeeds).
+7. **Start bridge**, then launch your game and select the virtual wheel (matching **Emulated device**). In Forza: choose any Fanatec profile → custom bind.
 
-Later releases: the app can show an **Update** banner when GitHub has a newer zip. That only downloads to **Downloads** - unzip over your `G920Emulator` folder yourself (AppData profiles are kept). You can turn the check off under **Settings**.
+Later releases: the app can show an **Update** banner when GitHub has a newer zip. That only downloads to **Downloads** - unzip over your `SteeringWheelEmulator` folder yourself (AppData profiles are kept). You can turn the check off under **Settings**.
 
 Binding changes apply while the bridge is running - no need to Stop/Start after rebinding. Full walkthrough: [user guide](docs/user-guide.md).
 
@@ -73,9 +73,11 @@ Profiles are **not** inside the install / zip folder. On first run the app creat
 %AppData%\SteeringWheelEmulator\settings.json
 ```
 
+Older installs under `%AppData%\G920Emulator\` (and matching ProgramData / LocalAppData) are migrated into these folders on first launch after the rename.
+
 **Input**, **FFB**, and **Telemetry** profiles are separate. Default FFB is **Raw** (exact game mix). Adjust master / per-effect gains / output feel / torque shaping, then Save / Save As under Force feedback; each input profile stores which FFB profile it links to. Telemetry host/port/rate stay in `settings.json`.
 
-That way unzipping a newer release over `G920Emulator\` does not wipe or replace your buttons or feel. The status bar shows this path when you refresh devices.
+That way unzipping a newer release over `SteeringWheelEmulator\` does not wipe or replace your buttons or feel. The status bar shows this path when you refresh devices.
 
 - Bindings also store a stable DirectInput **product** id so devices can rematch if Windows changes the instance GUID after a replug.
 - Optional USB-stick mode: create an empty `portable.txt` beside `SteeringWheelEmulator.exe` to keep `profiles\`, `ffb-profiles\`, and `settings.json` next to the app instead (created at runtime - never shipped in the zip).

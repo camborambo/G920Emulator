@@ -31,11 +31,11 @@ Some Windows 10 builds do not support `pnputil /add-device`. The app installer u
 2. Manual fallback (Admin PowerShell):
 
 ```powershell
-cd <path-to>\G920Emulator\winuhid
+cd <path-to>\SteeringWheelEmulator\winuhid
 .\Install-DeviceNode.ps1
 ```
 
-3. Recheck in the app. Log file if needed: `%TEMP%\g920emulator-winuhid-install.log`
+3. Recheck in the app. Log file if needed: `%TEMP%\steeringwheel-emulator-winuhid-install.log`
 
 ### Secure Boot
 

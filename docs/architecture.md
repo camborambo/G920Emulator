@@ -44,7 +44,7 @@ Gear packing (G920 identity):
 
 **Contract:** the game must see and target the **virtual wheel only** (G920 or Fanatec PC Comp). Physical bases, vJoy, and pads are HidHide’d from the game. Which wheel base is attached on the emulator side is an **output** choice only.
 
-**Important:** many titles (especially **Forza Horizon**) author **different FFB mixes per device class**. With the **G920** identity you get G920-authored signals (often sparse Constant Force), not a Fanatec-native spring-led mix — even when playing back on a Fanatec or Simucube base. Choosing **Fanatec DD1** presents `0EB7:0004` so titles that prefer that class can author a different mix. See [force-feedback.md — How games author FFB](force-feedback.md#how-games-author-ffb-forza-vs-nfs-g920-vs-dd).
+**Important:** many titles (especially **Forza Horizon**) author **different FFB mixes per device class**. For Forza, prefer **Fanatec DD1** (`0EB7:0004`), then in-game pick any Fanatec profile and custom-bind. The **G920** identity gives Forza a sparse G920-class mix even when the physical base is a Fanatec or Simucube. See [user guide — Forza](user-guide.md#forza-horizon--use-fanatec-dd1) · [force-feedback.md](force-feedback.md#how-games-author-ffb-forza-vs-nfs-g920-vs-dd).
 
 Games drive FFB through DirectInput OEM into our EffectDriver (not Logitech HID++ WriteReports on the virtual device):
 

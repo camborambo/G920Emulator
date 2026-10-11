@@ -28,9 +28,9 @@ $logiFfb = '{62B43F0E-E7DB-4329-8C13-A966D84A289F}'
 $sdkClsid = '{63BD165D-1584-4E75-AB56-08330350545F}'
 $oemFfRel = 'System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\VID_046D&PID_C262\OEMForceFeedback'
 
-$running = Get-Process -Name G920Emulator -ErrorAction SilentlyContinue
+$running = Get-Process -Name SteeringWheelEmulator,G920Emulator -ErrorAction SilentlyContinue
 if ($running) {
-    Write-Warning "SteeringWheelEmulator.exe is running (PID $($running.Id -join ',')). Stop it first or the guard will re-pin within seconds."
+    Write-Warning "Steering Wheel Emulator is running (PID $($running.Id -join ',')). Stop it first or the guard will re-pin within seconds."
     throw "Close Steering Wheel Emulator, then re-run this script."
 }
 

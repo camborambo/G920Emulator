@@ -9,6 +9,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 
+- Docs / Emulated-device tooltip: **Forza Horizon → Fanatec DD1**, then in Forza pick any Fanatec profile and custom-bind; keep **Logitech G920** for Heat / Unbound.
 - **Product rename → Steering Wheel Emulator:** UI brand, `SteeringWheelEmulator.exe` / zip / install folder, `%AppData%` / `%ProgramData%` / LocalAppData under `SteeringWheelEmulator` (one-time migrate from `G920Emulator`, then remove old trees when safe). GitHub repo → `camborambo/SteeringWheelEmulator`. C# projects/namespaces → `SteeringWheelEmulator.*` (`SteeringWheelEmulator.sln`). `emuffb` COM CLSID, SHM `Local\G920Emulator.FfbTorque.v7`, and virtual G920/Fanatec HID InstanceIDs unchanged. SimHub External Sim → **Steering Wheel Emulator (simulated)**; plugin → `SteeringWheelEmulator.SimHubPlugin.dll` (Register removes legacy `G920Emulator.SimHubPlugin`).
 
 ### Added
@@ -16,7 +17,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - **Emulated device** toolbar: **Logitech G920** (default) or **Fanatec DD1** (`0EB7:0004`). Games see that virtual identity; your physical Fanatec/Simucube/etc. stays the FFB output (and can still be bound). Change only while Stopped. Gear R defaults to **12** for PC Comp.
 - **Per-profile HidHide snapshot:** **Save** on an input profile captures the current hide list (best-effort). Switching profiles (or Start when Settings HidHide is **Off** but the profile has a snapshot) restores that list. Settings Hide-all / Hide-bound Start paths unchanged.
 - Output feel optional **Device pace**, **Interpolate** (full-path INT-like blend, not idle-only), and **Gap fill** — each slider adds its effect when &gt; 0 (defaults off). Offline replay: `tools/IdleSmoothReplay`.
-- Debug session logs **FFB_TUNE** lines to `g920emulator-bridge-health.log` when effect gains / output feel are applied (values + shared-memory readback) so exports can prove slider changes reached `emuffb`.
+- Debug session logs **FFB_TUNE** lines to `steeringwheel-emulator-bridge-health.log` when effect gains / output feel are applied (values + shared-memory readback) so exports can prove slider changes reached `emuffb`.
 - Telemetry **Max gears** in the Gearing card (1–10): UDP `MaxGears` → SimHub `CarSettings_MaxGears`, shows that many gear ratio / top-speed rows (paddles can use 7–10 for speed sim; H-shifter still 1–6). Gear tops use the [Blocklayer](https://www.blocklayer.com/rpm-gear) formula MPH = (tire × ShiftAt) / (336 × gear × diff) for all gears including 7–10; absolute speed ceiling raised to 1600 km/h so tall overdrive is not clipped through AbsoluteRpmMax. After updating, **Remove registration** → restart SimHub → **Register with SimHub** again if the packet layout changed.
 - Telemetry **Arcade buttons → Sequential shifter** (opt-in): bind **Gear up** / **Gear down** / **Gear reset** on the input profile for sequential/paddle boxes that do not map to H-pattern gears. Pattern is **R → 1 → Max gears**; Reset jumps to **1**. When enabled, H-pattern and bumper-paddle gear inference are ignored.
 - **Custom bindings** after Gear 6: Binding Wizard with **Bind Button** + optional **Bind FN** popups, plus a **Toggle** checkbox (hold vs latch). If FN is bound, the button requires that key held. Remove with **X**.

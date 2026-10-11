@@ -1,7 +1,7 @@
 # Bundled Logitech Steering Wheel SDK runtime
 
-These files ship with G920 Emulator. **Dependencies → Install Logitech SDK** (or Start bridge) copies them to
-`C:\ProgramData\G920Emulator\LogitechSDK\` and registers them at
+These files ship with Steering Wheel Emulator. **Dependencies → Install Logitech SDK** (or Start bridge with the G920 identity) copies them to
+`C:\ProgramData\SteeringWheelEmulator\LogitechSDK\` and registers them at
 `HKLM\SOFTWARE\Classes\CLSID\{63BD165D-1584-4E75-AB56-08330350545F}\ServerBinary` (64- and 32-bit views).
 
 Games built on the Logitech Steering Wheel SDK (NFS Heat, etc.) load the DLL from that key. Without it they never

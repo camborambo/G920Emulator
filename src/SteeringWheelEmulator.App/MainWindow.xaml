@@ -32,7 +32,7 @@
                      ToolTip="Virtual identity games see. Switch only while stopped."/>
           <ComboBox x:Name="EmulatedDeviceCombo" Width="170" VerticalAlignment="Center" Margin="0,0,14,0"
                     SelectionChanged="EmulatedDeviceCombo_SelectionChanged"
-                    ToolTip="Virtual identity games see. Mixed brands / Unbound Fanatec-style: Fanatec DD1. Physical Fanatec stays in Detected devices for bind/FFB."/>
+                    ToolTip="Virtual identity games see. Forza Horizon: use Fanatec DD1, then pick any Fanatec profile in-game and custom bind. NFS Heat/Unbound: Logitech G920. Physical Fanatec stays in Detected devices for bind/FFB."/>
           <TextBlock Text="Profile" Opacity="0.7" VerticalAlignment="Center" Margin="0,0,8,0"
                      ToolTip="Input profile - bindings / devices. Force Feedback has its own profiles on the Force Feedback tab."/>
           <ComboBox x:Name="SavedProfilesCombo" Width="220" VerticalAlignment="Center" Margin="0,0,6,0"
