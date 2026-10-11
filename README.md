@@ -171,7 +171,7 @@ User bindings and FFB presets live in **`%AppData%\SteeringWheelEmulator\`** at 
 
 ## Version notes
 
-Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.7**.
+Release history lives in **[CHANGELOG.md](CHANGELOG.md)** (not the README). Current package: **0.2.8**.
 
 ## Support
 

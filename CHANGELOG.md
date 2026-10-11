@@ -7,6 +7,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-10-10
+
 ### Changed
 
 - Docs / Emulated-device tooltip: **Forza Horizon → Fanatec DD1**, then in Forza pick any Fanatec profile and custom-bind; keep **Logitech G920** for Heat / Unbound.
@@ -226,7 +228,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Initial public build: virtual Logitech G920 (WinUHid), binding UI, HidHide helpers, OEM `emuffb.dll` path, bundled WinUHid + Logitech Steering Wheel SDK
 - NFS Heat / Unbound gear mapping (reverse button 19 vs 12)
 
-[Unreleased]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.8...HEAD
+[0.2.8]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/camborambo/SteeringWheelEmulator/compare/v0.2.4...v0.2.5
